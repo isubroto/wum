@@ -24,7 +24,7 @@ jobs:
           identifier: SubrotoSaha.wum
 
           # The GitHub token with public_repo scope (the PAT you created).
-          token: ${{ secrets.WINGET_PAT }}
+          token: ${{ secrets.WINGET_TOKEN }}
 
           # Optional: If your release tags have a 'v' prefix (e.g., "v1.2.3"),
           # this action will automatically remove it to get the version "1.2.3".
