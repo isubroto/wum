@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  project: ./TempCleaner.csproj
+  project: ./src/WUM.CLI/WUM.CLI.csproj
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   GITHUB_OWNER: ${{ github.repository_owner }}
   GITHUB_REPO: ${{ github.event.repository.name }}
