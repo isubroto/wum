@@ -225,7 +225,7 @@ jobs:
             ### 📝 Notes
             Improvements and bug fixes. Report issues here: https://github.com/${{ github.repository }}/issues
           files: |
-            bin/Release/net8.0-windows/win-x64/publish/*.exe
+            src/WUM.CLI/bin/Release/net10.0-windows/win-x64/publish/*.exe
             publish/wum-${{ steps.versions.outputs.safe }}.msi
           draft: false
           prerelease: false
