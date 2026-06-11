@@ -52,11 +52,89 @@ jobs:
         id: versions
         shell: pwsh
         run: |
+          # Get the latest tag matching v*
+          $latestTag = git describe --tags --abbrev=0 --match "v*" 2>$null
+          
+          # Initialize base version variables from GitVersion
+          $gitversionFull = '${{ steps.gitversion.outputs.FullSemVer }}'
+          $baseMajor = 0
+          $baseMinor = 0
+          $basePatch = 1
+          $baseRevision = 0
+          
+          if ($gitversionFull -match '^v?(\d+)\.(\d+)\.(\d+)') {
+              $baseMajor = [int]$Matches[1]
+              $baseMinor = [int]$Matches[2]
+              $basePatch = [int]$Matches[3]
+              if ($gitversionFull -match '[-.](\d+)$') {
+                  $baseRevision = [int]$Matches[1]
+              }
+          }
+          
+          # Get commits since the latest tag
+          if ($latestTag) {
+              $commits = git log "$latestTag..HEAD" --format=%B
+              $commitCount = 0
+              if ($commits) {
+                  $commitCount = [int](git rev-list --count "$latestTag..HEAD")
+              }
+          } else {
+              # No tags found, get all commits
+              $commits = git log --format=%B
+              $commitCount = [int](git rev-list --count HEAD)
+          }
+          
+          # Determine the revision
+          $revision = $baseRevision + $commitCount
+          
+          # Scan commits for version bump triggers (case-insensitive)
+          $hasBreaking = $false
+          $hasFeat = $false
+          $hasFix = $false
+          
+          if ($commits) {
+              foreach ($line in $commits) {
+                  if ([string]::IsNullOrWhiteSpace($line)) { continue }
+                  if ($line -match 'BREAKING CHANGE:') {
+                      $hasBreaking = $true
+                  }
+                  elseif ($line -match '^feat(\([\w\s-]*\))?:') {
+                      $hasFeat = $true
+                  }
+                  elseif ($line -match '^fix(\([\w\s-]*\))?:') {
+                      $hasFix = $true
+                  }
+              }
+          }
+          
+          # Compute major.minor.patch
+          $major = $baseMajor
+          $minor = $baseMinor
+          $patch = $basePatch
+          
+          if ($hasBreaking) {
+              $major = $baseMajor + 1
+              $minor = 0
+              $patch = 0
+          }
+          elseif ($hasFeat) {
+              $minor = $baseMinor + 1
+              $patch = 0
+          }
+          elseif ($hasFix) {
+              $patch = $basePatch + 1
+          }
+          
+          $safe = "$major.$minor.$patch.$revision"
           $full = '${{ steps.gitversion.outputs.FullSemVer }}'
-          $safe = $full -replace '\+', '.'
+          
+          Write-Host "Base Version: $baseMajor.$baseMinor.$basePatch (Revision: $baseRevision)"
+          Write-Host "New Commits: $commitCount"
+          Write-Host "Bumps detected - Breaking: $hasBreaking, Feat: $hasFeat, Fix: $hasFix"
+          Write-Host "Computed version: $safe"
+          
           Add-Content -Path $env:GITHUB_OUTPUT -Value "full=$full"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "safe=$safe"
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "msi=$msi"
 
       - name: Update .csproj Version
         shell: pwsh
