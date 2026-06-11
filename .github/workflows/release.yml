@@ -412,20 +412,20 @@ jobs:
           Write-Host "ProductCode: $cleanProductCode"
 
       - name: Upload WinGet Manifests as Artifacts
-        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        if: true
         uses: actions/upload-artifact@v4
         with:
           name: winget-manifests-v${{ steps.versions.outputs.safe }}
           path: winget/
 
       - name: Download wingetcreate
-        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        if: true
         shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://github.com/microsoft/winget-create/releases/latest/download/wingetcreate.exe" -OutFile wingetcreate.exe
 
       - name: Validate WinGet manifests
-        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        if: true
         shell: pwsh
         run: |
           if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
@@ -436,7 +436,7 @@ jobs:
            winget validate --manifest winget
 
       - name: Submit to WinGet
-        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        if: true
         env:
           WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
         shell: pwsh
