@@ -21,7 +21,7 @@ jobs:
         with:
           # Your package's unique identifier. MUST be in the format "Publisher.AppName".
           # Replace this with your actual Package Identifier.
-          identifier: SubrotoSaha.WUM
+          identifier: SubrotoSaha.wum
 
           # The GitHub token with public_repo scope (the PAT you created).
           token: ${{ secrets.WINGET_PAT }}

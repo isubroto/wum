@@ -1,4 +1,4 @@
-name: Release WUM CLI with MSI
+name: Release WPF App with MSI
 
 on:
   push:
@@ -11,15 +11,22 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  cli_project: ./src/WUM.CLI/WUM.CLI.csproj
-  build_out: src/WUM.CLI/bin/Release/net10.0-windows/win-x64
+  project: ./TempCleaner.csproj
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_OWNER: ${{ github.repository_owner }}
+  GITHUB_REPO: ${{ github.event.repository.name }}
 
 jobs:
   release:
-    if: ${{ github.actor != 'github-actions' }}
+    # Avoid loops if a bot-triggered push occurs
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: windows-latest
-    name: Build and Release WUM CLI with MSI
+    name: Build and Release WPF App with MSI
 
     steps:
       - name: Checkout Code
@@ -41,51 +48,56 @@ jobs:
         id: gitversion
         uses: gittools/actions/gitversion/execute@v4.5.0
 
+      - name: Compute versions
+        id: versions
+        shell: pwsh
+        run: |
+          $full = '${{ steps.gitversion.outputs.FullSemVer }}'
+          $safe = $full -replace '\+', '.'
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "full=$full"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "safe=$safe"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "msi=$msi"
+
       - name: Update .csproj Version
         shell: pwsh
         run: |
-          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-          $safeVersion = $version -replace '[+-]', '.'
-          "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $projFile = Get-Item $env:project
+          Write-Host "Updating version in: $($projFile.FullName)"
+          $version = '${{ steps.versions.outputs.safe }}'
+          $versionTag = "<Version>$version</Version>"
 
-          $projFile = "${{ env.cli_project }}"
-          Write-Host "Updating version in: $projFile"
-          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-
-          # Replace '+' with '.' to make version safe for file naming
-          $safeVersion = $version -replace '[+-]', '.'
-          $versionTag = "<Version>$safeVersion</Version>"
-
-          $content = Get-Content $projFile -Raw
-
+          $content = Get-Content $projFile.FullName -Raw
           if ($content -notmatch '<Version>.*?</Version>') {
-              # Insert <Version> before the first </PropertyGroup>
-              $content = [regex]::new('</PropertyGroup>').Replace($content, "    $versionTag`n  </PropertyGroup>", 1)
+            $content = $content -replace '</PropertyGroup>', "$versionTag`n</PropertyGroup>"
           } else {
-              $content = $content -replace '<Version>.*?</Version>', $versionTag
+            $content = $content -replace '<Version>.*?</Version>', $versionTag
           }
-
-          Set-Content $projFile $content -Encoding UTF8
-          Get-Content $projFile | Select-String "<Version>"
+          Set-Content $projFile.FullName $content -Encoding UTF8
+          Get-Content $projFile.FullName | Select-String "<Version>"
 
       - name: Restore Dependencies
-        run: dotnet restore ${{ env.cli_project }} -r win-x64
+        shell: pwsh
+        run: dotnet restore ${{ env.project }} -r win-x64
 
-      - name: Build CLI
-        run: dotnet build ${{ env.cli_project }} -c Release -r win-x64 --no-restore
+      - name: Build WPF App
+        shell: pwsh
+        run: dotnet build ${{ env.project }} -c Release --no-restore
 
-      - name: Publish CLI (single file)
-        run: dotnet publish ${{ env.cli_project }} -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --no-build
+      - name: Publish WPF App
+        shell: pwsh
+        run: dotnet publish ${{ env.project }} -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --no-build
 
       - name: Install WiX Toolset
+        shell: pwsh
         run: |
           Invoke-WebRequest -Uri https://github.com/wixtoolset/wix/releases/download/v6.0.0/wix-cli-x64.msi -OutFile wix6.msi
           Start-Process wix6.msi -ArgumentList "/quiet" -Wait
           Remove-Item wix6.msi
 
       - name: Generate Files.wxs excluding 'publish' folder
+        shell: pwsh
         run: |
-          & "C:\Program Files\WiX Toolset v6.0\bin\x64\heat.exe" dir "${{ env.build_out }}" `
+          & "C:\Program Files\WiX Toolset v6.0\bin\x64\heat.exe" dir "bin\Release\net8.0-windows\win-x64" `
             -cg AppFiles `
             -dr INSTALLFOLDER `
             -srd -gg `
@@ -94,54 +106,51 @@ jobs:
             -out Installer\Files.wxs `
             -t Installer\TransformExcludePublish.xsl
 
-      - name: show Files.wxs
+      - name: Show Files.wxs
+        shell: pwsh
         run: Get-Content -Path "Installer\Files.wxs"
 
-      - name: show Product.wxs
+      - name: Show Product.wxs
+        shell: pwsh
         run: Get-Content -Path "Installer\Product.wxs"
 
       - name: Build MSI Installer
         working-directory: Installer
+        shell: pwsh
         run: |
-          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-          $safeVersion = $version -replace '\+', '.'
+          $safeVersion = '${{ steps.versions.outputs.safe }}'   # for file names/tags
+
           "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" build Product.wxs Files.wxs `
             -arch x64 `
             -define ProductVersion=$safeVersion `
-            -define SourceDir="..\${{ env.build_out }}" `
+            -define SourceDir="..\bin\Release\net8.0-windows\win-x64" `
             -out "../publish/WUM-$safeVersion.msi"
 
       - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          name: "WUM v${{ env.SAFE_VERSION }}"
-          tag_name: v${{ env.SAFE_VERSION }}
+          name: "WUM v${{ steps.versions.outputs.safe }}"
+          tag_name: v${{ steps.versions.outputs.safe }}
           body: |
-            ## WUM v${{ env.SAFE_VERSION }}
+            ## 🧹 wum v${{ steps.versions.outputs.safe }}
 
-            ### Included
-            - **Portable Executable**: single-file `wum.exe`, no install needed
-            - **MSI Installer**: adds `wum` to system PATH
+            ### 📦 What's Included
+            - Portable Executable (single-file)
+            - MSI Installer
 
-            ### Install
-            - **MSI**: download `WUM-${{ env.SAFE_VERSION }}.msi`, run as Administrator, then `wum` works in any terminal
-            - **Portable**: download `wum.exe`, run directly
+            ### 🚀 Installation
+            - Download `wum-${{ steps.versions.outputs.safe }}.msi` and run it
+            - Or use the portable `.exe`
 
-            ### Requirements
-            - Windows 10/11 (x64)
-            - Self-contained (.NET 10 runtime bundled)
-
-            ### Technical
-            - Architecture: x64
-            - Framework: .NET 10
-            - Self-contained, single-file
+            ### 📝 Notes
+            Improvements and bug fixes. Report issues here: https://github.com/${{ github.repository }}/issues
           files: |
-            ${{ env.build_out }}/publish/*.exe
-            publish/WUM-${{ env.SAFE_VERSION }}.msi
+            bin/Release/net8.0-windows/win-x64/publish/*.exe
+            publish/wum-${{ steps.versions.outputs.safe }}.msi
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(steps.gitversion.outputs.FullSemVer, '-') }}
           generate_release_notes: true
 
       - name: Commit & Push .csproj version change (if any)
@@ -149,105 +158,208 @@ jobs:
         run: |
           git config user.name "Subroto Saha"
           git config user.email "isubrotosaha@gmail.com"
-
-          git add "${{ env.cli_project }}"
-
+          git add $env:project
           if (git diff --cached --quiet) {
-            Write-Host "No changes to commit. Version already up to date."
+            Write-Host "🟢 No changes to commit. Version already up to date."
           } else {
-            $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-            $safeVersion = $version -replace '\+', '.'
-            git commit -m "Bump version to $safeVersion"
+            $safeVersion = '${{ steps.versions.outputs.safe }}'
+            git commit -m "🔖 Bump version to $safeVersion"
             git push origin HEAD
-            Write-Host "Committed and pushed updated version: $safeVersion"
+            Write-Host "✅ Committed and pushed updated .csproj version: $safeVersion"
           }
 
-      - name: Create WinGet Manifest
+      # -----------------------------
+      # WinGet: Create manifests, validate, submit
+      # Only for stable releases (no '-' in version)
+      # -----------------------------
+      - name: Create WinGet Manifests
+        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
         shell: pwsh
         run: |
-          $version = "${{ env.SAFE_VERSION }}"
-          $repoUrl = "https://github.com/${{ github.repository }}"
-          $msiUrl = "$repoUrl/releases/download/v$version/WUM-$version.msi"
+          $ErrorActionPreference = "Stop"
 
-          New-Item -ItemType Directory -Force -Path "winget"
+          $version = '${{ steps.versions.outputs.safe }}'
+          $repo = "${{ github.repository }}"
+          $repoUrl = "https://github.com/$repo"
 
-          $msiPath = "publish/WUM-$version.msi"
+          $msiName = "wum-$version.msi"
+          $msiPath = "publish\$msiName"
+          if (-not (Test-Path $msiPath)) { throw "MSI not found at $msiPath" }
+
+          $msiUrl = "$repoUrl/releases/download/v$version/$msiName"
           $hash = (Get-FileHash -Path $msiPath -Algorithm SHA256).Hash
 
-          Write-Host "MSI Hash: $hash"
-          Write-Host "MSI URL: $msiUrl"
+          # Read MSI properties (ProductCode)
+          function Get-MsiProperty {
+            param([Parameter(Mandatory)][string]$Path,
+                  [Parameter(Mandatory)][string]$Property)
+            $installer = New-Object -ComObject WindowsInstaller.Installer
+            $database  = $installer.GetType().InvokeMember("OpenDatabase","InvokeMethod",$null,$installer,@($Path,0))
+            $view = $database.OpenView("SELECT ``Value`` FROM ``Property`` WHERE ``Property`` = '$Property'")
+            $view.Execute()
+            $record = $view.Fetch()
+            $value = if ($record) { $record.StringData(1).Trim() } else { $null }
+            $view.Close()
+            $database = $null
+            $installer = $null
+            return $value
+          }
 
+          $productCode = Get-MsiProperty -Path $msiPath -Property "ProductCode"
+          if (-not $productCode) { throw "Failed to read ProductCode from $msiPath" }
+
+          Write-Host "Raw ProductCode: '$productCode'"
+
+          # Try to extract GUID pattern first
+          $guidPattern = '\{[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}\}'
+          $match = [regex]::Match($productCode, $guidPattern)
+
+          if ($match.Success) {
+              $cleanProductCode = $match.Value
+              Write-Host "Extracted GUID: '$cleanProductCode'"
+          } else {
+              # Fallback: just trim and remove non-printable characters
+              $cleanProductCode = ($productCode -replace '[^\x21-\x7E]', '').Trim()
+              Write-Host "Fallback cleaned: '$cleanProductCode'"
+          }
+
+          Write-Host "Final ProductCode: '$cleanProductCode'"
+          # Create output directory
+          New-Item -ItemType Directory -Force -Path "winget" | Out-Null
+
+          # ------------------------------
+          # Version Manifest
+          # FIX #3: Escape $schema with backtick
+          # ------------------------------
           $versionManifest = @"
-          PackageIdentifier: SubrotoSaha.WUM
+          # Created with wum Release Workflow
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+
+          PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
           DefaultLocale: en-US
           ManifestType: version
           ManifestVersion: 1.6.0
-          "@
+          "@.Trim()
 
+          # ------------------------------
+          # Default Locale Manifest
+          # ------------------------------
           $localeManifest = @"
-          PackageIdentifier: SubrotoSaha.WUM
+          # Created with wum Release Workflow
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+          PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
           PackageLocale: en-US
           Publisher: Subroto Saha
           PublisherUrl: $repoUrl
           PublisherSupportUrl: $repoUrl/issues
           Author: Subroto Saha
-          PackageName: WUM
+          PackageName: wum
           PackageUrl: $repoUrl
           License: MIT
           LicenseUrl: $repoUrl/blob/main/LICENSE
-          Copyright: Copyright (c) 2025 Subroto Saha
-          ShortDescription: WUM command-line utility
-          Description: WUM is a Windows command-line utility.
+          Copyright: Copyright (c) $(Get-Date -Format "yyyy") Subroto Saha
+          ShortDescription: A powerful Windows temporary files cleaner.
+          Description: |-
+            wum is a professional Windows utility that helps you clean temporary files, system cache, and free up disk space. 
+            Features include safe cleaning algorithms, detailed scan reports, and scheduled cleaning options.
           Moniker: wum
           Tags:
-          - cli
-          - windows
-          - command-line
+            - cleaner
+            - temp-files
+            - disk-cleanup
+            - system-utility
+            - windows
+            - maintenance
+            - privacy
           ReleaseNotes: |
+            This release includes improvements and bug fixes.
             For detailed changelog, visit: $repoUrl/releases/tag/v$version
           ReleaseNotesUrl: $repoUrl/releases/tag/v$version
           ManifestType: defaultLocale
           ManifestVersion: 1.6.0
-          "@
+          "@.Trim()
 
+          # ------------------------------
+          # Installer Manifest
+          # FIX #1: Changed successRebootRequired to rebootRequiredToFinish
+          # ------------------------------
           $installerManifest = @"
-          PackageIdentifier: SubrotoSaha.WUM
+          # Created with wum Release Workflow
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+          PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
           Platform:
-          - Windows.Desktop
+            - Windows.Desktop
           MinimumOSVersion: 10.0.0.0
-          Scope: machine
           InstallModes:
-          - interactive
-          - silent
-          - silentWithProgress
+            - interactive
+            - silent
+            - silentWithProgress
+          InstallerType: msi
+          ExpectedReturnCodes:
+            - InstallerReturnCode: 1602
+              ReturnResponse: cancelledByUser
+            - InstallerReturnCode: 1618
+              ReturnResponse: installInProgress
+            - InstallerReturnCode: 1638
+              ReturnResponse: alreadyInstalled
+            - InstallerReturnCode: 3010
+              ReturnResponse: rebootRequiredToFinish
           UpgradeBehavior: install
           Installers:
-          - Architecture: x64
-            InstallerType: wix
-            InstallerUrl: $msiUrl
-            InstallerSha256: $hash
-            ProductCode: '{PLACEHOLDER-PRODUCT-GUID}'
-            Scope: machine
-            InstallerSwitches:
-              Silent: /quiet
-              SilentWithProgress: /passive
+            - Architecture: x64
+              Scope: machine
+              InstallerUrl: $msiUrl
+              InstallerSha256: $hash
+              ProductCode: '$cleanProductCode'
+              ElevationRequirement: elevationRequired
+              InstallerSwitches:
+                Silent: /qn /norestart
+                SilentWithProgress: /qb! /norestart
           ManifestType: installer
           ManifestVersion: 1.6.0
-          "@
+          "@.Trim()
 
-          $versionManifest | Out-File -FilePath "winget/SubrotoSaha.WUM.yaml" -Encoding UTF8
-          $localeManifest | Out-File -FilePath "winget/SubrotoSaha.WUM.locale.en-US.yaml" -Encoding UTF8
-          $installerManifest | Out-File -FilePath "winget/SubrotoSaha.WUM.installer.yaml" -Encoding UTF8
+          Set-Content -Path "winget/SubrotoSaha.wum.yaml" -Value $versionManifest -Encoding UTF8
+          Set-Content -Path "winget/SubrotoSaha.wum.locale.en-US.yaml" -Value $localeManifest -Encoding UTF8
+          Set-Content -Path "winget/SubrotoSaha.wum.installer.yaml" -Value $installerManifest -Encoding UTF8
 
-          Write-Host "WinGet manifests created successfully"
+          Write-Host "✅ WinGet manifests created"
+          Write-Host "MSI URL:     $msiUrl"
+          Write-Host "SHA256:      $hash"
+          Write-Host "ProductCode: $cleanProductCode"
 
       - name: Upload WinGet Manifests as Artifacts
+        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
         uses: actions/upload-artifact@v4
         with:
-          name: winget-manifests-v${{ env.SAFE_VERSION }}
+          name: winget-manifests-v${{ steps.versions.outputs.safe }}
           path: winget/
+
+      - name: Download wingetcreate
+        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/microsoft/winget-create/releases/latest/download/wingetcreate.exe" -OutFile wingetcreate.exe
+
+      - name: Validate WinGet manifests
+        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        shell: pwsh
+        run: |
+          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+           Write-Host "winget CLI not found on this runner; skipping validation."
+           exit 0
+           }
+           winget --info
+           winget validate --manifest winget
+
+      - name: Submit to WinGet
+        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        shell: pwsh
+        run: .\wingetcreate.exe submit --prtitle "Add SubrotoSaha.wum v${{ steps.versions.outputs.safe }}" --token "$env:WINGET_TOKEN" winget
