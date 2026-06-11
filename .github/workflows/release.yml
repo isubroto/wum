@@ -125,7 +125,7 @@ jobs:
           & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" build Product.wxs Files.wxs `
             -arch x64 `
             -define ProductVersion=$safeVersion `
-            -define SourceDir="..\bin\Release\net8.0-windows\win-x64" `
+            -define SourceDir="..\src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
             -out "../publish/WUM-$safeVersion.msi"
 
       - name: Upload Release Artifacts
