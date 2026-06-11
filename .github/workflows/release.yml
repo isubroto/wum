@@ -251,7 +251,7 @@ jobs:
       # Only for stable releases (no '-' in version)
       # -----------------------------
       - name: Create WinGet Manifests
-        if: ${{ !contains(steps.gitversion.outputs.FullSemVer, '-') }}
+        if: ${{ !contains(steps.versions.outputs.safe, '-') }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
