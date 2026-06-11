@@ -1,4 +1,4 @@
-<![CDATA[# WUM — Windows Update Manager CLI
+# WUM — Windows Update Manager CLI
 
 A modern, feature-rich command-line tool for managing Windows Updates directly from the terminal. Built with .NET 10 and the Windows Update Agent (WUA) COM API, WUM gives system administrators and power users full control over the Windows Update lifecycle — from listing and installing updates to pausing, scheduling, and diagnosing issues — all without opening the Settings app.
 
