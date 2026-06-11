@@ -126,46 +126,27 @@ jobs:
             exit 1
           }
 
-          $packageExists = $false
-          $showResult = .\wingetcreate.exe show --id SubrotoSaha.WUM --exact 2>&1
+          # wingetcreate can only AUTOMATE updates to an existing package.
+          # 'update' takes flags; 'new' is interactive (needs a TTY) and cannot run in CI.
+          # So: try update. If the package is not yet in winget-pkgs, print manual
+          # first-submission instructions and exit 0 (do not fail the release run).
+          .\wingetcreate.exe update SubrotoSaha.WUM `
+            --version $wingetVersion `
+            --urls $msiUrl `
+            --token $env:WINGETCREATE_TOKEN `
+            --submit
+
           if ($LASTEXITCODE -eq 0) {
-            $packageExists = $true
-            Write-Host "Package exists - creating update"
+            Write-Host "WinGet update PR submitted for $wingetVersion"
           } else {
-            Write-Host "New package - creating initial submission"
+            Write-Warning "wingetcreate update failed (exit $LASTEXITCODE)."
+            Write-Host "If SubrotoSaha.WUM is not yet in winget-pkgs, submit the FIRST version manually once:"
+            Write-Host "  wingetcreate.exe new $msiUrl --token <PAT>"
+            Write-Host "  (answer the prompts: PackageIdentifier=SubrotoSaha.WUM, Publisher=Subroto Saha, etc.)"
+            Write-Host "After that PR merges, this workflow auto-updates future versions."
+            # Do not fail the release because of a not-yet-published package.
+            exit 0
           }
-
-          if ($packageExists) {
-            .\wingetcreate.exe update SubrotoSaha.WUM `
-              --version $wingetVersion `
-              --urls $msiUrl `
-              --token $env:WINGETCREATE_TOKEN `
-              --submit
-          } else {
-            .\wingetcreate.exe new `
-              --id SubrotoSaha.WUM `
-              --name "WUM" `
-              --version $wingetVersion `
-              --publisher "Subroto Saha" `
-              --description "WUM is a Windows command-line utility." `
-              --homepage "https://github.com/${{ github.repository }}" `
-              --license "MIT" `
-              --license-url "https://github.com/${{ github.repository }}/blob/main/LICENSE" `
-              --installer-url $msiUrl `
-              --installer-type wix `
-              --installer-scope machine `
-              --installer-architecture x64 `
-              --moniker wum `
-              --tags "cli,windows,command-line" `
-              --token $env:WINGETCREATE_TOKEN `
-              --submit
-          }
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "WinGet submission failed with exit code $LASTEXITCODE"
-            exit 1
-          }
-          Write-Host "WinGet submission successful!"
 
       - name: Create summary
         run: |
