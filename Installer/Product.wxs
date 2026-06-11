@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package Name="WUM"
+           Manufacturer="Subroto Saha"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="3f2a9c14-7b6e-4d28-9a51-0c8e6b1f2d77">
+
+    <Media Id="1" Cabinet="media1.cab" EmbedCab="yes" />
+
+    <!-- Upgrade handling -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of WUM is already installed." />
+
+    <!-- Directories -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="subroto" Name="Subroto Saha">
+        <Directory Id="INSTALLFOLDER" Name="WUM" />
+      </Directory>
+    </StandardDirectory>
+
+    <!-- CLI tool: add install dir to machine PATH so `wum` runs in any terminal -->
+    <Component Id="PathEnv" Directory="INSTALLFOLDER" Guid="*">
+      <Environment Id="UpdatePath"
+                   Name="PATH"
+                   Value="[INSTALLFOLDER]"
+                   Permanent="no"
+                   Part="last"
+                   Action="set"
+                   System="yes" />
+      <RegistryValue Root="HKLM" Key="Software\WUM" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Property Id="ARPPRODUCTICON" Value="wum.exe" />
+
+    <!-- Feature -->
+    <Feature Id="ProductFeature" Title="WUM" Level="1">
+      <!-- AppFiles from heat.exe includes wum.exe and all dependency files -->
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="PathEnv" />
+    </Feature>
+
+  </Package>
+</Wix>
