@@ -17,7 +17,7 @@
     <SelfContained>true</SelfContained>
 
     <!-- Version: CI overwrites this on release. Keep 4-part numeric. -->
-    <Version>0.0.1.11</Version>
+    <Version>0.0.1.13</Version>
     <!-- Stop SDK appending git sha to InformationalVersion, keeps version string clean -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
@@ -35,4 +35,5 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
   </ItemGroup>
 </Project>
+
 
