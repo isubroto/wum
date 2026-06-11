@@ -112,6 +112,8 @@ jobs:
       - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v2
         with:
+          # PAT (not GITHUB_TOKEN) so 'release: published' triggers wingetRelease.yml
+          token: ${{ secrets.WINGETCREATE_TOKEN }}
           name: "WUM v${{ env.SAFE_VERSION }}"
           tag_name: v${{ env.SAFE_VERSION }}
           body: |
@@ -137,7 +139,7 @@ jobs:
             ${{ env.build_out }}/publish/*.exe
             publish/WUM-${{ env.SAFE_VERSION }}.msi
           draft: false
-          prerelease: ${{ contains(steps.gitversion.outputs.FullSemVer, '-') }}
+          prerelease: false
           generate_release_notes: true
 
       - name: Commit & Push .csproj version change (if any)
