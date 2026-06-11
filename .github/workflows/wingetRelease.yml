@@ -1,0 +1,190 @@
+name: WinGet Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to submit to WinGet (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    if: ${{ !cancelled() }}
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      WINGETCREATE_TOKEN: ${{ secrets.WINGETCREATE_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install WingetCreate
+        run: |
+          Write-Host "Installing WingetCreate..."
+          Invoke-WebRequest -Uri "https://aka.ms/wingetcreate/latest" -OutFile "wingetcreate.exe" -ErrorAction Stop
+          if (-not (Test-Path "wingetcreate.exe") -or (Get-Item "wingetcreate.exe").Length -eq 0) {
+            Write-Error "WingetCreate download failed"
+            exit 1
+          }
+          .\wingetcreate.exe --version
+
+      - name: Extract version from release
+        id: version
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ github.event.inputs.version }}"
+          } else {
+            $version = "${{ github.event.release.tag_name }}"
+          }
+
+          if ([string]::IsNullOrEmpty($version)) {
+            Write-Error "Version is empty or null"
+            exit 1
+          }
+
+          $cleanVersion = $version -replace '^v', ''
+
+          if ($cleanVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?(\+.*)?$') {
+            Write-Error "Invalid version format: $cleanVersion. Expected: X.Y.Z[.W][+metadata]"
+            exit 1
+          }
+
+          # Strip build metadata for WinGet
+          $wingetVersion = $cleanVersion -replace '\+.*$', ''
+
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "CLEAN_VERSION=$cleanVersion" >> $env:GITHUB_OUTPUT
+          echo "WINGET_VERSION=$wingetVersion" >> $env:GITHUB_OUTPUT
+          Write-Host "Tag: $version | Clean: $cleanVersion | WinGet: $wingetVersion"
+
+      - name: Validate release assets
+        run: |
+          $version = "${{ steps.version.outputs.VERSION }}"
+          $cleanVersion = "${{ steps.version.outputs.CLEAN_VERSION }}"
+
+          $possibleUrls = @(
+            "https://github.com/${{ github.repository }}/releases/download/$version/WUM-$cleanVersion.msi"
+          )
+
+          Write-Host "Checking MSI availability..."
+          Start-Sleep -Seconds 15
+
+          $maxRetries = 6
+          $retryCount = 0
+          $found = $false
+          $workingUrl = ""
+
+          while ($retryCount -lt $maxRetries -and -not $found) {
+            foreach ($msiUrl in $possibleUrls) {
+              try {
+                Write-Host "Trying: $msiUrl"
+                $response = Invoke-WebRequest -Uri $msiUrl -Method Head -ErrorAction Stop
+                Write-Host "MSI found at: $msiUrl (Status: $($response.StatusCode))"
+                $workingUrl = $msiUrl
+                $found = $true
+                break
+              } catch {
+                Write-Host "Not found at: $msiUrl"
+              }
+            }
+            if (-not $found) {
+              $retryCount++
+              Write-Host "Attempt $retryCount/$maxRetries - MSI not yet available, waiting 30s..."
+              Start-Sleep -Seconds 30
+            }
+          }
+
+          if (-not $found) {
+            Write-Error "MSI not found after $maxRetries attempts at: $($possibleUrls -join ', ')"
+            exit 1
+          }
+
+          echo "MSI_URL=$workingUrl" >> $env:GITHUB_ENV
+
+      - name: Create or update WinGet package
+        run: |
+          $wingetVersion = "${{ steps.version.outputs.WINGET_VERSION }}"
+          $msiUrl = "${{ env.MSI_URL }}"
+
+          Write-Host "Submitting WinGet package version: $wingetVersion"
+          Write-Host "MSI URL: $msiUrl"
+
+          if ([string]::IsNullOrEmpty($env:WINGETCREATE_TOKEN)) {
+            Write-Error "WINGETCREATE_TOKEN not set. Add repo secret: Settings > Secrets and variables > Actions > New repository secret (name WINGETCREATE_TOKEN)."
+            exit 1
+          }
+
+          $packageExists = $false
+          $showResult = .\wingetcreate.exe show --id SubrotoSaha.WUM --exact 2>&1
+          if ($LASTEXITCODE -eq 0) {
+            $packageExists = $true
+            Write-Host "Package exists - creating update"
+          } else {
+            Write-Host "New package - creating initial submission"
+          }
+
+          if ($packageExists) {
+            .\wingetcreate.exe update SubrotoSaha.WUM `
+              --version $wingetVersion `
+              --urls $msiUrl `
+              --token $env:WINGETCREATE_TOKEN `
+              --submit
+          } else {
+            .\wingetcreate.exe new `
+              --id SubrotoSaha.WUM `
+              --name "WUM" `
+              --version $wingetVersion `
+              --publisher "Subroto Saha" `
+              --description "WUM is a Windows command-line utility." `
+              --homepage "https://github.com/${{ github.repository }}" `
+              --license "MIT" `
+              --license-url "https://github.com/${{ github.repository }}/blob/main/LICENSE" `
+              --installer-url $msiUrl `
+              --installer-type wix `
+              --installer-scope machine `
+              --installer-architecture x64 `
+              --moniker wum `
+              --tags "cli,windows,command-line" `
+              --token $env:WINGETCREATE_TOKEN `
+              --submit
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "WinGet submission failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          Write-Host "WinGet submission successful!"
+
+      - name: Create summary
+        run: |
+          $version = "${{ steps.version.outputs.WINGET_VERSION }}"
+          $tagVersion = "${{ steps.version.outputs.VERSION }}"
+          $summary = @"
+          ## WinGet Submission Completed
+
+          **Package:** SubrotoSaha.WUM
+          **Version:** $version
+          **Release Tag:** $tagVersion
+
+          A PR was opened in [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs). Once merged:
+          ``````
+          winget install SubrotoSaha.WUM
+          ``````
+
+          - [Release](https://github.com/${{ github.repository }}/releases/tag/$tagVersion)
+          - [MSI](${{ env.MSI_URL }})
+          - [WinGet PRs](https://github.com/microsoft/winget-pkgs/pulls?q=is%3Apr+SubrotoSaha.WUM)
+          "@
+          echo $summary >> $env:GITHUB_STEP_SUMMARY
