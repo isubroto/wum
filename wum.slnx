@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/WUM.CLI/WUM.CLI.csproj" />
+    <Project Path="src/WUM.Core/WUM.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/WUM.CLI.Tests/WUM.CLI.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,94 @@
+using System;
+using System.Collections.Generic;
+using System.CommandLine;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using WUM.CLI.Helpers;
+using WUM.Core.Models;
+using WUM.Core.Services;
+
+namespace WUM.CLI.Commands
+{
+    public class SearchCommand
+    {
+        private readonly IUpdateService _updates;
+
+        public SearchCommand(IServiceProvider sp)
+        {
+            _updates = sp.GetRequiredService<IUpdateService>();
+        }
+
+        public Command Build()
+        {
+            var cmd = new Command("search", "Search for a specific update");
+
+            var termArg = new Argument<string>(
+                "term",
+                "Search term - KB number or keyword");
+
+            var categoryOpt = new Option<string?>(
+                "--category",
+                "Filter by category (Security, Critical, Optional, Driver)");
+
+            var jsonOpt = new Option<bool>("--json", "Output results as JSON");
+
+            cmd.AddArgument(termArg);
+            cmd.AddOption(categoryOpt);
+            cmd.AddOption(jsonOpt);
+
+            cmd.SetHandler(async (string term, string? cat, bool json) =>
+            {
+                await RunAsync(term, cat, json);
+            }, termArg, categoryOpt, jsonOpt);
+
+            return cmd;
+        }
+
+        private async Task RunAsync(string term, string? category, bool json)
+        {
+            List<WindowsUpdate> all = new();
+
+            await ConsoleRenderer.ShowSpinnerAsync(
+                "Searching for \"" + term + "\"...", async () =>
+                {
+                    all = await _updates.GetAvailableUpdatesAsync(includeHidden: true);
+                });
+
+            var results = all.Where(u =>
+                u.Title.Contains(term, StringComparison.OrdinalIgnoreCase)       ||
+                u.KBArticle.Contains(term, StringComparison.OrdinalIgnoreCase)   ||
+                u.Description.Contains(term, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+
+            if (!string.IsNullOrEmpty(category) &&
+                Enum.TryParse<UpdateCategory>(category, true, out var cat))
+            {
+                results = results.Where(u => u.Category == cat).ToList();
+            }
+
+            if (json)
+            {
+                Console.WriteLine(JsonSerializer.Serialize(
+                    results,
+                    new JsonSerializerOptions { WriteIndented = true }));
+                return;
+            }
+
+            Console.WriteLine();
+            ConsoleRenderer.Header(
+                "  Search: \"" + term + "\"  (" + results.Count + " found)");
+            Console.WriteLine();
+
+            if (results.Count == 0)
+            {
+                ConsoleRenderer.Muted("  No updates matched \"" + term + "\".");
+                Console.WriteLine();
+                return;
+            }
+
+            TableRenderer.RenderUpdates(results, verbose: true);
+        }
+    }
+}

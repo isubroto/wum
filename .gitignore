@@ -1,0 +1,36 @@
+## .NET / C#
+src/bin/
+src/obj/
+src/WUM.CLI/bin/
+src/WUM.CLI/obj/
+src/WUM.Core/bin/
+src/WUM.Core/obj/
+bin/
+obj/
+publish/
+
+## IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.csproj.user
+
+## Build artifacts
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+## NuGet
+packages/
+*.nupkg
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## Misc
+1024
