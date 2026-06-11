@@ -28,7 +28,7 @@ A modern, feature-rich command-line tool for managing Windows Updates directly f
 ### Build
 
 ```bash
-git clone https://github.com/<your-org>/wum.git
+git clone https://github.com/isubroto/wum.git
 cd wum
 dotnet build
 ```
