@@ -97,7 +97,7 @@ jobs:
       - name: Generate Files.wxs excluding 'publish' folder
         shell: pwsh
         run: |
-          & "C:\Program Files\WiX Toolset v6.0\bin\x64\heat.exe" dir "bin\Release\net10.0-windows\win-x64" `
+          & "C:\Program Files\WiX Toolset v6.0\bin\x64\heat.exe" dir "src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
             -cg AppFiles `
             -dr INSTALLFOLDER `
             -srd -gg `
