@@ -46,10 +46,11 @@ jobs:
         run: |
           $projFile = "${{ env.cli_project }}"
           Write-Host "Updating version in: $projFile"
-          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-
-          # Replace '+' with '.' to make version safe for file naming
-          $safeVersion = $version -replace '[+-]', '.'
+          # Build a pure numeric M.M.P.B version (FullSemVer carries prerelease/branch text)
+          $mmp = "${{ steps.gitversion.outputs.MajorMinorPatch }}"
+          $commits = "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+          if ([string]::IsNullOrEmpty($commits)) { $commits = "0" }
+          $safeVersion = "$mmp.$commits"
           $versionTag = "<Version>$safeVersion</Version>"
 
           $content = Get-Content $projFile -Raw
@@ -99,8 +100,10 @@ jobs:
       - name: Build MSI Installer
         working-directory: Installer
         run: |
-          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-          $safeVersion = $version -replace '[+-]', '.'
+          $mmp = "${{ steps.gitversion.outputs.MajorMinorPatch }}"
+          $commits = "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+          if ([string]::IsNullOrEmpty($commits)) { $commits = "0" }
+          $safeVersion = "$mmp.$commits"
           "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" build Product.wxs Files.wxs `
@@ -153,8 +156,10 @@ jobs:
           if (git diff --cached --quiet) {
             Write-Host "No changes to commit. Version already up to date."
           } else {
-            $version = "${{ steps.gitversion.outputs.FullSemVer }}"
-            $safeVersion = $version -replace '[+-]', '.'
+            $mmp = "${{ steps.gitversion.outputs.MajorMinorPatch }}"
+            $commits = "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+            if ([string]::IsNullOrEmpty($commits)) { $commits = "0" }
+            $safeVersion = "$mmp.$commits"
             git commit -m "Bump version to $safeVersion"
             git push origin HEAD
             Write-Host "Committed and pushed updated version: $safeVersion"

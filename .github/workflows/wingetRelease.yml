@@ -38,7 +38,7 @@ jobs:
             Write-Error "WingetCreate download failed"
             exit 1
           }
-          .\wingetcreate.exe --version
+          Write-Host "WingetCreate downloaded ($((Get-Item 'wingetcreate.exe').Length) bytes)"
 
       - name: Extract version from release
         id: version
