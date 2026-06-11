@@ -56,7 +56,7 @@ jobs:
 
           if ($content -notmatch '<Version>.*?</Version>') {
               # Insert <Version> before the first </PropertyGroup>
-              $content = $content -replace '</PropertyGroup>', "    $versionTag`n  </PropertyGroup>", 1
+              $content = [regex]::new('</PropertyGroup>').Replace($content, "    $versionTag`n  </PropertyGroup>", 1)
           } else {
               $content = $content -replace '<Version>.*?</Version>', $versionTag
           }
