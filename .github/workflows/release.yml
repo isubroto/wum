@@ -44,13 +44,16 @@ jobs:
       - name: Update .csproj Version
         shell: pwsh
         run: |
+          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
+          $safeVersion = $version -replace '[+-]', '.'
+          "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
           $projFile = "${{ env.cli_project }}"
           Write-Host "Updating version in: $projFile"
-          # Build a pure numeric M.M.P.B version (FullSemVer carries prerelease/branch text)
-          $mmp = "${{ steps.gitversion.outputs.MajorMinorPatch }}"
-          $commits = "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
-          if ([string]::IsNullOrEmpty($commits)) { $commits = "0" }
-          $safeVersion = "$mmp.$commits"
+          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
+
+          # Replace '+' with '.' to make version safe for file naming
+          $safeVersion = $version -replace '[+-]', '.'
           $versionTag = "<Version>$safeVersion</Version>"
 
           $content = Get-Content $projFile -Raw
@@ -100,10 +103,8 @@ jobs:
       - name: Build MSI Installer
         working-directory: Installer
         run: |
-          $mmp = "${{ steps.gitversion.outputs.MajorMinorPatch }}"
-          $commits = "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
-          if ([string]::IsNullOrEmpty($commits)) { $commits = "0" }
-          $safeVersion = "$mmp.$commits"
+          $version = "${{ steps.gitversion.outputs.FullSemVer }}"
+          $safeVersion = $version -replace '\+', '.'
           "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" build Product.wxs Files.wxs `
@@ -115,8 +116,6 @@ jobs:
       - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v2
         with:
-          # PAT (not GITHUB_TOKEN) so 'release: published' triggers wingetRelease.yml
-          token: ${{ secrets.WINGETCREATE_TOKEN }}
           name: "WUM v${{ env.SAFE_VERSION }}"
           tag_name: v${{ env.SAFE_VERSION }}
           body: |
@@ -156,14 +155,99 @@ jobs:
           if (git diff --cached --quiet) {
             Write-Host "No changes to commit. Version already up to date."
           } else {
-            $mmp = "${{ steps.gitversion.outputs.MajorMinorPatch }}"
-            $commits = "${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
-            if ([string]::IsNullOrEmpty($commits)) { $commits = "0" }
-            $safeVersion = "$mmp.$commits"
+            $version = "${{ steps.gitversion.outputs.FullSemVer }}"
+            $safeVersion = $version -replace '\+', '.'
             git commit -m "Bump version to $safeVersion"
             git push origin HEAD
             Write-Host "Committed and pushed updated version: $safeVersion"
           }
 
-      # WinGet submission handled by .github/workflows/wingetRelease.yml
-      # (triggered on release published, uses wingetcreate to open a PR to microsoft/winget-pkgs)
+      - name: Create WinGet Manifest
+        shell: pwsh
+        run: |
+          $version = "${{ env.SAFE_VERSION }}"
+          $repoUrl = "https://github.com/${{ github.repository }}"
+          $msiUrl = "$repoUrl/releases/download/v$version/WUM-$version.msi"
+
+          New-Item -ItemType Directory -Force -Path "winget"
+
+          $msiPath = "publish/WUM-$version.msi"
+          $hash = (Get-FileHash -Path $msiPath -Algorithm SHA256).Hash
+
+          Write-Host "MSI Hash: $hash"
+          Write-Host "MSI URL: $msiUrl"
+
+          $versionManifest = @"
+          PackageIdentifier: SubrotoSaha.WUM
+          PackageVersion: $version
+          DefaultLocale: en-US
+          ManifestType: version
+          ManifestVersion: 1.6.0
+          "@
+
+          $localeManifest = @"
+          PackageIdentifier: SubrotoSaha.WUM
+          PackageVersion: $version
+          PackageLocale: en-US
+          Publisher: Subroto Saha
+          PublisherUrl: $repoUrl
+          PublisherSupportUrl: $repoUrl/issues
+          Author: Subroto Saha
+          PackageName: WUM
+          PackageUrl: $repoUrl
+          License: MIT
+          LicenseUrl: $repoUrl/blob/main/LICENSE
+          Copyright: Copyright (c) 2025 Subroto Saha
+          ShortDescription: WUM command-line utility
+          Description: WUM is a Windows command-line utility.
+          Moniker: wum
+          Tags:
+          - cli
+          - windows
+          - command-line
+          ReleaseNotes: |
+            For detailed changelog, visit: $repoUrl/releases/tag/v$version
+          ReleaseNotesUrl: $repoUrl/releases/tag/v$version
+          ManifestType: defaultLocale
+          ManifestVersion: 1.6.0
+          "@
+
+          $installerManifest = @"
+          PackageIdentifier: SubrotoSaha.WUM
+          PackageVersion: $version
+          Platform:
+          - Windows.Desktop
+          MinimumOSVersion: 10.0.0.0
+          Scope: machine
+          InstallModes:
+          - interactive
+          - silent
+          - silentWithProgress
+          UpgradeBehavior: install
+          Installers:
+          - Architecture: x64
+            InstallerType: wix
+            InstallerUrl: $msiUrl
+            InstallerSha256: $hash
+            ProductCode: '{PLACEHOLDER-PRODUCT-GUID}'
+            Scope: machine
+            InstallerSwitches:
+              Silent: /quiet
+              SilentWithProgress: /passive
+          ManifestType: installer
+          ManifestVersion: 1.6.0
+          "@
+
+          $versionManifest | Out-File -FilePath "winget/SubrotoSaha.WUM.yaml" -Encoding UTF8
+          $localeManifest | Out-File -FilePath "winget/SubrotoSaha.WUM.locale.en-US.yaml" -Encoding UTF8
+          $installerManifest | Out-File -FilePath "winget/SubrotoSaha.WUM.installer.yaml" -Encoding UTF8
+
+          Write-Host "WinGet manifests created successfully"
+
+      - name: Upload WinGet Manifests as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: winget-manifests-v${{ env.SAFE_VERSION }}
+          path: winget/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
