@@ -2,7 +2,7 @@
 
 A modern, feature-rich command-line tool for managing Windows Updates directly from the terminal. Built with .NET 10 and the Windows Update Agent (WUA) COM API, WUM gives system administrators and power users full control over the Windows Update lifecycle — from listing and installing updates to pausing, scheduling, and diagnosing issues — all without opening the Settings app.
 
-> **Requires:** Windows 10/11 · .NET 10 SDK · **Administrator privileges**
+> **Requires:** Windows 10/11 · .NET 10 SDK · **Administrator privileges for update operations** (read-only commands run as a standard user)
 
 ---
 
@@ -36,7 +36,7 @@ dotnet build
 ### Run (Debug)
 
 ```bash
-# From the repo root — runs without enforcing admin in Debug mode
+# From the repo root — read-only commands need no admin
 dotnet run --project src/WUM.CLI -- status
 ```
 
@@ -46,13 +46,30 @@ dotnet run --project src/WUM.CLI -- status
 dotnet publish src/WUM.CLI -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
 ```
 
-This produces a single `wum.exe` in `./publish` that requires no .NET runtime on the target machine. The Release build includes an application manifest that auto-elevates to Administrator.
+This produces a single `wum.exe` in `./publish` that requires no .NET runtime on the target machine. The Release build runs **as-invoker** (no UAC prompt on launch); commands that modify the system request elevation themselves.
+
+### Install (MSI / WinGet)
+
+```bash
+# Once published to the WinGet community repo:
+winget install SubrotoSaha.WUM
+```
+
+The MSI installs `wum.exe` to `C:\Program Files\Subroto Saha\WUM` and **adds that folder to the system `PATH`**, so `wum` is available from any terminal. Releases (portable `wum.exe` + MSI) are published automatically on each tagged build.
 
 ---
 
 ## 🚀 Usage
 
-All commands require **Administrator** privileges. In Debug mode, the tool prints a warning but continues with limited functionality.
+Update operations (`install`, `uninstall`, …) require **Administrator** privileges and will prompt you to run from an elevated terminal if launched without them. Read-only commands (`status`, `list`, `search`, `history`, `--version`, `--info`, `--help`) run as a standard user.
+
+### Global options
+
+```
+wum --version       # Print the version (e.g. 0.0.1.8)
+wum --info          # Show developer / build info (version, author, license, repo, runtime, OS)
+wum --help          # Show help
+```
 
 ### `wum status`
 
@@ -270,7 +287,7 @@ Retains 7 days of logs automatically.
 - **OS:** Windows 10 or Windows 11
 - **SDK:** [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (for building)
 - **Runtime:** None required when published as self-contained
-- **Privileges:** Administrator (Release builds auto-elevate via app manifest)
+- **Privileges:** Administrator for update operations only (manifest is `asInvoker`; `install`/`uninstall` enforce admin per-command). Read-only commands need no elevation.
 
 ---
 
@@ -295,7 +312,7 @@ wum/
 │   ├── WUM.CLI/
 │   │   ├── WUM.CLI.csproj                  # Console app project (net10.0-windows, win-x64)
 │   │   ├── Program.cs                      # Entry point, DI setup, logger config
-│   │   ├── app.manifest                    # UAC elevation manifest (Release only)
+│   │   ├── app.manifest                    # asInvoker manifest (Release only; no auto-elevation)
 │   │   ├── Commands/
 │   │   │   ├── StatusCommand.cs            # wum status
 │   │   │   ├── ListCommand.cs              # wum list
@@ -347,4 +364,3 @@ wum/
 ## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
-]]>

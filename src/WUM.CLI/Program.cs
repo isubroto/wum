@@ -4,6 +4,9 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -18,19 +21,16 @@ namespace WUM.CLI
     {
         static async Task<int> Main(string[] args)
         {
-            // ── Admin check ───────────────────────────────────────────────
-#if !DEBUG
-            WUM.CLI.Helpers.AdminHelper.RequireAdmin();
-#else
-            if (!WUM.CLI.Helpers.AdminHelper.IsRunningAsAdmin())
+            // ── Developer info short-circuit ──────────────────────────────
+            if (args.Any(a => a == "--info"))
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine(
-                    "\n  [DEBUG] Running without admin " +
-                    "- some features will not work.\n");
-                Console.ResetColor();
+                PrintDeveloperInfo();
+                return 0;
             }
-#endif
+
+            // Admin is NOT required to launch. Read-only commands (status, list,
+            // search, history, --version, --help) run as standard user. Commands
+            // that modify the system enforce admin via AdminHelper.RequireAdmin().
 
             // ── Logger setup ──────────────────────────────────────────────
             string logDir = Path.Combine(
@@ -82,6 +82,9 @@ namespace WUM.CLI
                 "Manage Windows Updates from the command line.\n" +
                 "Requires Administrator privileges.");
 
+            // Global flag, handled in Main before the pipeline runs.
+            root.AddGlobalOption(new Option<bool>("--info", "Show developer / build information"));
+
             // ── Register all commands ─────────────────────────────────────
             root.AddCommand(new StatusCommand(services).Build());
             root.AddCommand(new ListCommand(services).Build());
@@ -116,6 +119,40 @@ namespace WUM.CLI
             await Log.CloseAndFlushAsync();
 
             return exitCode;
+        }
+
+        // ── Developer / build information ─────────────────────────────────
+        private static void PrintDeveloperInfo()
+        {
+            var asm = Assembly.GetEntryAssembly();
+
+            string version =
+                asm?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? asm?.GetName().Version?.ToString()
+                ?? "unknown";
+
+            int plus = version.IndexOf('+');
+            if (plus >= 0) version = version.Substring(0, plus);
+
+            Console.WriteLine();
+            ConsoleRenderer.Header("  WUM - Windows Update Manager CLI");
+            Console.WriteLine();
+            WriteInfoLine("Version",   version);
+            WriteInfoLine("Author",    "Subroto Saha");
+            WriteInfoLine("License",   "MIT");
+            WriteInfoLine("Repository","https://github.com/isubroto/wum");
+            WriteInfoLine("Runtime",   RuntimeInformation.FrameworkDescription);
+            WriteInfoLine("OS",        RuntimeInformation.OSDescription);
+            WriteInfoLine("Arch",      RuntimeInformation.OSArchitecture.ToString());
+            Console.WriteLine();
+        }
+
+        private static void WriteInfoLine(string label, string value)
+        {
+            ConsoleRenderer.Inline("  " + label.PadRight(12), ConsoleColor.DarkGray);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(value);
+            Console.ResetColor();
         }
     }
 }

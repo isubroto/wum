@@ -81,6 +81,8 @@ namespace WUM.CLI.Commands
             bool dryRun,     bool force,
             bool noReboot)
         {
+            WUM.CLI.Helpers.AdminHelper.RequireAdmin();
+
             // ── Fetch available updates ───────────────────────────────────
             List<WindowsUpdate> available = new();
 

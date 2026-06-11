@@ -35,6 +35,8 @@ namespace WUM.CLI.Commands
 
         private async Task RunAsync(string kb, bool force)
         {
+            AdminHelper.RequireAdmin();
+
             string norm = kb.StartsWith("KB", StringComparison.OrdinalIgnoreCase)
                 ? kb : "KB" + kb;
 
