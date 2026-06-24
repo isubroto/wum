@@ -10,8 +10,9 @@ namespace WUM.Core.Services
     public interface IUpdateService
     {
         Task<List<WindowsUpdate>> GetAvailableUpdatesAsync(
-            bool includeHidden   = false,
-            CancellationToken ct = default);
+            bool includeHidden      = false,
+            bool useMicrosoftUpdate = false,
+            CancellationToken ct    = default);
 
         Task<List<WindowsUpdate>> GetInstalledUpdatesAsync(
             CancellationToken ct = default);
@@ -45,5 +46,8 @@ namespace WUM.Core.Services
 
         // Diagnostics
         Task<string> DiagnoseAsync();
+
+        // Reset Windows Update components to default (destructive — admin only)
+        Task<string> ResetComponentsAsync();
     }
 }
