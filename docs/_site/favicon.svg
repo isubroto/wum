@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="wum-favicon-title">
+  <title id="wum-favicon-title">WUM</title>
+  <defs>
+    <linearGradient id="wum-favicon-bg" x1="5" y1="4" x2="59" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08111F"/>
+      <stop offset=".48" stop-color="#123C83"/>
+      <stop offset="1" stop-color="#6D35F3"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#wum-favicon-bg)"/>
+  <path d="M44 20a16 16 0 1 1-24 20" fill="none" stroke="#62F4D7" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M44 20l-.6 8 7-4" fill="none" stroke="#62F4D7" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 25l6 20 10-18 9 18 9-20" fill="none" stroke="#F8FBFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 51h28" stroke="#F8FBFF" stroke-width="4" stroke-linecap="round" opacity=".92"/>
+</svg>

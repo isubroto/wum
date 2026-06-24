@@ -30,19 +30,22 @@ namespace WUM.CLI.Commands
             var jsonOpt    = new Option<bool>("--json",    "Output as JSON");
             var verboseOpt = new Option<bool>(
                 new[] { "--verbose", "-v" }, "Show debug details");
+            var refreshOpt = new Option<bool>(
+                "--refresh", "Force a fresh update scan instead of the shared cache");
 
             cmd.AddOption(jsonOpt);
             cmd.AddOption(verboseOpt);
+            cmd.AddOption(refreshOpt);
 
-            cmd.SetHandler(async (bool json, bool verbose) =>
+            cmd.SetHandler(async (bool json, bool verbose, bool refresh) =>
             {
-                await RunAsync(json, verbose);
-            }, jsonOpt, verboseOpt);
+                await RunAsync(json, verbose, refresh);
+            }, jsonOpt, verboseOpt, refreshOpt);
 
             return cmd;
         }
 
-        private async Task RunAsync(bool json, bool verbose)
+        private async Task RunAsync(bool json, bool verbose, bool refresh = false)
         {
             List<WindowsUpdate> updates   = new();
             PauseInfo           pauseInfo = new();
@@ -92,7 +95,8 @@ namespace WUM.CLI.Commands
                 "Fetching available updates from Windows Update...",
                 async () =>
                 {
-                    updates = await _updates.GetAvailableUpdatesAsync();
+                    updates = await _updates.GetAvailableUpdatesAsync(
+                        forceRefresh: refresh);
                 }, timeoutSeconds: 90);
 
             if (verbose)

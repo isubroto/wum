@@ -32,18 +32,22 @@ namespace WUM.CLI.Commands
                 new[] { "--force", "-f" }, "Skip the confirmation prompt for --fix");
             var jsonOpt  = new Option<bool>(
                 "--json",  "Output diagnostics as JSON and set an exit code");
+            var refreshOpt = new Option<bool>(
+                "--refresh", "Force a fresh update scan instead of the shared cache");
 
             cmd.AddOption(fixOpt);
             cmd.AddOption(forceOpt);
             cmd.AddOption(jsonOpt);
+            cmd.AddOption(refreshOpt);
 
             cmd.SetHandler(async (ctx) =>
             {
-                bool doFix = ctx.ParseResult.GetValueForOption(fixOpt);
-                bool force = ctx.ParseResult.GetValueForOption(forceOpt);
-                bool json  = ctx.ParseResult.GetValueForOption(jsonOpt);
+                bool doFix   = ctx.ParseResult.GetValueForOption(fixOpt);
+                bool force   = ctx.ParseResult.GetValueForOption(forceOpt);
+                bool json    = ctx.ParseResult.GetValueForOption(jsonOpt);
+                bool refresh = ctx.ParseResult.GetValueForOption(refreshOpt);
                 if (doFix) await RunFixAsync(force);
-                else       ctx.ExitCode = await RunAsync(json);
+                else       ctx.ExitCode = await RunAsync(json, refresh);
             });
             return cmd;
         }
@@ -132,7 +136,7 @@ namespace WUM.CLI.Commands
             Console.WriteLine();
         }
 
-        private async Task<int> RunAsync(bool json)
+        private async Task<int> RunAsync(bool json, bool refresh = false)
         {
             if (!json)
             {
@@ -145,11 +149,23 @@ namespace WUM.CLI.Commands
             }
 
             string output = "";
+            int    availableCount = -1;
 
             await ConsoleRenderer.ShowSpinnerAsync(
                 "Running diagnostic checks...", async () =>
                 {
                     output = await _updates.DiagnoseAsync();
+                }, timeoutSeconds: 90, silent: json);
+
+            // Shared scan so status/list/diagnose agree on the count. --refresh
+            // forces a re-scan + rewrites the cache, so a later status/list that
+            // reads the same cache shows the identical number.
+            await ConsoleRenderer.ShowSpinnerAsync(
+                "Counting available updates...", async () =>
+                {
+                    var ups = await _updates.GetAvailableUpdatesAsync(
+                        forceRefresh: refresh);
+                    availableCount = ups.Count;
                 }, timeoutSeconds: 90, silent: json);
 
             if (string.IsNullOrWhiteSpace(output))
@@ -212,12 +228,17 @@ namespace WUM.CLI.Commands
                 else if (value.Contains("FAILED")     ||
                          value.Contains("UNREACHABLE") ||
                          value.Contains("Error")       ||
-                         value.Contains("failed"))
+                         value.Contains("failed")       ||
+                         value.Contains("MISSING")      ||
+                         value.Contains("(LOW)")        ||
+                         value.Contains("DISABLED"))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                 }
-                else if (value.Contains("0") &&
-                         label.Contains("Updates Found"))
+                else if (value.Contains("REBOOT REQUIRED") ||
+                         value.Contains("NOT registered")   ||
+                         (value.Contains("0") &&
+                          label.Contains("Updates Found")))
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
                 }
@@ -230,6 +251,23 @@ namespace WUM.CLI.Commands
                 Console.ResetColor();
             }
 
+            // Inject the shared-cache count so diagnose reports the SAME number
+            // as status/list (all three read one cached online scan).
+            if (availableCount >= 0)
+            {
+                results["Updates Found"] = availableCount.ToString();
+
+                if (!json)
+                {
+                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.Write("  " + "Updates Found".PadRight(22) + ": ");
+                    Console.ForegroundColor = availableCount == 0
+                        ? ConsoleColor.Yellow : ConsoleColor.White;
+                    Console.WriteLine(availableCount);
+                    Console.ResetColor();
+                }
+            }
+
             int exitCode = ComputeExitCode(results);
             var (passed, total) = ComputeHealth(results);
 
@@ -238,7 +276,8 @@ namespace WUM.CLI.Commands
             {
                 var payload = new
                 {
-                    checks      = results,
+                    checks         = results,
+                    updatesFound   = availableCount,
                     score       = passed + "/" + total,
                     passed      = passed,
                     total       = total,
@@ -330,6 +369,39 @@ namespace WUM.CLI.Commands
             {
                 ConsoleRenderer.Hint(
                     "Not elevated         -> re-run in an Administrator terminal");
+                hints++;
+            }
+
+            // Pending reboot blocks new updates from finalizing
+            if (Has("Pending Reboot", "REBOOT REQUIRED"))
+            {
+                ConsoleRenderer.Hint(
+                    "Reboot pending       -> restart to finalize updates; run 'wum reboot'");
+                hints++;
+            }
+
+            // Low disk space stalls download / install staging
+            if (Has("Disk Free", "LOW"))
+            {
+                ConsoleRenderer.Hint(
+                    "Low disk space       -> free up the system drive; WU needs headroom to stage");
+                hints++;
+            }
+
+            // Missing WUA datastore breaks search/index
+            if (Has("WU Datastore", "MISSING"))
+            {
+                ConsoleRenderer.Hint(
+                    "Datastore missing    -> run 'wum diagnose --fix' to rebuild SoftwareDistribution");
+                hints++;
+            }
+
+            // Update Orchestrator (UsoSvc) down -> scheduled scans/installs won't run
+            if (Has("Update Orch", "Stopped") || Has("Update Orch", "DISABLED") ||
+                Has("Update Orch", "NOT FOUND"))
+            {
+                ConsoleRenderer.Hint(
+                    "Update Orch down     -> set 'UsoSvc' to Manual; scans/installs won't schedule");
                 hints++;
             }
 

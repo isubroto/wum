@@ -49,6 +49,8 @@ namespace WUM.CLI.Commands
             var verboseOpt   = new Option<bool>(
                 new[] { "--verbose", "-v" },
                 "Show full details per update");
+            var refreshOpt   = new Option<bool>(
+                "--refresh",   "Force a fresh update scan instead of the shared cache");
 
             cmd.AddOption(securityOpt);
             cmd.AddOption(criticalOpt);
@@ -61,6 +63,7 @@ namespace WUM.CLI.Commands
             cmd.AddOption(jsonOpt);
             cmd.AddOption(noColorOpt);
             cmd.AddOption(verboseOpt);
+            cmd.AddOption(refreshOpt);
 
             // Use context handler to avoid 8-arg limit in System.CommandLine beta4
             cmd.SetHandler(async (ctx) =>
@@ -76,10 +79,11 @@ namespace WUM.CLI.Commands
                 bool json       = ctx.ParseResult.GetValueForOption(jsonOpt);
                 bool noColor    = ctx.ParseResult.GetValueForOption(noColorOpt);
                 bool verbose    = ctx.ParseResult.GetValueForOption(verboseOpt);
+                bool refresh    = ctx.ParseResult.GetValueForOption(refreshOpt);
 
                 await RunAsync(
                     security, critical, optional, drivers, definition,
-                    hidden, installed, mu, json, noColor, verbose);
+                    hidden, installed, mu, json, noColor, verbose, refresh);
             });
 
             return cmd;
@@ -89,7 +93,7 @@ namespace WUM.CLI.Commands
             bool security,   bool critical,  bool optional,
             bool drivers,    bool definition, bool hidden,
             bool installed,  bool mu,        bool json,
-            bool noColor,    bool verbose)
+            bool noColor,    bool verbose,   bool refresh = false)
         {
             List<WindowsUpdate> updates = new();
 
@@ -116,7 +120,8 @@ namespace WUM.CLI.Commands
                     ? await _updates.GetInstalledUpdatesAsync()
                     : await _updates.GetAvailableUpdatesAsync(
                         includeHidden: hidden,
-                        useMicrosoftUpdate: mu);
+                        useMicrosoftUpdate: mu,
+                        forceRefresh: refresh);
             }, timeoutSeconds: 90);
 
             // ── Verbose: show raw fetch info ──────────────────────────────

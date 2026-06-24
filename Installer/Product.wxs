@@ -30,7 +30,8 @@
       <RegistryValue Root="HKLM" Key="Software\WUM" Name="installed" Type="integer" Value="1" KeyPath="yes" />
     </Component>
 
-    <Property Id="ARPPRODUCTICON" Value="wum.exe" />
+    <Icon Id="wum.ico" SourceFile="..\src\WUM.CLI\wum.ico" />
+    <Property Id="ARPPRODUCTICON" Value="wum.ico" />
 
     <!-- Feature -->
     <Feature Id="ProductFeature" Title="WUM" Level="1">

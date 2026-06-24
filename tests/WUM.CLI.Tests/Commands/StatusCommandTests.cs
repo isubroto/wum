@@ -21,6 +21,8 @@ namespace WUM.CLI.Tests.Commands
             _updatesMock.Setup(s =>
                 s.GetAvailableUpdatesAsync(
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new List<WindowsUpdate>
                 {

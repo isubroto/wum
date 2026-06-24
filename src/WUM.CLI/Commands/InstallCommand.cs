@@ -349,12 +349,11 @@ namespace WUM.CLI.Commands
 
                 if (!downloaded)
                 {
-                    ConsoleRenderer.Error(
-                        "    ✗ Download failed — " +
-                        "check internet connection and admin rights");
+                    string reason = _updates.LastError ?? "unknown cause";
+                    ConsoleRenderer.Error("    ✗ Download failed — " + reason);
                     result.Downloaded = false;
                     result.Installed  = false;
-                    result.Error      = "Download failed";
+                    result.Error      = "Download failed: " + reason;
                     results.Add(result);
                     continue;
                 }
@@ -387,9 +386,9 @@ namespace WUM.CLI.Commands
                 }
                 else
                 {
-                    ConsoleRenderer.Error(
-                        "    ✗ Installation failed — try running as Administrator");
-                    result.Error = "Install failed";
+                    string reason = _updates.LastError ?? "unknown cause";
+                    ConsoleRenderer.Error("    ✗ Installation failed — " + reason);
+                    result.Error = "Install failed: " + reason;
                 }
 
                 results.Add(result);
@@ -456,8 +455,13 @@ namespace WUM.CLI.Commands
                     Console.ResetColor();
                 }
                 Console.WriteLine();
-                ConsoleRenderer.Hint(
-                    "Run from Administrator PowerShell for full access");
+                if (!WUM.CLI.Helpers.AdminHelper.IsRunningAsAdmin())
+                    ConsoleRenderer.Hint(
+                        "Run from Administrator PowerShell for full access");
+                else
+                    ConsoleRenderer.Hint(
+                        "Already admin — see reason above; full log: " +
+                        "%ProgramData%\\WUM\\logs");
             }
         }
 

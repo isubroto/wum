@@ -21,6 +21,11 @@ namespace WUM.CLI
     {
         static async Task<int> Main(string[] args)
         {
+            // ── Console encoding ──────────────────────────────────────────
+            // Force UTF-8 so glyphs (✓ ✗ ↳ ⟳ ● ○) render instead of '?'.
+            try { Console.OutputEncoding = System.Text.Encoding.UTF8; }
+            catch { /* redirected stream — ignore */ }
+
             // ── Developer info short-circuit ──────────────────────────────
             if (args.Any(a => a == "--info"))
             {
@@ -134,23 +139,59 @@ namespace WUM.CLI
             int plus = version.IndexOf('+');
             if (plus >= 0) version = version.Substring(0, plus);
 
+            // Short commit hash from informational version (e.g. "+abc1234").
+            string commit = plus >= 0
+                ? asm?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                       ?.InformationalVersion?.Substring(plus + 1) ?? "—"
+                : "—";
+            if (commit.Length > 12) commit = commit.Substring(0, 12);
+
+            // Build date from assembly file timestamp.
+            string buildDate = "—";
+            try
+            {
+                string? loc = Environment.ProcessPath;
+                if (!string.IsNullOrEmpty(loc) && File.Exists(loc))
+                    buildDate = File.GetLastWriteTime(loc)
+                        .ToString("yyyy-MM-dd HH:mm");
+            }
+            catch { /* unavailable — ignore */ }
+
             Console.WriteLine();
             ConsoleRenderer.Header("  WUM - Windows Update Manager CLI");
-            Console.WriteLine();
-            WriteInfoLine("Version",   version);
-            WriteInfoLine("Author",    "Subroto Saha");
-            WriteInfoLine("License",   "MIT");
-            WriteInfoLine("Repository","https://github.com/isubroto/wum");
-            WriteInfoLine("Runtime",   RuntimeInformation.FrameworkDescription);
-            WriteInfoLine("OS",        RuntimeInformation.OSDescription);
-            WriteInfoLine("Arch",      RuntimeInformation.OSArchitecture.ToString());
+
+            ConsoleRenderer.SectionHeader("Application");
+            WriteInfoLine("Version",    version,                          ConsoleColor.Green,  "●");
+            WriteInfoLine("Commit",     commit,                           ConsoleColor.Yellow, "❯");
+            WriteInfoLine("Build Date", buildDate,                        ConsoleColor.White,  "⏱");
+            WriteInfoLine("Author",     "Subroto Saha",                   ConsoleColor.White,  "✎");
+            WriteInfoLine("License",    "MIT",                            ConsoleColor.White,  "§");
+            WriteInfoLine("Repository", "https://github.com/isubroto/wum",ConsoleColor.Cyan,   "⎇");
+
+            ConsoleRenderer.SectionHeader("Runtime");
+            WriteInfoLine("Framework",  RuntimeInformation.FrameworkDescription, ConsoleColor.White, "⚙");
+            WriteInfoLine("CLR",        Environment.Version.ToString(),          ConsoleColor.White, "⚙");
+            WriteInfoLine("Process",    (Environment.Is64BitProcess ? "64-bit" : "32-bit")
+                                        + " (" + RuntimeInformation.ProcessArchitecture + ")",
+                                        ConsoleColor.White, "▣");
+
+            ConsoleRenderer.SectionHeader("System");
+            WriteInfoLine("OS",         RuntimeInformation.OSDescription,          ConsoleColor.White, "🖥");
+            WriteInfoLine("OS Arch",    RuntimeInformation.OSArchitecture.ToString()
+                                        + (Environment.Is64BitOperatingSystem ? " (64-bit)" : " (32-bit)"),
+                                        ConsoleColor.White, "▣");
+            WriteInfoLine("Machine",    Environment.MachineName,                   ConsoleColor.White, "⌂");
+            WriteInfoLine("User",       Environment.UserName,                      ConsoleColor.White, "☺");
+            WriteInfoLine("CPU Cores",  Environment.ProcessorCount.ToString(),     ConsoleColor.White, "⊞");
             Console.WriteLine();
         }
 
-        private static void WriteInfoLine(string label, string value)
+        private static void WriteInfoLine(
+            string label, string value, ConsoleColor valueColor, string icon = "•")
         {
-            ConsoleRenderer.Inline("  " + label.PadRight(12), ConsoleColor.DarkGray);
-            Console.ForegroundColor = ConsoleColor.White;
+            ConsoleRenderer.Inline("  " + icon + " ", ConsoleColor.DarkCyan);
+            ConsoleRenderer.Inline(label.PadRight(12), ConsoleColor.DarkGray);
+            Console.ForegroundColor = valueColor;
             Console.WriteLine(value);
             Console.ResetColor();
         }

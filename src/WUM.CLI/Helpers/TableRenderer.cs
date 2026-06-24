@@ -59,7 +59,7 @@ namespace WUM.CLI.Helpers
 
                 // Status
                 if (!noColor) Console.ForegroundColor = statusColor;
-                Console.Write(u.Status.ToString().PadRight(statusW));
+                Console.Write(FriendlyStatus(u.Status).PadRight(statusW));
 
                 // Title
                 if (!noColor) Console.ForegroundColor = ConsoleColor.Gray;
@@ -78,7 +78,7 @@ namespace WUM.CLI.Helpers
             ConsoleRenderer.Divider();
             Console.WriteLine();
 
-            if (!noColor) RenderLegend();
+            if (!noColor) RenderLegend(updates);
         }
 
         // ── Detailed Update View ──────────────────────────────────────────
@@ -189,15 +189,33 @@ namespace WUM.CLI.Helpers
         }
 
         // ── Private Helpers ───────────────────────────────────────────────
-        private static void RenderLegend()
+        // Show only categories actually present in the table, so the legend
+        // never lists keys the rows don't use (or omits ones they do).
+        private static void RenderLegend(List<WindowsUpdate> updates)
         {
+            var present = new List<UpdateCategory>();
+            foreach (var u in updates)
+                if (!present.Contains(u.Category))
+                    present.Add(u.Category);
+
+            if (present.Count == 0) return;
+
             Console.Write("  Legend: ");
-            LegendItem("Security",  ConsoleColor.Red);
-            LegendItem("Critical",  ConsoleColor.Yellow);
-            LegendItem("Driver",    ConsoleColor.Magenta);
-            LegendItem("Optional",  ConsoleColor.Blue);
+            foreach (var cat in present)
+                LegendItem(cat.ToString(), GetCategoryColor(cat));
             Console.WriteLine();
         }
+
+        // Raw enum → glyph + friendly label. NotStarted reads as "Available".
+        private static string FriendlyStatus(UpdateStatus st) => st switch
+        {
+            UpdateStatus.Installed     => "✓ Installed",
+            UpdateStatus.Downloaded    => "▼ Downloaded",
+            UpdateStatus.Failed        => "✗ Failed",
+            UpdateStatus.PendingReboot => "⟳ Reboot",
+            UpdateStatus.Hidden        => "○ Hidden",
+            _                          => "○ Available",
+        };
 
         private static void LegendItem(string text, ConsoleColor color)
         {

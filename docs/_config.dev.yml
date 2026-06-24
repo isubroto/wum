@@ -1,0 +1,30 @@
+# Local development overrides — layer ON TOP of _config.yml:
+#
+#   cd docs
+#   bundle install
+#   bundle exec jekyll serve --config _config.yml,_config.dev.yml --livereload
+#
+# Then open http://127.0.0.1:4000/ (baseurl is blanked below so no /wum prefix).
+#
+# Why a separate file: production (_config.yml) uses `remote_theme`, which needs
+# network access and the jekyll-remote-theme plugin. Locally we use the
+# just-the-docs *gem* instead — faster, offline, identical output.
+
+# Use the gem theme, not the remote theme.
+remote_theme: ~
+theme: just-the-docs
+logo: "/assets/wum-logo.svg"
+favicon_ico: "/favicon.ico"
+image: "/assets/wum-social.png"
+
+# Serve at the site root locally (no project subpath).
+baseurl: ''
+url: 'http://127.0.0.1:4000'
+
+# Pages declare `layout: default` in frontmatter. Avoid a global default here:
+# it also catches theme CSS assets and wraps them in HTML.
+
+# remote_theme plugin is unavailable/unneeded locally; drop it from the list.
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap

@@ -2,6 +2,7 @@
 // Complete rewrite using PowerShell + WUA scripting
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,18 +17,43 @@ namespace WUM.Core.Services
         private readonly RegistryHelper _registry;
         private readonly ILogger        _log;
 
+        // Set by Download/Install on failure; surfaced to the CLI.
+        public string? LastError { get; private set; }
+
         public UpdateService(RegistryHelper registry)
         {
             _registry = registry;
             _log      = Log.ForContext<UpdateService>();
         }
 
+        // ── WUA ResultCode → human reason ─────────────────────────────────
+        // 0=NotStarted 1=InProgress 2=Succeeded 3=SucceededWithErrors
+        // 4=Failed 5=Aborted
+        private static string ResultCodeReason(string code) => code switch
+        {
+            "4" => "WUA reported Failed (ResultCode 4)",
+            "5" => "operation aborted (ResultCode 5)",
+            "0" => "operation never started (ResultCode 0)",
+            "1" => "still in progress when polled (ResultCode 1)",
+            _   => "unexpected WUA ResultCode " + code,
+        };
+
         // ── Get Available Updates ─────────────────────────────────────────
         public async Task<List<WindowsUpdate>> GetAvailableUpdatesAsync(
             bool includeHidden      = false,
             bool useMicrosoftUpdate = false,
+            bool forceRefresh       = false,
             CancellationToken ct    = default)
         {
+            // Shared scan cache: status/list/diagnose reuse one online search so
+            // they agree (online WUA results drift between calls — e.g. Defender
+            // definition updates republish hourly). Invalidated on any mutation.
+            if (!forceRefresh)
+            {
+                var cached = ReadCache(includeHidden, useMicrosoftUpdate);
+                if (cached != null) return cached;
+            }
+
             try
             {
                 // Microsoft Update service (vs default Windows Update) surfaces
@@ -95,12 +121,87 @@ $Updates | ConvertTo-Json -Depth 3
                     return new List<WindowsUpdate>();
                 }
 
-                return ParseUpdatesFromJson(output);
+                var parsed = ParseUpdatesFromJson(output);
+                WriteCache(includeHidden, useMicrosoftUpdate, parsed);
+                return parsed;
             }
             catch (Exception ex)
             {
                 _log.Error(ex, "Error fetching available updates");
                 return new List<WindowsUpdate>();
+            }
+        }
+
+        // ── Available-updates scan cache ──────────────────────────────────
+        // Keyed by search variant so list --hidden / --mu never collide with the
+        // default status scan. Best-effort: any IO/JSON error -> treat as miss.
+        private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
+
+        private static string CacheDir => Path.Combine(
+            Environment.GetFolderPath(
+                Environment.SpecialFolder.CommonApplicationData),
+            "WUM", "cache");
+
+        private static string CachePath(bool hidden, bool mu) =>
+            Path.Combine(CacheDir,
+                "available-h" + (hidden ? 1 : 0) + "-m" + (mu ? 1 : 0) + ".json");
+
+        private sealed class CacheEnvelope
+        {
+            public DateTime TimestampUtc { get; set; }
+            public List<WindowsUpdate> Updates { get; set; } = new();
+        }
+
+        private List<WindowsUpdate>? ReadCache(bool hidden, bool mu)
+        {
+            try
+            {
+                string path = CachePath(hidden, mu);
+                if (!File.Exists(path)) return null;
+
+                var env = JsonSerializer.Deserialize<CacheEnvelope>(
+                    File.ReadAllText(path));
+                if (env == null) return null;
+                if (DateTime.UtcNow - env.TimestampUtc > CacheTtl) return null;
+
+                _log.Debug("Available-updates cache hit (h{H} m{M})",
+                    hidden, mu);
+                return env.Updates;
+            }
+            catch { return null; }
+        }
+
+        private void WriteCache(bool hidden, bool mu, List<WindowsUpdate> updates)
+        {
+            try
+            {
+                Directory.CreateDirectory(CacheDir);
+                var env = new CacheEnvelope
+                {
+                    TimestampUtc = DateTime.UtcNow,
+                    Updates      = updates
+                };
+                File.WriteAllText(CachePath(hidden, mu),
+                    JsonSerializer.Serialize(env));
+            }
+            catch (Exception ex)
+            {
+                _log.Debug(ex, "Failed to write available-updates cache");
+            }
+        }
+
+        // Drop the whole cache after any state-changing operation so the next
+        // status/list/diagnose all re-scan and agree on the new state.
+        private void InvalidateCache()
+        {
+            try
+            {
+                if (Directory.Exists(CacheDir))
+                    Directory.Delete(CacheDir, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                _log.Debug(ex, "Failed to invalidate available-updates cache");
             }
         }
 
@@ -202,17 +303,25 @@ $Items | ConvertTo-Json -Depth 3
             IProgress<double>? progress = null,
             CancellationToken  ct       = default)
         {
+            LastError = null;
             try
             {
                 progress?.Report(5);
 
+                // WUA Search() criteria does NOT support UpdateID — searching
+                // by it throws WU_E_INVALID_CRITERIA. Search broad, then match
+                // the UpdateID in PowerShell. Single quotes only → no escaping.
                 string script = @"
+$ErrorActionPreference = 'Stop'
 $Session  = New-Object -ComObject Microsoft.Update.Session
 $Searcher = $Session.CreateUpdateSearcher()
-$Results  = $Searcher.Search(""IsInstalled=0 AND UpdateID='""  + '" + updateId + @"' + """""")
-if ($Results.Updates.Count -eq 0) { Write-Output 'NOT_FOUND'; exit }
+$Results  = $Searcher.Search('IsInstalled=0')
+$Update   = $Results.Updates | Where-Object { $_.Identity.UpdateID -eq '" + updateId + @"' } | Select-Object -First 1
+if (-not $Update) { Write-Output 'NOT_FOUND'; exit }
+$Coll = New-Object -ComObject Microsoft.Update.UpdateColl
+[void]$Coll.Add($Update)
 $Downloader         = $Session.CreateUpdateDownloader()
-$Downloader.Updates = $Results.Updates
+$Downloader.Updates = $Coll
 $Result             = $Downloader.Download()
 Write-Output $Result.ResultCode
 ";
@@ -220,7 +329,7 @@ Write-Output $Result.ResultCode
                     .CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromMinutes(15));
 
-                var (_, output, _) =
+                var (_, output, error) =
                     await PowerShellHelper.RunScriptAsync(script);
 
                 progress?.Report(100);
@@ -229,11 +338,19 @@ Write-Output $Result.ResultCode
                 _log.Information("Download result for {Id}: {Out}", updateId, output);
 
                 // ResultCode 2 = Succeeded, 3 = SucceededWithErrors
-                return output == "2" || output == "3";
+                if (output == "2" || output == "3") return true;
+
+                LastError = output == "NOT_FOUND"
+                    ? "update not found in catalog — may be installed, hidden, or superseded"
+                    : !string.IsNullOrWhiteSpace(error)
+                        ? error.Trim()
+                        : ResultCodeReason(output);
+                return false;
             }
             catch (Exception ex)
             {
                 _log.Error(ex, "Download failed for {UpdateId}", updateId);
+                LastError = ex.Message;
                 return false;
             }
         }
@@ -244,17 +361,24 @@ Write-Output $Result.ResultCode
             IProgress<double>? progress = null,
             CancellationToken  ct       = default)
         {
+            LastError = null;
             try
             {
                 progress?.Report(5);
 
+                // Same fix as Download: match UpdateID in PS, not in criteria.
+                // Update must be downloaded already; install from local cache.
                 string script = @"
+$ErrorActionPreference = 'Stop'
 $Session  = New-Object -ComObject Microsoft.Update.Session
 $Searcher = $Session.CreateUpdateSearcher()
-$Results  = $Searcher.Search(""IsInstalled=0 AND UpdateID='""  + '" + updateId + @"' + """""")
-if ($Results.Updates.Count -eq 0) { Write-Output 'NOT_FOUND'; exit }
+$Results  = $Searcher.Search('IsInstalled=0')
+$Update   = $Results.Updates | Where-Object { $_.Identity.UpdateID -eq '" + updateId + @"' } | Select-Object -First 1
+if (-not $Update) { Write-Output 'NOT_FOUND'; exit }
+$Coll = New-Object -ComObject Microsoft.Update.UpdateColl
+[void]$Coll.Add($Update)
 $Installer         = $Session.CreateUpdateInstaller()
-$Installer.Updates = $Results.Updates
+$Installer.Updates = $Coll
 $Result            = $Installer.Install()
 Write-Output $Result.ResultCode
 ";
@@ -262,7 +386,7 @@ Write-Output $Result.ResultCode
                     .CreateLinkedTokenSource(ct);
                 cts.CancelAfter(TimeSpan.FromMinutes(30));
 
-                var (_, output, _) =
+                var (_, output, error) =
                     await PowerShellHelper.RunScriptAsync(script);
 
                 progress?.Report(100);
@@ -270,11 +394,19 @@ Write-Output $Result.ResultCode
                 output = output.Trim();
                 _log.Information("Install result for {Id}: {Out}", updateId, output);
 
-                return output == "2" || output == "3";
+                if (output == "2" || output == "3") { InvalidateCache(); return true; }
+
+                LastError = output == "NOT_FOUND"
+                    ? "update not found in catalog — may be installed, hidden, or superseded"
+                    : !string.IsNullOrWhiteSpace(error)
+                        ? error.Trim()
+                        : ResultCodeReason(output);
+                return false;
             }
             catch (Exception ex)
             {
                 _log.Error(ex, "Install failed for {UpdateId}", updateId);
+                LastError = ex.Message;
                 return false;
             }
         }
@@ -284,8 +416,10 @@ Write-Output $Result.ResultCode
         {
             var kb = kbArticle.Replace("KB", "",
                 StringComparison.OrdinalIgnoreCase);
-            return await PowerShellHelper.RunCommandAsync(
+            bool ok = await PowerShellHelper.RunCommandAsync(
                 "wusa.exe /uninstall /kb:" + kb + " /quiet /norestart");
+            if (ok) InvalidateCache();
+            return ok;
         }
 
         // ── Hide ──────────────────────────────────────────────────────────
@@ -299,7 +433,9 @@ foreach ($u in $Results.Updates) { $u.IsHidden = $true }
 Write-Output 'OK'
 ";
             var (_, output, _) = await PowerShellHelper.RunScriptAsync(script);
-            return output.Trim() == "OK";
+            bool ok = output.Trim() == "OK";
+            if (ok) InvalidateCache();
+            return ok;
         }
 
         // ── Unhide ────────────────────────────────────────────────────────
@@ -313,7 +449,9 @@ foreach ($u in $Results.Updates) { $u.IsHidden = $false }
 Write-Output 'OK'
 ";
             var (_, output, _) = await PowerShellHelper.RunScriptAsync(script);
-            return output.Trim() == "OK";
+            bool ok = output.Trim() == "OK";
+            if (ok) InvalidateCache();
+            return ok;
         }
 
         // ── Settings ──────────────────────────────────────────────────────
@@ -364,13 +502,19 @@ Write-Output 'OK'
         }
 
         // ── Reboot Check ──────────────────────────────────────────────────
+        // Must match diagnose D1 markers so 'diagnose' and 'reboot' agree.
+        // Update-specific keys only — PendingFileRenameOperations is excluded
+        // (noisy, set by routine installers; false positive for update reboots).
         public bool IsRebootRequired()
         {
             try
             {
                 return _registry.KeyExists(
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\" +
-                    @"WindowsUpdate\Auto Update\RebootRequired");
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\" +
+                        @"WindowsUpdate\Auto Update\RebootRequired")
+                    || _registry.KeyExists(
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\" +
+                        @"Component Based Servicing\RebootPending");
             }
             catch { return false; }
         }
@@ -530,6 +674,9 @@ $svcMap = [ordered]@{
     'Delivery Opt ' = 'dosvc'
     'App Identity ' = 'appidsvc'
     'Crypto Svc   ' = 'cryptsvc'
+    'Update Orch  ' = 'UsoSvc'
+    'Modules Inst ' = 'TrustedInstaller'
+    'MSI Installer' = 'msiserver'
 }
 foreach ($label in $svcMap.Keys) {
     $name = $svcMap[$label]
@@ -612,18 +759,12 @@ try {
     Write-Output ('Service Mgr   : FAILED - ' + $_.Exception.Message)
 }
 
-# 5. Search for updates
+# 5. Search test - validate the COM searcher works. The user-facing
+#    'Updates Found' count is printed by the CLI from the shared scan cache
+#    so status/list/diagnose always agree.
 try {
-    Write-Output 'Searching     : Please wait...'
-    $r = $Searcher.Search('IsInstalled=0 AND Type=''Software''')
-    Write-Output ('Updates Found : ' + $r.Updates.Count)
-    if ($r.Updates.Count -gt 0) {
-        foreach ($u in $r.Updates) {
-            $kb = ''
-            if ($u.KBArticleIDs.Count -gt 0) { $kb = 'KB' + $u.KBArticleIDs[0] }
-            Write-Output ('  -> ' + $kb.PadRight(14) + $u.Title.Substring(0, [Math]::Min(60, $u.Title.Length)))
-        }
-    }
+    $null = $Searcher.Search('IsInstalled=0 AND Type=''Software''')
+    Write-Output 'Search Test   : OK'
 } catch {
     Write-Output ('Search Error  : ' + $_.Exception.Message)
 }
@@ -681,6 +822,92 @@ try {
 } catch {
     Write-Output 'Update Source : Unable to read'
 }
+
+Write-Output ''
+Write-Output '=== Deep Checks ==='
+
+# D1. Pending reboot - update-specific markers only. PendingFileRenameOperations
+#     is deliberately EXCLUDED: it is set by routine installers/file ops and is a
+#     false positive for 'updates need a reboot'. Keep this aligned with
+#     IsRebootRequired() so 'diagnose' and 'reboot' never disagree.
+try {
+    $reasons = @()
+    if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired') { $reasons += 'WU' }
+    if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') { $reasons += 'CBS' }
+    if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired\UpdateExeVolatile') { $reasons += 'UpdateExe' }
+    if ($reasons.Count -gt 0) {
+        Write-Output ('Pending Reboot: REBOOT REQUIRED (' + ($reasons -join ', ') + ')')
+    } else {
+        Write-Output 'Pending Reboot: No'
+    }
+} catch { Write-Output 'Pending Reboot: Unable to read' }
+
+# D2. System drive free space - low space stalls download/install.
+try {
+    $sysDrive = $env:SystemDrive.TrimEnd(':')
+    $d = Get-PSDrive -Name $sysDrive -ErrorAction SilentlyContinue
+    if ($d) {
+        $freeGB = [Math]::Round($d.Free / 1GB, 1)
+        if ($freeGB -lt 10) {
+            Write-Output ('Disk Free     : ' + $freeGB + ' GB (LOW)')
+        } else {
+            Write-Output ('Disk Free     : ' + $freeGB + ' GB')
+        }
+    }
+} catch { Write-Output 'Disk Free     : Unable to read' }
+
+# D3. SoftwareDistribution download cache size - bloat signals stuck cache.
+try {
+    $dlPath = Join-Path $env:windir 'SoftwareDistribution\Download'
+    if (Test-Path $dlPath) {
+        $sz = (Get-ChildItem $dlPath -Recurse -Force -ErrorAction SilentlyContinue |
+            Measure-Object -Property Length -Sum).Sum
+        $szMB = [Math]::Round(($sz / 1MB), 1)
+        Write-Output ('SoftDist Cache: ' + $szMB + ' MB')
+    } else {
+        Write-Output 'SoftDist Cache: Missing (reset in progress?)'
+    }
+} catch { Write-Output 'SoftDist Cache: Unable to read' }
+
+# D4. WU datastore - the WUA index DB; missing/locked breaks search.
+try {
+    $edb = Join-Path $env:windir 'SoftwareDistribution\DataStore\DataStore.edb'
+    if (Test-Path $edb) {
+        $edbMB = [Math]::Round(((Get-Item $edb).Length / 1MB), 1)
+        Write-Output ('WU Datastore  : OK (' + $edbMB + ' MB)')
+    } else {
+        Write-Output 'WU Datastore  : MISSING'
+    }
+} catch { Write-Output 'WU Datastore  : Unable to read' }
+
+# D5. Uptime - very long uptime delays pending-reboot finalization.
+try {
+    $os2 = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    if ($os2) {
+        $up = (Get-Date) - $os2.LastBootUpTime
+        $days = [Math]::Floor($up.TotalDays)
+        Write-Output ('Uptime        : ' + $days + 'd ' + $up.Hours + 'h ' + $up.Minutes + 'm')
+    }
+} catch { Write-Output 'Uptime        : Unable to read' }
+
+# D6. Last successful install time (companion to Last WU Check).
+try {
+    $ip = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\Results\Install'
+    $iv = (Get-ItemProperty -Path $ip -ErrorAction SilentlyContinue).LastSuccessTime
+    if ($iv) {
+        Write-Output ('Last Install  : ' + $iv)
+    } else {
+        Write-Output 'Last Install  : Never or unknown'
+    }
+} catch { Write-Output 'Last Install  : Unable to read' }
+
+# D7. Pending (downloaded, not installed) updates waiting in queue.
+try {
+    $rPend = $Searcher.Search('IsInstalled=0 AND IsHidden=0')
+    $dlCount = 0
+    foreach ($pu in $rPend.Updates) { if ($pu.IsDownloaded) { $dlCount++ } }
+    Write-Output ('Pending Queue : ' + $dlCount + ' downloaded, not installed')
+} catch { Write-Output 'Pending Queue : Unable to read' }
 
 # 9. Admin check
 $id        = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -784,6 +1011,7 @@ Write-Output 'Reset complete. A reboot is recommended.'
                 if (!string.IsNullOrWhiteSpace(error))
                     result += "\nPS Errors:\n" + error;
 
+                InvalidateCache();
                 return result;
             }
             catch (Exception ex)
