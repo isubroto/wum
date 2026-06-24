@@ -46,6 +46,9 @@ namespace WUM.CLI.Commands
                 new[] { "--force", "-f" }, "Skip confirmation prompts");
             var noRebootOpt  = new Option<bool>(
                 "--no-reboot", "Do not prompt for reboot after install");
+            var muOpt        = new Option<bool>(
+                new[] { "--microsoft-update", "--mu" },
+                "Also query Microsoft Update (drivers + other MS products)");
 
             cmd.AddArgument(kbArg);
             cmd.AddOption(securityOpt);
@@ -55,6 +58,7 @@ namespace WUM.CLI.Commands
             cmd.AddOption(dryRunOpt);
             cmd.AddOption(forceOpt);
             cmd.AddOption(noRebootOpt);
+            cmd.AddOption(muOpt);
 
             cmd.SetHandler(async (ctx) =>
             {
@@ -66,9 +70,10 @@ namespace WUM.CLI.Commands
                 var dryRun     = ctx.ParseResult.GetValueForOption(dryRunOpt);
                 var force      = ctx.ParseResult.GetValueForOption(forceOpt);
                 var noReboot   = ctx.ParseResult.GetValueForOption(noRebootOpt);
+                var mu         = ctx.ParseResult.GetValueForOption(muOpt);
 
                 await RunAsync(kbs, security, critical, all,
-                               definition, dryRun, force, noReboot);
+                               definition, dryRun, force, noReboot, mu);
             });
 
             return cmd;
@@ -79,7 +84,7 @@ namespace WUM.CLI.Commands
             bool security,   bool critical,
             bool all,        bool definition,
             bool dryRun,     bool force,
-            bool noReboot)
+            bool noReboot,   bool mu)
         {
             WUM.CLI.Helpers.AdminHelper.RequireAdmin();
 
@@ -89,7 +94,8 @@ namespace WUM.CLI.Commands
             await ConsoleRenderer.ShowSpinnerAsync(
                 "Scanning for available updates...", async () =>
                 {
-                    available = await _updates.GetAvailableUpdatesAsync();
+                    available = await _updates.GetAvailableUpdatesAsync(
+                        useMicrosoftUpdate: mu);
                 });
 
             if (available.Count == 0)

@@ -39,6 +39,9 @@ namespace WUM.CLI.Commands
                 "--hidden",    "Include hidden updates");
             var installedOpt = new Option<bool>(
                 "--installed", "Show installed updates instead");
+            var muOpt        = new Option<bool>(
+                new[] { "--microsoft-update", "--mu" },
+                "Also query Microsoft Update (drivers + other MS products)");
             var jsonOpt      = new Option<bool>(
                 "--json",      "Output as JSON");
             var noColorOpt   = new Option<bool>(
@@ -54,6 +57,7 @@ namespace WUM.CLI.Commands
             cmd.AddOption(definitionOpt);
             cmd.AddOption(hiddenOpt);
             cmd.AddOption(installedOpt);
+            cmd.AddOption(muOpt);
             cmd.AddOption(jsonOpt);
             cmd.AddOption(noColorOpt);
             cmd.AddOption(verboseOpt);
@@ -68,13 +72,14 @@ namespace WUM.CLI.Commands
                 bool definition = ctx.ParseResult.GetValueForOption(definitionOpt);
                 bool hidden     = ctx.ParseResult.GetValueForOption(hiddenOpt);
                 bool installed  = ctx.ParseResult.GetValueForOption(installedOpt);
+                bool mu         = ctx.ParseResult.GetValueForOption(muOpt);
                 bool json       = ctx.ParseResult.GetValueForOption(jsonOpt);
                 bool noColor    = ctx.ParseResult.GetValueForOption(noColorOpt);
                 bool verbose    = ctx.ParseResult.GetValueForOption(verboseOpt);
 
                 await RunAsync(
                     security, critical, optional, drivers, definition,
-                    hidden, installed, json, noColor, verbose);
+                    hidden, installed, mu, json, noColor, verbose);
             });
 
             return cmd;
@@ -83,8 +88,8 @@ namespace WUM.CLI.Commands
         private async Task RunAsync(
             bool security,   bool critical,  bool optional,
             bool drivers,    bool definition, bool hidden,
-            bool installed,  bool json,      bool noColor,
-            bool verbose)
+            bool installed,  bool mu,        bool json,
+            bool noColor,    bool verbose)
         {
             List<WindowsUpdate> updates = new();
 
@@ -110,7 +115,8 @@ namespace WUM.CLI.Commands
                 updates = installed
                     ? await _updates.GetInstalledUpdatesAsync()
                     : await _updates.GetAvailableUpdatesAsync(
-                        includeHidden: hidden);
+                        includeHidden: hidden,
+                        useMicrosoftUpdate: mu);
             }, timeoutSeconds: 90);
 
             // ── Verbose: show raw fetch info ──────────────────────────────

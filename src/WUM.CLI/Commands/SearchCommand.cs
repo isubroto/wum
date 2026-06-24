@@ -34,26 +34,32 @@ namespace WUM.CLI.Commands
 
             var jsonOpt = new Option<bool>("--json", "Output results as JSON");
 
+            var muOpt = new Option<bool>(
+                new[] { "--microsoft-update", "--mu" },
+                "Also query Microsoft Update (drivers + other MS products)");
+
             cmd.AddArgument(termArg);
             cmd.AddOption(categoryOpt);
             cmd.AddOption(jsonOpt);
+            cmd.AddOption(muOpt);
 
-            cmd.SetHandler(async (string term, string? cat, bool json) =>
+            cmd.SetHandler(async (string term, string? cat, bool json, bool mu) =>
             {
-                await RunAsync(term, cat, json);
-            }, termArg, categoryOpt, jsonOpt);
+                await RunAsync(term, cat, json, mu);
+            }, termArg, categoryOpt, jsonOpt, muOpt);
 
             return cmd;
         }
 
-        private async Task RunAsync(string term, string? category, bool json)
+        private async Task RunAsync(string term, string? category, bool json, bool mu)
         {
             List<WindowsUpdate> all = new();
 
             await ConsoleRenderer.ShowSpinnerAsync(
                 "Searching for \"" + term + "\"...", async () =>
                 {
-                    all = await _updates.GetAvailableUpdatesAsync(includeHidden: true);
+                    all = await _updates.GetAvailableUpdatesAsync(
+                        includeHidden: true, useMicrosoftUpdate: mu);
                 });
 
             var results = all.Where(u =>

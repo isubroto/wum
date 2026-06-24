@@ -47,92 +47,113 @@ jobs:
       - name: Determine Version
         id: gitversion
         uses: gittools/actions/gitversion/execute@v4.5.0
-
+        
       - name: Compute versions
         id: versions
         shell: pwsh
         run: |
-          # Get the latest tag matching v*
-          $latestTag = git describe --tags --abbrev=0 --match "v*" 2>$null
-          
-          # Initialize base version variables from GitVersion
-          $gitversionFull = '${{ steps.gitversion.outputs.FullSemVer }}'
-          $baseMajor = 0
-          $baseMinor = 0
-          $basePatch = 1
-          $baseRevision = 0
-          
-          if ($gitversionFull -match '^v?(\d+)\.(\d+)\.(\d+)') {
-              $baseMajor = [int]$Matches[1]
-              $baseMinor = [int]$Matches[2]
-              $basePatch = [int]$Matches[3]
-              if ($gitversionFull -match '[-.](\d+)$') {
-                  $baseRevision = [int]$Matches[1]
+          # ── Version model ────────────────────────────────────────────────
+          # safe = <major>.<minor>.<patch>.<N>  (always numeric 4-part, valid
+          # for the .csproj <Version>, MSI ProductVersion, and release tag).
+          #
+          #   base major.minor.patch   = GitVersion MajorMinorPatch (e.g. 0.0.1)
+          #   bump (commits since tag) : breaking -> +major  => 1.0.0.N
+          #                              feat     -> +minor  => 0.1.0.N
+          #                              fix/other-> +patch  => 0.0.2.N
+          #   N                        = GitVersion PreReleaseNumber — the '43'
+          #                              in FullSemVer '0.0.1-43'. This is the
+          #                              same counter shown in 'full', so safe's
+          #                              4th part matches full's pre-release num
+          #                              (NOT CommitsSinceVersionSource, which is
+          #                              anchored to a different tag and gave 13).
+          $full  = '${{ steps.gitversion.outputs.FullSemVer }}'
+          $mmp   = '${{ steps.gitversion.outputs.MajorMinorPatch }}'
+          $N     = '${{ steps.gitversion.outputs.PreReleaseNumber }}'
+
+          # Fallbacks if PreReleaseNumber is empty (e.g. an exact stable tag).
+          if ([string]::IsNullOrWhiteSpace($N)) { $N = '${{ steps.gitversion.outputs.CommitsSinceVersionSource }}' }
+          if ([string]::IsNullOrWhiteSpace($N)) { $N = '0' }
+
+          # ── Base = highest existing RELEASE version ──────────────────────
+          # Bump from the latest shipped version so the result is cumulative
+          # and monotonic (0.1.0 -> 0.1.1 -> 0.2.0 ...), NOT from GitVersion's
+          # stuck baseline 0.0.1.
+          #
+          # IMPORTANT: pick the HIGHEST version, not `git describe` (which
+          # returns the newest *reachable* tag and caused versions to go
+          # backward). Tags may be 3-part (v0.1.0) or 4-part (v0.1.0.46) — we
+          # read the first three numeric components and ignore the 4th.
+          $baseMajor = 0; $baseMinor = 0; $basePatch = 0
+          $best = $null
+          foreach ($tag in (git tag 2>$null)) {
+              if ($tag -match '^v?(\d+)\.(\d+)\.(\d+)') {
+                  $v = [version]("{0}.{1}.{2}" -f $Matches[1], $Matches[2], $Matches[3])
+                  if ($null -eq $best -or $v -gt $best) {
+                      $best = $v
+                      $baseMajor = [int]$Matches[1]
+                      $baseMinor = [int]$Matches[2]
+                      $basePatch = [int]$Matches[3]
+                  }
               }
           }
-          
-          # Get commits since the latest tag
+          if ($null -eq $best) {
+              # No release tags yet — fall back to GitVersion MajorMinorPatch.
+              if ($mmp -match '^(\d+)\.(\d+)\.(\d+)$') {
+                  $baseMajor = [int]$Matches[1]; $baseMinor = [int]$Matches[2]; $basePatch = [int]$Matches[3]
+              } else { $basePatch = 1 }
+          }
+          Write-Host "Base (latest release) : $baseMajor.$baseMinor.$basePatch"
+
+          # ── Commit range since last tag (for bump detection only) ────────
+          $latestTag = git describe --tags --abbrev=0 2>$null
           if ($latestTag) {
-              $commits = git log "$latestTag..HEAD" --format=%B
-              $commitCount = 0
-              if ($commits) {
-                  $commitCount = [int](git rev-list --count "$latestTag..HEAD")
-              }
+              $commitMessages = git log "$latestTag..HEAD" --format="%s" 2>$null
           } else {
-              # No tags found, get all commits
-              $commits = git log --format=%B
-              $commitCount = [int](git rev-list --count HEAD)
+              $commitMessages = git log --format="%s" 2>$null
           }
-          
-          # Determine the revision
-          $revision = $baseRevision + $commitCount
-          
-          # Scan commits for version bump triggers (case-insensitive)
-          $hasBreaking = $false
-          $hasFeat = $false
-          $hasFix = $false
-          
-          if ($commits) {
-              foreach ($line in $commits) {
-                  if ([string]::IsNullOrWhiteSpace($line)) { continue }
-                  if ($line -match 'BREAKING CHANGE:') {
-                      $hasBreaking = $true
-                  }
-                  elseif ($line -match '^feat(\([\w\s-]*\))?:') {
-                      $hasFeat = $true
-                  }
-                  elseif ($line -match '^fix(\([\w\s-]*\))?:') {
-                      $hasFix = $true
-                  }
+          $commitCount = ($commitMessages | Measure-Object).Count
+          Write-Host "Latest tag            : $latestTag"
+          Write-Host "Commits since tag     : $commitCount"
+
+          # ── Scan commits for highest bump type ───────────────────────────
+          $hasBreaking = $false; $hasFeat = $false; $hasFix = $false
+          foreach ($msg in $commitMessages) {
+              if ([string]::IsNullOrWhiteSpace($msg)) { continue }
+              $msg = $msg.Trim()
+              if ($msg -match 'BREAKING[ _]CHANGE' -or $msg -match '^[a-z]+(\([^)]*\))?!:') {
+                  $hasBreaking = $true
+              } elseif ($msg -match '^feat(\([^)]*\))?:') {
+                  $hasFeat = $true
+              } elseif ($msg -match '^fix(\([^)]*\))?:') {
+                  $hasFix = $true
               }
           }
-          
-          # Compute major.minor.patch
-          $major = $baseMajor
-          $minor = $baseMinor
-          $patch = $basePatch
-          
+          Write-Host "Detected -> Breaking=$hasBreaking Feat=$hasFeat Fix=$hasFix"
+
+          # ── Apply bump on top of base ────────────────────────────────────
+          $major = $baseMajor; $minor = $baseMinor; $patch = $basePatch
           if ($hasBreaking) {
-              $major = $baseMajor + 1
-              $minor = 0
-              $patch = 0
-          }
-          elseif ($hasFeat) {
-              $minor = $baseMinor + 1
-              $patch = 0
-          }
-          elseif ($hasFix) {
+              $major = $baseMajor + 1; $minor = 0; $patch = 0
+              Write-Host "Bump: MAJOR"
+          } elseif ($hasFeat) {
+              $minor = $baseMinor + 1; $patch = 0
+              Write-Host "Bump: MINOR"
+          } elseif ($hasFix) {
               $patch = $basePatch + 1
+              Write-Host "Bump: PATCH (fix)"
+          } else {
+              $patch = $basePatch + 1
+              Write-Host "Bump: PATCH (other)"
           }
-          
-          $safe = "$major.$minor.$patch.$revision"
-          $full = '${{ steps.gitversion.outputs.FullSemVer }}'
-          
-          Write-Host "Base Version: $baseMajor.$baseMinor.$basePatch (Revision: $baseRevision)"
-          Write-Host "New Commits: $commitCount"
-          Write-Host "Bumps detected - Breaking: $hasBreaking, Feat: $hasFeat, Fix: $hasFix"
-          Write-Host "Computed version: $safe"
-          
+
+          $safe = "$major.$minor.$patch.$N"
+
+          Write-Host "============================================"
+          Write-Host "  FullSemVer : $full"
+          Write-Host "  N (pre-rel): $N"
+          Write-Host "  Safe       : $safe"
+          Write-Host "============================================"
+
           Add-Content -Path $env:GITHUB_OUTPUT -Value "full=$full"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "safe=$safe"
 
@@ -251,7 +272,7 @@ jobs:
       # Only for stable releases (no '-' in version)
       # -----------------------------
       - name: Create WinGet Manifests
-        if: ${{ !contains(steps.versions.outputs.safe, '-') }}
+        if: true
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"

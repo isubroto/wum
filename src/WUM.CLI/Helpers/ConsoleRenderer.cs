@@ -114,28 +114,32 @@ namespace WUM.CLI.Helpers
         public static async Task ShowSpinnerAsync(
             string message,
             Func<Task> action,
-            int timeoutSeconds = 60)
+            int timeoutSeconds = 60,
+            bool silent = false)
         {
             var cts     = new CancellationTokenSource();
             int frame   = 0;
             int elapsed = 0;
 
-            Console.CursorVisible = false;
+            if (!silent) Console.CursorVisible = false;
 
-            // Spinner task — ticks every second
+            // Spinner task — ticks every second (suppressed when silent)
             var spinTask = Task.Run(async () =>
             {
                 while (!cts.IsCancellationRequested)
                 {
-                    string timeStr = elapsed > 3
-                        ? " (" + elapsed + "s)"
-                        : string.Empty;
+                    if (!silent)
+                    {
+                        string timeStr = elapsed > 3
+                            ? " (" + elapsed + "s)"
+                            : string.Empty;
 
-                    Console.ForegroundColor = ConsoleColor.Cyan;
-                    Console.Write(
-                        "\r  " + Spinner[frame % Spinner.Length] +
-                        " " + message + timeStr + "          ");
-                    Console.ResetColor();
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.Write(
+                            "\r  " + Spinner[frame % Spinner.Length] +
+                            " " + message + timeStr + "          ");
+                        Console.ResetColor();
+                    }
 
                     frame++;
                     elapsed++;
@@ -161,11 +165,14 @@ namespace WUM.CLI.Helpers
                 if (winner != actionTask)
                 {
                     // Timed out — show warning but do not crash
-                    Console.WriteLine();
-                    WriteColor(
-                        "  ! Operation timed out after " +
-                        timeoutSeconds + "s — this may need admin rights.",
-                        ConsoleColor.Yellow);
+                    if (!silent)
+                    {
+                        Console.WriteLine();
+                        WriteColor(
+                            "  ! Operation timed out after " +
+                            timeoutSeconds + "s — this may need admin rights.",
+                            ConsoleColor.Yellow);
+                    }
                 }
                 else
                 {
@@ -183,10 +190,13 @@ namespace WUM.CLI.Helpers
                 await cts.CancelAsync();
                 try { await spinTask; } catch { /* ignored */ }
 
-                int width = Math.Max(Console.WindowWidth - 1, 60);
-                Console.Write("\r" + new string(' ', width) + "\r");
-                Console.CursorVisible = true;
-                Console.ResetColor();
+                if (!silent)
+                {
+                    int width = Math.Max(Console.WindowWidth - 1, 60);
+                    Console.Write("\r" + new string(' ', width) + "\r");
+                    Console.CursorVisible = true;
+                    Console.ResetColor();
+                }
             }
         }
 
