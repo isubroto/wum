@@ -29,6 +29,8 @@ namespace WUM.CLI.Tests.Commands
             _mock.Setup(s =>
                 s.GetAvailableUpdatesAsync(
                     It.IsAny<bool>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(SampleUpdates());
 
@@ -46,6 +48,8 @@ namespace WUM.CLI.Tests.Commands
         {
             _mock.Setup(s =>
                 s.GetAvailableUpdatesAsync(
+                    It.IsAny<bool>(),
+                    It.IsAny<bool>(),
                     It.IsAny<bool>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(SampleUpdates());

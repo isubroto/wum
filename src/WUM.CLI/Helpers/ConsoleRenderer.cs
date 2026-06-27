@@ -117,19 +117,20 @@ namespace WUM.CLI.Helpers
             int timeoutSeconds = 60,
             bool silent = false)
         {
-            var cts     = new CancellationTokenSource();
-            int frame   = 0;
-            int elapsed = 0;
+            const int frameMs = 60;
+            var cts   = new CancellationTokenSource();
+            int frame = 0;
 
             if (!silent) Console.CursorVisible = false;
 
-            // Spinner task — ticks every second (suppressed when silent)
+            // Spinner task — refreshes every 8ms (suppressed when silent)
             var spinTask = Task.Run(async () =>
             {
                 while (!cts.IsCancellationRequested)
                 {
                     if (!silent)
                     {
+                        int elapsed = frame * frameMs / 1000;
                         string timeStr = elapsed > 3
                             ? " (" + elapsed + "s)"
                             : string.Empty;
@@ -142,9 +143,8 @@ namespace WUM.CLI.Helpers
                     }
 
                     frame++;
-                    elapsed++;
 
-                    try { await Task.Delay(1000, cts.Token); }
+                    try { await Task.Delay(frameMs, cts.Token); }
                     catch (TaskCanceledException) { break; }
                 }
             });

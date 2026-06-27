@@ -12,6 +12,7 @@ namespace WUM.Core.Services
         Task<List<WindowsUpdate>> GetAvailableUpdatesAsync(
             bool includeHidden      = false,
             bool useMicrosoftUpdate = false,
+            bool forceRefresh       = false,
             CancellationToken ct    = default);
 
         Task<List<WindowsUpdate>> GetInstalledUpdatesAsync(
@@ -19,6 +20,10 @@ namespace WUM.Core.Services
 
         Task<List<UpdateHistory>> GetUpdateHistoryAsync(
             int count = 50);
+
+        // Last failure detail, set by Download/Install when they return false.
+        // Null when the last call succeeded or none ran yet.
+        string? LastError { get; }
 
         Task<bool> DownloadUpdateAsync(
             string updateId,

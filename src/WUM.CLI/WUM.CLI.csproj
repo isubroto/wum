@@ -11,6 +11,7 @@
 
     <!-- Manifest only on Release to avoid SxS issues in Debug -->
     <ApplicationManifest Condition="'$(Configuration)' == 'Release'">app.manifest</ApplicationManifest>
+    <ApplicationIcon>wum.ico</ApplicationIcon>
 
     <!-- Publish settings -->
     <PublishSingleFile>true</PublishSingleFile>
@@ -18,6 +19,11 @@
 
     <!-- Version: CI overwrites this on release. Keep 4-part numeric. -->
     <Version>0.2.0.46</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <PackageVersion>$(Version)</PackageVersion>
+    <ProductVersion>$(Version)</ProductVersion>
     <!-- Stop SDK appending git sha to InformationalVersion, keeps version string clean -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
@@ -35,16 +41,3 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
   </ItemGroup>
 </Project>
-
-
-
-
-
-
-
-
-
-
-
-
-

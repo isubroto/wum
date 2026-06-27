@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="180" viewBox="0 0 720 180" role="img" aria-labelledby="wum-logo-title wum-logo-desc">
+  <title id="wum-logo-title">WUM logo</title>
+  <desc id="wum-logo-desc">WUM wordmark with an orbital update core and terminal monogram.</desc>
+  <defs>
+    <linearGradient id="wum-mark-bg" x1="22" y1="18" x2="168" y2="164" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08111F"/>
+      <stop offset=".48" stop-color="#123C83"/>
+      <stop offset="1" stop-color="#6D35F3"/>
+    </linearGradient>
+    <linearGradient id="wum-mark-stroke" x1="32" y1="34" x2="154" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62F4D7"/>
+      <stop offset=".55" stop-color="#5B9DFF"/>
+      <stop offset="1" stop-color="#B69BFF"/>
+    </linearGradient>
+    <linearGradient id="wum-word" x1="204" y1="35" x2="440" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62F4D7"/>
+      <stop offset=".48" stop-color="#5B9DFF"/>
+      <stop offset="1" stop-color="#B69BFF"/>
+    </linearGradient>
+    <filter id="wum-glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.20 0 0 0 0 0.78 0 0 0 0 1 0 0 0 .42 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="wum-shadow" x="-25%" y="-25%" width="150%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#020617" flood-opacity=".32"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#wum-shadow)">
+    <rect x="22" y="18" width="144" height="144" rx="34" fill="url(#wum-mark-bg)"/>
+    <rect x="25.5" y="21.5" width="137" height="137" rx="30" fill="none" stroke="url(#wum-mark-stroke)" stroke-width="3" opacity=".8"/>
+    <path d="M43 51h104M43 90h104M43 129h104M62 36v108M101 36v108M140 36v108" stroke="#FFFFFF" stroke-opacity=".08" stroke-width="2"/>
+    <path d="M127 56a46 46 0 1 1-70 57" fill="none" stroke="#62F4D7" stroke-width="8" stroke-linecap="round" filter="url(#wum-glow)"/>
+    <path d="M127 56l-2 22 19-11" fill="none" stroke="#62F4D7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M48 67 65 124 91 73l25 51 24-57" fill="none" stroke="#F8FBFF" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M55 141h72" stroke="#F8FBFF" stroke-width="8" stroke-linecap="round" opacity=".92"/>
+    <path d="M53 122l14 13-14 13" fill="none" stroke="#62F4D7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g font-family="Segoe UI, Inter, Arial, sans-serif">
+    <text x="206" y="89" fill="url(#wum-word)" font-size="68" font-weight="850" letter-spacing=".5">WUM</text>
+    <text x="211" y="126" fill="#E6EDF3" font-size="24" font-weight="700">Windows Update Manager</text>
+    <text x="211" y="153" fill="#93A0B4" font-size="18" font-weight="500">command-line control for Windows updates</text>
+  </g>
+</svg>

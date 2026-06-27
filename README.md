@@ -4,6 +4,13 @@ A modern, feature-rich command-line tool for managing Windows Updates directly f
 
 > **Requires:** Windows 10/11 · .NET 10 SDK · **Administrator privileges for update operations** (read-only commands run as a standard user)
 
+### 📚 **[Full documentation → isubroto.github.io/wum](https://isubroto.github.io/wum/)**
+
+| [Install](https://isubroto.github.io/wum/installation.html) · [Commands](https://isubroto.github.io/wum/commands.html) · [Architecture](https://isubroto.github.io/wum/architecture.html) · [Configuration](https://isubroto.github.io/wum/configuration.html) · [Diagnostics](https://isubroto.github.io/wum/diagnostics.html) · [Troubleshooting](https://isubroto.github.io/wum/troubleshooting.html) · [Development](https://isubroto.github.io/wum/development.html) |
+|---|
+
+The docs site is built from [`docs/`](docs/) with Jekyll ([just-the-docs](https://just-the-docs.com/)) and deployed via GitHub Actions ([`pages.yml`](.github/workflows/pages.yml)). The sections below are a quick-start summary; the site has the complete reference.
+
 ---
 
 ## ✨ Features
