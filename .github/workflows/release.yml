@@ -174,6 +174,10 @@ jobs:
           Set-Content $projFile.FullName $content -Encoding UTF8
           Get-Content $projFile.FullName | Select-String "<Version>"
 
+      - name: Update docs metadata
+        shell: pwsh
+        run: .\scripts\Update-DocsMetadata.ps1
+
       - name: Restore Dependencies
         shell: pwsh
         run: dotnet restore ${{ env.project }} -r win-x64
@@ -252,19 +256,19 @@ jobs:
           prerelease: false
           generate_release_notes: true
 
-      - name: Commit & Push .csproj version change (if any)
+      - name: Commit & Push version metadata changes (if any)
         shell: pwsh
         run: |
           git config user.name "Subroto Saha"
           git config user.email "isubrotosaha@gmail.com"
-          git add $env:project
+          git add $env:project docs/_data/project.yml
           if (git diff --cached --quiet) {
-            Write-Host "🟢 No changes to commit. Version already up to date."
+            Write-Host "🟢 No changes to commit. Version metadata already up to date."
           } else {
             $safeVersion = '${{ steps.versions.outputs.safe }}'
             git commit -m "🔖 Bump version to $safeVersion"
             git push origin HEAD
-            Write-Host "✅ Committed and pushed updated .csproj version: $safeVersion"
+            Write-Host "✅ Committed and pushed updated version metadata: $safeVersion"
           }
 
       # -----------------------------

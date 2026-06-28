@@ -70,6 +70,10 @@ The MSI installs `wum.exe` to `C:\Program Files\Subroto Saha\WUM` and **adds tha
 
 Update operations (`install`, `uninstall`, …) require **Administrator** privileges and will prompt you to run from an elevated terminal if launched without them. Read-only commands (`status`, `list`, `search`, `history`, `--version`, `--info`, `--help`) run as a standard user.
 
+### Interactive mode
+
+Run `wum` with no arguments to open the modern interactive TUI. Use slash commands such as `/status`, `/list --installed`, `/commands`, `/keys`, and `/help status`. The prompt supports command history, grouped command help, clean line editing, and the same command handlers used by one-shot CLI commands.
+
 ### Global options
 
 ```

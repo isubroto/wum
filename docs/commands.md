@@ -22,7 +22,7 @@ Complete reference for every WUM command, sub-command, argument, and option. Syn
 
 | Flag | Effect | Admin |
 |---|---|---|
-| `--version` | Print the version string (e.g. `0.2.0.77`) | No |
+| `--version` | Print the version string (e.g. `{{ site.data.project.version }}`) | No |
 | `--info` | Show developer / build info (version, commit, build date, author, license, repo, runtime, OS) | No |
 | `--help` | Show help for the root command or any sub-command | No |
 

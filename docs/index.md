@@ -23,7 +23,7 @@ permalink: /
 
 ---
 
-> **Version:** 0.2.0.46 · **Target:** `net10.0-windows` (win-x64) · **License:** MIT
+> **Version:** {{ site.data.project.version }} · **Target:** `{{ site.data.project.target_framework }}` ({{ site.data.project.runtime_identifier }}) · **License:** {{ site.data.project.license }}
 {: .note }
 
 WUM is built on **.NET 10** and drives the **Windows Update Agent (WUA) COM API** through PowerShell, giving administrators and power users full, scriptable control over Windows Updates.

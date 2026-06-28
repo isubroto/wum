@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using WUM.CLI.Commands;
 using WUM.CLI.Helpers;
+using WUM.CLI.Interactive;
 using WUM.Core.Helpers;
 using WUM.Core.Services;
 
@@ -19,12 +20,9 @@ namespace WUM.CLI
 {
     internal class Program
     {
-        static async Task<int> Main(string[] args)
+        internal static async Task<int> Main(string[] args)
         {
-            // ── Console encoding ──────────────────────────────────────────
-            // Force UTF-8 so glyphs (✓ ✗ ↳ ⟳ ● ○) render instead of '?'.
-            try { Console.OutputEncoding = System.Text.Encoding.UTF8; }
-            catch { /* redirected stream — ignore */ }
+            SetupConsoleEncoding();
 
             // ── Developer info short-circuit ──────────────────────────────
             if (args.Any(a => a == "--info"))
@@ -37,7 +35,58 @@ namespace WUM.CLI
             // search, history, --version, --help) run as standard user. Commands
             // that modify the system enforce admin via AdminHelper.RequireAdmin().
 
-            // ── Logger setup ──────────────────────────────────────────────
+            ConfigureLogging();
+            Log.Information("WUM started. Args: {Args}", string.Join(" ", args));
+
+            ServiceProvider services;
+            try
+            {
+                services = BuildServices();
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("\n  Failed to initialize services: " +
+                                  ex.Message);
+                Console.ResetColor();
+                await Log.CloseAndFlushAsync();
+                return 1;
+            }
+
+            try
+            {
+                using (services)
+                {
+                    var root   = BuildRootCommand(services);
+                    var parser = BuildParser(root);
+
+                    int exitCode = args.Length == 0
+                        ? await new InteractiveShell(
+                            parser,
+                            PrintDeveloperInfo).RunAsync()
+                        : await parser.InvokeAsync(args);
+
+                    Log.Information("WUM exited with code {Code}", exitCode);
+                    return exitCode;
+                }
+            }
+            finally
+            {
+                await Log.CloseAndFlushAsync();
+            }
+        }
+
+        // ── Console encoding ──────────────────────────────────────────────
+        private static void SetupConsoleEncoding()
+        {
+            // Force UTF-8 so glyphs (✓ ✗ ↳ ⟳ ● ○) render instead of '?'.
+            try { Console.OutputEncoding = System.Text.Encoding.UTF8; }
+            catch { /* redirected stream — ignore */ }
+        }
+
+        // ── Logger setup ──────────────────────────────────────────────────
+        private static void ConfigureLogging()
+        {
             string logDir = Path.Combine(
                 Environment.GetFolderPath(
                     Environment.SpecialFolder.CommonApplicationData),
@@ -56,32 +105,24 @@ namespace WUM.CLI
                         "{Timestamp:yyyy-MM-dd HH:mm:ss} " +
                         "[{Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
+        }
 
-            Log.Information("WUM started. Args: {Args}", string.Join(" ", args));
+        // ── DI container ──────────────────────────────────────────────────
+        private static ServiceProvider BuildServices()
+        {
+            return new ServiceCollection()
+                .AddSingleton<RegistryHelper>()
+                .AddSingleton<IUpdateService,    UpdateService>()
+                .AddSingleton<IPauseService,     PauseService>()
+                .AddSingleton<IHistoryService,   HistoryService>()
+                .AddSingleton<ISchedulerService, SchedulerService>()
+                .AddSingleton<ISettingsService,  SettingsService>()
+                .BuildServiceProvider();
+        }
 
-            // ── DI container ──────────────────────────────────────────────
-            ServiceProvider services;
-            try
-            {
-                services = new ServiceCollection()
-                    .AddSingleton<RegistryHelper>()
-                    .AddSingleton<IUpdateService,    UpdateService>()
-                    .AddSingleton<IPauseService,     PauseService>()
-                    .AddSingleton<IHistoryService,   HistoryService>()
-                    .AddSingleton<ISchedulerService, SchedulerService>()
-                    .AddSingleton<ISettingsService,  SettingsService>()
-                    .BuildServiceProvider();
-            }
-            catch (Exception ex)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n  Failed to initialize services: " +
-                                  ex.Message);
-                Console.ResetColor();
-                return 1;
-            }
-
-            // ── Root command ──────────────────────────────────────────────
+        // ── Root command ──────────────────────────────────────────────────
+        internal static RootCommand BuildRootCommand(IServiceProvider services)
+        {
             var root = new RootCommand(
                 "wum - Windows Update Manager CLI\n" +
                 "Manage Windows Updates from the command line.\n" +
@@ -104,8 +145,13 @@ namespace WUM.CLI
             root.AddCommand(new RebootCommand(services).Build());
             root.AddCommand(new DiagnoseCommand(services).Build());
 
-            // ── Build pipeline ────────────────────────────────────────────
-            var parser = new CommandLineBuilder(root)
+            return root;
+        }
+
+        // ── Build pipeline ────────────────────────────────────────────────
+        internal static Parser BuildParser(RootCommand root)
+        {
+            return new CommandLineBuilder(root)
                 .UseDefaults()
                 .UseExceptionHandler((ex, ctx) =>
                 {
@@ -116,14 +162,6 @@ namespace WUM.CLI
                     ctx.ExitCode = 1;
                 })
                 .Build();
-
-            // ── Invoke ────────────────────────────────────────────────────
-            int exitCode = await parser.InvokeAsync(args);
-
-            Log.Information("WUM exited with code {Code}", exitCode);
-            await Log.CloseAndFlushAsync();
-
-            return exitCode;
         }
 
         // ── Developer / build information ─────────────────────────────────

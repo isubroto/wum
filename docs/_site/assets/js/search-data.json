@@ -211,7 +211,7 @@
   },"30": {
     "doc": "Command Reference",
     "title": "Global options &amp; flags",
-    "content": "| Flag | Effect | Admin | . | --version | Print the version string (e.g. 0.2.0.77) | No | . | --info | Show developer / build info (version, commit, build date, author, license, repo, runtime, OS) | No | . | --help | Show help for the root command or any sub-command | No | . --info is a global option intercepted in Program.Main before parsing, so wum --info works from anywhere in the command tree. ",
+    "content": "| Flag | Effect | Admin | . | --version | Print the version string (e.g. 0.2.1.51) | No | . | --info | Show developer / build info (version, commit, build date, author, license, repo, runtime, OS) | No | . | --help | Show help for the root command or any sub-command | No | . --info is a global option intercepted in Program.Main before parsing, so wum --info works from anywhere in the command tree. ",
     "url": "/commands.html#global-options--flags",
     
     "relUrl": "/commands.html#global-options--flags"
@@ -428,7 +428,7 @@
   },"61": {
     "doc": "Development",
     "title": "Versioning",
-    "content": "WUM.CLI.csproj pins a 4-part numeric &lt;Version&gt; (currently 0.2.0.77) and mirrors it into AssemblyVersion/FileVersion/InformationalVersion/PackageVersion. CI overwrites &lt;Version&gt; on tagged releases. IncludeSourceRevisionInInformationalVersion=false keeps the SDK from appending a git sha, so wum --version stays clean. ",
+    "content": "WUM.CLI.csproj pins a 4-part numeric &lt;Version&gt; (currently 0.2.1.51) and mirrors it into AssemblyVersion/FileVersion/InformationalVersion/PackageVersion. CI overwrites &lt;Version&gt; on tagged releases and refreshes docs/_data/project.yml from the project file. IncludeSourceRevisionInInformationalVersion=false keeps the SDK from appending a git sha, so wum --version stays clean. ",
     "url": "/development.html#versioning",
     
     "relUrl": "/development.html#versioning"
@@ -554,7 +554,7 @@
   },"79": {
     "doc": "Home",
     "title": "\n    \n  ",
-    "content": "Manage the entire Windows Update lifecycle from the terminal — list, search, install, uninstall, hide, pause, schedule, configure, reboot, and diagnose — without ever opening the Settings app. Get started Command reference View on GitHub . Version: 0.2.0.46 · Target: net10.0-windows (win-x64) · License: MIT . WUM is built on .NET 10 and drives the Windows Update Agent (WUA) COM API through PowerShell, giving administrators and power users full, scriptable control over Windows Updates. ",
+    "content": "Manage the entire Windows Update lifecycle from the terminal — list, search, install, uninstall, hide, pause, schedule, configure, reboot, and diagnose — without ever opening the Settings app. Get started Command reference View on GitHub . Version: 0.2.1.51 · Target: net10.0-windows (win-x64) · License: MIT . WUM is built on .NET 10 and drives the Windows Update Agent (WUA) COM API through PowerShell, giving administrators and power users full, scriptable control over Windows Updates. ",
     "url": "/",
     
     "relUrl": "/"
@@ -638,7 +638,7 @@
   },"91": {
     "doc": "Installation",
     "title": "Verify the install",
-    "content": "wum --version # e.g. 0.2.0.77 wum --info # Version, commit, build date, author, license, runtime, OS wum --help # Top-level help and the command list . --info prints application metadata (version/commit/build date/author/license/repo), runtime details (framework, CLR, process arch), and system info (OS, machine, user, CPU cores). It is handled in Program.Main before the command pipeline runs, so it is fast and needs no admin. ",
+    "content": "wum --version # e.g. 0.2.1.51 wum --info # Version, commit, build date, author, license, runtime, OS wum --help # Top-level help and the command list . --info prints application metadata (version/commit/build date/author/license/repo), runtime details (framework, CLR, process arch), and system info (OS, machine, user, CPU cores). It is handled in Program.Main before the command pipeline runs, so it is fast and needs no admin. ",
     "url": "/installation.html#verify-the-install",
     
     "relUrl": "/installation.html#verify-the-install"
