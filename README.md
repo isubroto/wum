@@ -6,7 +6,7 @@ A modern, feature-rich command-line tool for managing Windows Updates directly f
 
 ### 📚 **[Full documentation → isubroto.github.io/wum](https://isubroto.github.io/wum/)**
 
-| [Install](https://isubroto.github.io/wum/installation.html) · [Commands](https://isubroto.github.io/wum/commands.html) · [Architecture](https://isubroto.github.io/wum/architecture.html) · [Configuration](https://isubroto.github.io/wum/configuration.html) · [Diagnostics](https://isubroto.github.io/wum/diagnostics.html) · [Troubleshooting](https://isubroto.github.io/wum/troubleshooting.html) · [Development](https://isubroto.github.io/wum/development.html) |
+| [Install](https://isubroto.github.io/wum/installation.html) · [Interactive](https://isubroto.github.io/wum/interactive.html) · [Commands](https://isubroto.github.io/wum/commands.html) · [Architecture](https://isubroto.github.io/wum/architecture.html) · [Configuration](https://isubroto.github.io/wum/configuration.html) · [Diagnostics](https://isubroto.github.io/wum/diagnostics.html) · [Troubleshooting](https://isubroto.github.io/wum/troubleshooting.html) · [Development](https://isubroto.github.io/wum/development.html) |
 |---|
 
 The docs site is built from [`docs/`](docs/) with Jekyll ([just-the-docs](https://just-the-docs.com/)) and deployed via GitHub Actions ([`pages.yml`](.github/workflows/pages.yml)). The sections below are a quick-start summary; the site has the complete reference.
@@ -72,7 +72,7 @@ Update operations (`install`, `uninstall`, …) require **Administrator** privil
 
 ### Interactive mode
 
-Run `wum` with no arguments to open the modern interactive TUI. Use slash commands such as `/status`, `/list --installed`, `/commands`, `/keys`, and `/help status`. The prompt supports command history, grouped command help, clean line editing, and the same command handlers used by one-shot CLI commands.
+Run `wum` with no arguments to open the modern interactive shell. Use slash commands such as `/status`, `/list --installed`, `/commands`, `/keys`, and `/help status`. The prompt supports smart completion, ghost text, persisted history, grouped command help, clean line editing, `/clear`, `Ctrl+L`, `Ctrl+C` cancel/exit, and `Ctrl+D` exit on an empty prompt. Slash commands call the same handlers as one-shot CLI commands.
 
 ### Global options
 

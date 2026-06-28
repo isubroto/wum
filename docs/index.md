@@ -35,6 +35,7 @@ WUM is built on **.NET 10** and drives the **Windows Update Agent (WUA) COM API*
 | Document | What it covers |
 |---|---|
 | [Installation](installation.md) | Build from source, publish a single-file `wum.exe`, MSI / WinGet install, requirements |
+| [Interactive Mode](interactive.md) | Smart shell, slash commands, completion, history, keyboard shortcuts, and session tools |
 | [Command Reference](commands.md) | Every command, sub-command, argument, option, and worked examples |
 | [Architecture](architecture.md) | Project layout, services, models, helpers, DI, the scan cache, logging |
 | [Configuration](configuration.md) | Settings keys, schedule, pause, and the exact registry paths each one writes |
@@ -48,6 +49,7 @@ WUM is built on **.NET 10** and drives the **Windows Update Agent (WUA) COM API*
 
 | Area | Capabilities |
 |---|---|
+| **Interactive shell** | Run `wum` with no arguments for slash commands, smart completion, history, help, clear, and keyboard shortcuts |
 | **Discovery** | List available, installed, and hidden updates with category filtering and full-text search |
 | **Installation** | Download & install by KB number, category, or all at once — with an install plan, progress bars, and a summary |
 | **Uninstall** | Remove an installed update by KB number (`wusa.exe`) |
@@ -64,6 +66,9 @@ WUM is built on **.NET 10** and drives the **Windows Update Agent (WUA) COM API*
 ## 30-second tour
 
 ```console
+# Interactive shell
+wum                        # Open smart prompt with slash commands and completion
+
 # Read-only — no admin needed
 wum status                 # Dashboard: service state, reboot, pause, update counts
 wum list --security        # Show security updates only

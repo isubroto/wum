@@ -2,7 +2,7 @@
 title: Diagnostics
 layout: default
 parent: Use WUM
-nav_order: 2
+nav_order: 3
 description: "The diagnose command: checks, exit-code bitmask, health score, error decoding."
 ---
 

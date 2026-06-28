@@ -2,7 +2,7 @@
 title: Troubleshooting
 layout: default
 parent: Use WUM
-nav_order: 3
+nav_order: 4
 description: "Symptom → cause → fix for the most common Windows Update problems WUM surfaces."
 ---
 

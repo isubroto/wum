@@ -2,7 +2,7 @@
 title: Command Reference
 layout: default
 parent: Use WUM
-nav_order: 1
+nav_order: 2
 description: "Every WUM command, sub-command, argument, option, and example."
 ---
 
@@ -17,6 +17,8 @@ description: "Every WUM command, sub-command, argument, option, and example."
 [← Docs index](index.md)
 
 Complete reference for every WUM command, sub-command, argument, and option. Synopsis applies whether you run the published `wum.exe` or `dotnet run --project src/WUM.CLI -- <args>`.
+
+Running `wum` with no arguments opens the smart interactive shell. In that shell, prefix commands with `/`: `/status`, `/list --security`, `/install KB5034441 --dry-run`. See [Interactive Mode](interactive.md) for the full prompt, shortcuts, history, and completion behavior.
 
 ## Global options & flags
 
@@ -57,6 +59,37 @@ Most read commands share these:
 | [`settings`](#wum-settings) | View / change WU settings | **Yes** (set/reset) |
 | [`reboot`](#wum-reboot) | Schedule / cancel a restart | **Yes** |
 | [`diagnose`](#wum-diagnose) | Health check + optional component reset | **Yes** (`--fix`) |
+
+---
+
+## Command argument and option matrix
+
+| Command | Arguments / subcommands | Supported options |
+|---|---|---|
+| `wum` | none; opens interactive mode when run with no args | `--version`, `--info`, `--help` |
+| `wum status` | none | `--json`, `--verbose`/`-v`, `--refresh` |
+| `wum list` | none | `--security`, `--critical`, `--optional`, `--drivers`, `--definition`, `--hidden`, `--installed`, `--microsoft-update`/`--mu`, `--json`, `--no-color`, `--verbose`/`-v`, `--refresh` |
+| `wum search` | `<term>` | `--category <name>`, `--json`, `--microsoft-update`/`--mu` |
+| `wum install` | `[<kb-articles>...]` | `--security`, `--critical`, `--all`, `--definition`, `--dry-run`, `--force`/`-f`, `--no-reboot`, `--microsoft-update`/`--mu` |
+| `wum uninstall` | `<kb-article>` | `--force`/`-f` |
+| `wum hide add` | `<update-id>` | none |
+| `wum hide remove` | `<update-id>` | none |
+| `wum hide list` | none | none |
+| `wum history` | none | `--count`/`-n <N>`, `--failed`, `--kb <KB>`, `--json` |
+| `wum pause` | none | `--days <N>` |
+| `wum pause resume` | none | none |
+| `wum schedule` | none; same as `show` | none |
+| `wum schedule show` | none | none |
+| `wum schedule set` | none | `--day <DayOfWeek>`, `--time <HH:mm>`, `--auto-install`, `--auto-reboot`, `--all` |
+| `wum schedule clear` | none | none |
+| `wum settings` | none; same as `show` | none |
+| `wum settings show` | none | none |
+| `wum settings set` | `<key> <value>` | none |
+| `wum settings reset` | none | none |
+| `wum reboot` | none | `--delay <seconds>`, `--force`/`-f`, `--cancel` |
+| `wum diagnose` | none | `--refresh`, `--json`, `--fix`, `--force`/`-f` |
+
+Interactive mode supports the same command arguments and options with a slash prefix, for example `/list --security` or `/install KB5034441 --dry-run`. Session-only commands are documented in [Interactive Mode → Session commands](interactive.md#session-commands).
 
 ---
 

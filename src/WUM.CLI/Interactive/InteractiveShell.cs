@@ -67,22 +67,130 @@ namespace WUM.CLI.Interactive
 
         private static readonly CommandSpec[] CommandSpecs = new[]
         {
-            new CommandSpec("status", "/status [--json] [--verbose] [--refresh]",
+            new CommandSpec("status", "/status [options]",
                 "See service, reboot, pause, and pending-update status at a glance.",
-                new[] { Opt("--json", "--json", "Output as JSON"), Opt(new[] { "--verbose", "-v" }, "--verbose, -v", "Show extra detail"), Opt("--refresh", "--refresh", "Force a fresh update scan first") },
+                new[] {
+                    Opt("--json", "--json", "Output as JSON"),
+                    Opt(new[] { "--verbose", "-v" }, "--verbose, -v", "Show extra detail"),
+                    Opt("--refresh", "--refresh", "Force a fresh update scan first")
+                },
                 Array.Empty<SubcommandSpec>()),
-            new CommandSpec("list", "/list [filters] [--json]",
+
+            new CommandSpec("list", "/list [filters]",
                 "Browse updates. Add filters to narrow down what you see.",
-                new[] { Opt("--security", "--security", "Only security updates"), Opt("--critical", "--critical", "Only critical updates"), Opt("--all", "--all", "Install every available update"), Opt("--dry-run", "--dry-run", "Preview without changing anything") },
+                new[] {
+                    Opt("--security", "--security", "Only security updates"),
+                    Opt("--critical", "--critical", "Only critical updates"),
+                    Opt("--optional", "--optional", "Only optional updates"),
+                    Opt("--drivers", "--drivers", "Only driver updates"),
+                    Opt("--definition", "--definition", "Only definition updates"),
+                    Opt("--hidden", "--hidden", "Only hidden updates"),
+                    Opt("--installed", "--installed", "Only installed updates"),
+                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Use Microsoft Update instead of Windows Update"),
+                    Opt("--json", "--json", "Output as JSON"),
+                    Opt("--no-color", "--no-color", "Disable colored output"),
+                    Opt(new[] { "--verbose", "-v" }, "--verbose, -v", "Show extra detail"),
+                    Opt("--refresh", "--refresh", "Force a fresh update scan first")
+                },
                 Array.Empty<SubcommandSpec>()),
-            new CommandSpec("install", "/install [KB...] [filters] [--dry-run]",
+
+            new CommandSpec("search", "/search <query>",
+                "Find updates by KB, title, or category.",
+                new[] {
+                    Opt("--category", "--category <name>", "Filter by category", true),
+                    Opt("--json", "--json", "Output as JSON"),
+                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Use Microsoft Update instead of Windows Update")
+                },
+                Array.Empty<SubcommandSpec>()),
+
+            new CommandSpec("install", "/install [KB...] [filters]",
                 "Install updates. Pass KBs, use filters, or pick --all.",
-                new[] { Opt("--security", "--security", "Only security updates"), Opt("--all", "--all", "Install every available update"), Opt("--dry-run", "--dry-run", "Preview without changing anything") },
+                new[] {
+                    Opt("--security", "--security", "Only security updates"),
+                    Opt("--critical", "--critical", "Only critical updates"),
+                    Opt("--all", "--all", "Install every available update"),
+                    Opt("--definition", "--definition", "Only definition updates"),
+                    Opt("--dry-run", "--dry-run", "Preview without changing anything"),
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force installation"),
+                    Opt("--no-reboot", "--no-reboot", "Do not automatically reboot if required"),
+                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Use Microsoft Update instead of Windows Update")
+                },
                 Array.Empty<SubcommandSpec>()),
-            new CommandSpec("hide", "/hide add|remove|list", "Hide updates you don't want, or bring them back.", Array.Empty<OptionSpec>(),
-                new[] { new SubcommandSpec("add", "/hide add <id>", "Hide an update", Array.Empty<OptionSpec>()), new SubcommandSpec("remove", "/hide remove <id>", "Unhide an update", Array.Empty<OptionSpec>()), new SubcommandSpec("list", "/hide list", "List hidden updates", Array.Empty<OptionSpec>()) }),
-            new CommandSpec("schedule", "/schedule show|set|clear", "Plan a recurring weekly install window.", Array.Empty<OptionSpec>(),
-                new[] { new SubcommandSpec("show", "/schedule show", "See the current schedule", Array.Empty<OptionSpec>()), new SubcommandSpec("set", "/schedule set --day Sunday --time 02:00", "Configure the schedule", new[] { Opt("--day", "--day <day>", "Day of week", true), Opt("--time", "--time <HH:mm>", "Time (24-hour)", true) }), new SubcommandSpec("clear", "/schedule clear", "Remove the schedule", Array.Empty<OptionSpec>()) })
+
+            new CommandSpec("uninstall", "/uninstall <KB>",
+                "Remove an installed update.",
+                new[] {
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force uninstallation")
+                },
+                Array.Empty<SubcommandSpec>()),
+
+            new CommandSpec("hide", "/hide add|remove|list",
+                "Hide updates you don't want, or bring them back.", Array.Empty<OptionSpec>(),
+                new[] {
+                    new SubcommandSpec("add", "/hide add <id>", "Hide an update", Array.Empty<OptionSpec>()),
+                    new SubcommandSpec("remove", "/hide remove <id>", "Unhide an update", Array.Empty<OptionSpec>()),
+                    new SubcommandSpec("list", "/hide list", "List hidden updates", Array.Empty<OptionSpec>())
+                }),
+
+            new CommandSpec("history", "/history [options]",
+                "Review past installs and failures.",
+                new[] {
+                    Opt(new[] { "--count", "-n" }, "--count, -n <N>", "Number of entries", true),
+                    Opt("--failed", "--failed", "Only show failed installations"),
+                    Opt("--kb", "--kb <KB>", "Filter by KB article", true),
+                    Opt("--json", "--json", "Output as JSON")
+                },
+                Array.Empty<SubcommandSpec>()),
+
+            new CommandSpec("pause", "/pause [--days N|resume]",
+                "Pause or resume Windows Update.",
+                new[] {
+                    Opt("--days", "--days <N>", "Number of days to pause", true)
+                },
+                new[] {
+                    new SubcommandSpec("resume", "/pause resume", "Resume Windows Update", Array.Empty<OptionSpec>())
+                }),
+
+            new CommandSpec("schedule", "/schedule show|set|clear",
+                "Plan a recurring weekly install window.", Array.Empty<OptionSpec>(),
+                new[] {
+                    new SubcommandSpec("show", "/schedule show", "See the current schedule", Array.Empty<OptionSpec>()),
+                    new SubcommandSpec("set", "/schedule set [options]", "Configure the schedule", new[] {
+                        Opt("--day", "--day <DayOfWeek>", "Day of week", true),
+                        Opt("--time", "--time <HH:mm>", "Time (24-hour)", true),
+                        Opt("--auto-install", "--auto-install", "Auto-install during the window"),
+                        Opt("--auto-reboot", "--auto-reboot", "Auto-reboot during the window"),
+                        Opt("--all", "--all", "Apply schedule to all updates")
+                    }),
+                    new SubcommandSpec("clear", "/schedule clear", "Remove the schedule", Array.Empty<OptionSpec>())
+                }),
+
+            new CommandSpec("settings", "/settings show|set|reset",
+                "View or change WUM preferences.", Array.Empty<OptionSpec>(),
+                new[] {
+                    new SubcommandSpec("show", "/settings show", "See the current settings", Array.Empty<OptionSpec>()),
+                    new SubcommandSpec("set", "/settings set <key> <value>", "Change a setting", Array.Empty<OptionSpec>()),
+                    new SubcommandSpec("reset", "/settings reset", "Reset all settings to defaults", Array.Empty<OptionSpec>())
+                }),
+
+            new CommandSpec("reboot", "/reboot [options]",
+                "Schedule, force, or cancel a reboot.",
+                new[] {
+                    Opt("--delay", "--delay <seconds>", "Delay before reboot", true),
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force reboot"),
+                    Opt("--cancel", "--cancel", "Cancel a pending reboot")
+                },
+                Array.Empty<SubcommandSpec>()),
+
+            new CommandSpec("diagnose", "/diagnose [options]",
+                "Run Windows Update diagnostics.",
+                new[] {
+                    Opt("--refresh", "--refresh", "Force a fresh update scan first"),
+                    Opt("--json", "--json", "Output as JSON"),
+                    Opt("--fix", "--fix", "Attempt to fix issues automatically"),
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force fix actions")
+                },
+                Array.Empty<SubcommandSpec>())
         };
 
         private static readonly Dictionary<string, CommandSpec> CommandSpecByName = CommandSpecs.ToDictionary(c => c.Name, StringComparer.OrdinalIgnoreCase);
@@ -172,8 +280,9 @@ namespace WUM.CLI.Interactive
         private string? ReadLinePlain()
         {
             _output.WriteLine();
-            WriteRuleWithLabel("ready");
-            WriteStyled(CommandPrompt, Ansi.Accent + Ansi.Bold);
+            WriteRuleWithLabel("ready", $"WUM v{GetDisplayVersion()}");
+            WriteStyled("wum ", Ansi.Accent + Ansi.Bold);
+            WriteStyled("› ", Ansi.Purple + Ansi.Bold);
             _output.Flush();
             return _input.ReadLine();
         }
@@ -212,10 +321,10 @@ namespace WUM.CLI.Interactive
                             selectedIndex = 0;
                             ResetHistory(ref historyIndex, ref draftBeforeHistory);
                             RenderEditor(buffer, cursor, selectedIndex, ref editorTop);
-                            Console.SetCursorPosition(0, editorTop + _lastRenderedHeight - 1);
+                            SafeSetCursorPosition(0, editorTop + _lastRenderedHeight - 1);
                             Console.Write("\u001b[2K");
                             WriteStyled("Press Ctrl+C again to exit, or type /exit to leave normally.", Ansi.Dim);
-                            Console.SetCursorPosition(Math.Min(CommandPrompt.Length, Console.WindowWidth - 1), editorTop);
+                            SafeSetCursorPosition(Math.Min(CommandPrompt.Length, Console.WindowWidth - 1), editorTop);
                             continue;
                         }
                         else
@@ -319,11 +428,11 @@ namespace WUM.CLI.Interactive
             {
                 for (int i = _lastRenderedHeight - 1; i >= 0; i--)
                 {
-                    Console.SetCursorPosition(0, editorTop + i);
+                    SafeSetCursorPosition(0, editorTop + i);
                     Console.Write("\u001b[2K");
                 }
-                Console.SetCursorPosition(0, editorTop);
-                Console.Write($"{Ansi.Accent}{Ansi.Bold}{CommandPrompt}{Ansi.Reset}");
+                SafeSetCursorPosition(0, editorTop);
+                Console.Write($"{Ansi.Accent}{Ansi.Bold}wum {Ansi.Purple}› {Ansi.Reset}");
                 Console.Write(buffer);
             }
             finally { Console.Write("\u001b[?25h"); }
@@ -345,44 +454,47 @@ namespace WUM.CLI.Interactive
                 editorTop -= shift;
                 if (editorTop < 0) editorTop = 0;
 
-                Console.SetCursorPosition(0, editorTop);
+                int maxTop = Math.Max(0, Console.BufferHeight - 1);
+                if (editorTop > maxTop) editorTop = maxTop;
+
+                SafeSetCursorPosition(0, editorTop);
                 Console.Write("\u001b[2K");
-                Console.Write($"{Ansi.Accent}{Ansi.Bold}{CommandPrompt}{Ansi.Reset}");
+                Console.Write($"{Ansi.Accent}{Ansi.Bold}wum {Ansi.Purple}› {Ansi.Reset}");
                 Console.Write(buffer.ToString());
                 if (!string.IsNullOrEmpty(ghostText)) Console.Write($"{Ansi.Ghost}{ghostText}{Ansi.Reset}");
 
                 int boxTop = editorTop + 1;
                 int currentHeight = 1;
 
-                if (suggestions.Count > 0)
+                int width = GetRuleWidth();
+                if (suggestions.Count > 0 && width >= 40)
                 {
-                    int width = GetRuleWidth();
                     string title = GetSuggestionPanelTitle(suggestions);
                     string bottomHint = "Tab ↹ complete · Enter ↵ run · ↑↓ navigate";
 
-                    Console.SetCursorPosition(0, boxTop);
+                    SafeSetCursorPosition(0, boxTop);
                     Console.Write("\u001b[2K");
                     Console.Write($"{Ansi.Rule}╭─ {Ansi.Reset}{Ansi.Muted}{title}{Ansi.Reset}{Ansi.Rule} " + new string('─', Math.Max(1, width - title.Length - 5)) + "╮" + Ansi.Reset);
 
                     for (int i = 0; i < suggestions.Count; i++)
                     {
-                        Console.SetCursorPosition(0, boxTop + 1 + i);
+                        SafeSetCursorPosition(0, boxTop + 1 + i);
                         Console.Write("\u001b[2K");
                         var s = suggestions[i];
                         string prefix = i == selectedIndex ? "▸ " : "  ";
-                        string color = i == selectedIndex ? Ansi.Accent + Ansi.Bold : Ansi.Text;
+                        string usageColor = i == selectedIndex ? Ansi.Accent + Ansi.Bold : GetSuggestionColor(s.Kind);
                         string descColor = i == selectedIndex ? Ansi.Text : Ansi.Muted;
 
                         string usage = s.Usage.Length > 30 ? s.Usage.Substring(0, 30) : s.Usage.PadRight(30);
                         string desc = s.Description.Length > width - 38 ? s.Description.Substring(0, Math.Max(0, width - 38)) : s.Description;
 
-                        Console.Write($"{Ansi.Rule}│{Ansi.Reset} {color}{prefix}{usage}{Ansi.Reset} {descColor}{desc}{Ansi.Reset}");
+                        Console.Write($"{Ansi.Rule}│{Ansi.Reset} {usageColor}{prefix}{usage}{Ansi.Reset} {descColor}{desc}{Ansi.Reset}");
                         int used = 2 + 2 + 30 + 1 + desc.Length;
                         Console.Write(new string(' ', Math.Max(0, width - used - 1)));
                         Console.Write($"{Ansi.Rule}│{Ansi.Reset}");
                     }
 
-                    Console.SetCursorPosition(0, boxTop + 1 + suggestions.Count);
+                    SafeSetCursorPosition(0, boxTop + 1 + suggestions.Count);
                     Console.Write("\u001b[2K");
                     Console.Write($"{Ansi.Rule}╰─ {Ansi.Reset}{Ansi.Muted}{bottomHint}{Ansi.Reset}{Ansi.Rule} " + new string('─', Math.Max(1, width - bottomHint.Length - 5)) + "╯" + Ansi.Reset);
 
@@ -390,13 +502,17 @@ namespace WUM.CLI.Interactive
                 }
 
                 int statusTop = editorTop + currentHeight;
-                Console.SetCursorPosition(0, statusTop);
+                SafeSetCursorPosition(0, statusTop);
                 Console.Write("\u001b[2K");
-                Console.Write($"{Ansi.Accent}↑↓{Ansi.Reset} {Ansi.Muted}history{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Accent}Tab{Ansi.Reset} {Ansi.Muted}complete{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Accent}Ctrl+L{Ansi.Reset} {Ansi.Muted}clear{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Accent}Ctrl+C{Ansi.Reset} {Ansi.Muted}cancel{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Accent}Ctrl+D{Ansi.Reset} {Ansi.Muted}exit{Ansi.Reset}");
+                Console.Write($"{Ansi.Purple}↑↓{Ansi.Reset} {Ansi.Muted}history{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Teal}Tab{Ansi.Reset} {Ansi.Muted}complete{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Orange}Ctrl+L{Ansi.Reset} {Ansi.Muted}clear{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Red}Ctrl+C{Ansi.Reset} {Ansi.Muted}cancel{Ansi.Reset} {Ansi.Rule}·{Ansi.Reset} {Ansi.Purple}Ctrl+D{Ansi.Reset} {Ansi.Muted}exit{Ansi.Reset}");
 
-                Console.SetCursorPosition(0, statusTop + 1);
+                SafeSetCursorPosition(0, statusTop + 1);
                 Console.Write("\u001b[2K");
-                Console.Write($"{Ansi.Muted}● {GetSessionStatus()}{Ansi.Reset}");
+                bool isAdmin = IsRunningElevatedSafely();
+                string role = isAdmin ? "admin" : "standard";
+                string roleColor = isAdmin ? Ansi.Green : Ansi.Yellow;
+                string editor = _useKeyEditor ? "smart editor" : "plain input";
+                Console.Write($"{roleColor}●{Ansi.Reset} {Ansi.Muted}{role} · {editor} · {Ansi.Purple}history {_history.Count}{Ansi.Reset} {Ansi.Muted}·{Ansi.Reset} {Ansi.Teal}{Truncate(Environment.CurrentDirectory, 42)}{Ansi.Reset}");
 
                 currentHeight += 2;
 
@@ -404,17 +520,27 @@ namespace WUM.CLI.Interactive
                 {
                     for (int i = currentHeight; i < _lastRenderedHeight; i++)
                     {
-                        Console.SetCursorPosition(0, editorTop + i);
+                        SafeSetCursorPosition(0, editorTop + i);
                         Console.Write("\u001b[2K");
                     }
                 }
                 _lastRenderedHeight = currentHeight;
 
                 int cursorLeft = Math.Min(CommandPrompt.Length + cursor, Console.WindowWidth - 1);
-                Console.SetCursorPosition(cursorLeft, editorTop);
+                SafeSetCursorPosition(cursorLeft, editorTop);
             }
             finally { Console.Write("\u001b[?25h"); }
         }
+
+        private static string GetSuggestionColor(SuggestionKind kind) => kind switch
+        {
+            SuggestionKind.Command => Ansi.Purple,
+            SuggestionKind.Session => Ansi.AccentBright,
+            SuggestionKind.Subcommand => Ansi.Orange,
+            SuggestionKind.Option => Ansi.Teal,
+            SuggestionKind.Value => Ansi.Yellow,
+            _ => Ansi.Text
+        };
 
         private async Task<LineResult> HandleLineAsync(string line)
         {
@@ -477,10 +603,15 @@ namespace WUM.CLI.Interactive
             int gap = 4;
             int rightWidth = innerWidth - leftWidth - gap;
 
-            WriteStyledLine("╭" + new string('─', width - 2) + "╮", Ansi.Rule);
+            // Top border with version on it
+            string versionText = $"WUM v{GetDisplayVersion()}";
+            WriteStyled("╭─ ", Ansi.Rule);
+            WriteStyled(versionText, Ansi.Accent + Ansi.Bold);
+            int topRem = width - 2 - 3 - versionText.Length;
+            if (topRem > 0) WriteStyled(new string('─', topRem), Ansi.Rule);
+            WriteStyledLine("╮", Ansi.Rule);
 
             PrintFullBorderedLine(new List<(string, string)> { ("Welcome back!", Ansi.Bold + Ansi.Accent) }, innerWidth);
-            PrintFullBorderedLine(new List<(string, string)> { ($"WUM v{GetDisplayVersion()}", Ansi.Muted) }, innerWidth);
             PrintFullBorderedLine(new List<(string, string)> { ("", Ansi.Text) }, innerWidth);
 
             string[] logo = new string[]
@@ -493,12 +624,12 @@ namespace WUM.CLI.Interactive
                 "   ╚══╝╚══╝  ╚═════╝ ╚═╝     ╚═╝"
             };
 
-            PrintBorderedLine(logo[0], Ansi.Accent, new List<(string, string)> { ("Tips for getting started:", Ansi.Bold + Ansi.Accent) }, leftWidth, gap, rightWidth);
-            PrintBorderedLine(logo[1], Ansi.Accent, new List<(string, string)> { ("• Run ", Ansi.Text), ("/status", Ansi.Accent), (" to see what Windows Update is doing.", Ansi.Text) }, leftWidth, gap, rightWidth);
-            PrintBorderedLine(logo[2], Ansi.Accent, new List<(string, string)> { ("• Run ", Ansi.Text), ("/list", Ansi.Accent), (" to browse available updates.", Ansi.Text) }, leftWidth, gap, rightWidth);
-            PrintBorderedLine(logo[3], Ansi.Accent, new List<(string, string)> { ("• Run ", Ansi.Text), ("/help", Ansi.Accent), (" for a list of all commands.", Ansi.Text) }, leftWidth, gap, rightWidth);
+            PrintBorderedLine(logo[0], Ansi.Accent, new List<(string, string)> { ("Tips for getting started:", Ansi.Yellow + Ansi.Bold) }, leftWidth, gap, rightWidth);
+            PrintBorderedLine(logo[1], Ansi.Accent, new List<(string, string)> { ("• Run ", Ansi.Text), ("/status", Ansi.Purple + Ansi.Bold), (" to see what Windows Update is doing.", Ansi.Text) }, leftWidth, gap, rightWidth);
+            PrintBorderedLine(logo[2], Ansi.Accent, new List<(string, string)> { ("• Run ", Ansi.Text), ("/list", Ansi.Purple + Ansi.Bold), (" to browse available updates.", Ansi.Text) }, leftWidth, gap, rightWidth);
+            PrintBorderedLine(logo[3], Ansi.Accent, new List<(string, string)> { ("• Run ", Ansi.Text), ("/help", Ansi.Purple + Ansi.Bold), (" for a list of all commands.", Ansi.Text) }, leftWidth, gap, rightWidth);
             PrintBorderedLine(logo[4], Ansi.Accent, new List<(string, string)> { ("", Ansi.Text) }, leftWidth, gap, rightWidth);
-            PrintBorderedLine(logo[5], Ansi.Accent, new List<(string, string)> { ("What's new:", Ansi.Bold + Ansi.Accent) }, leftWidth, gap, rightWidth);
+            PrintBorderedLine(logo[5], Ansi.Accent, new List<(string, string)> { ("What's new:", Ansi.Yellow + Ansi.Bold) }, leftWidth, gap, rightWidth);
 
             PrintBorderedLine("", Ansi.Text, new List<(string, string)> { ("• Interactive mode with smart suggestions.", Ansi.Muted) }, leftWidth, gap, rightWidth);
             PrintBorderedLine("", Ansi.Text, new List<(string, string)> { ("• Press Tab to complete, ↑/↓ for history.", Ansi.Muted) }, leftWidth, gap, rightWidth);
@@ -595,7 +726,7 @@ namespace WUM.CLI.Interactive
             {
                 if (!includeSession && group.Label.Equals("This session", StringComparison.OrdinalIgnoreCase)) continue;
                 WriteStyled("  " + group.Glyph + "  ", Ansi.AccentBright);
-                WriteStyledLine(group.Label, Ansi.Bold + Ansi.AccentBright);
+                WriteStyledLine(group.Label, Ansi.Purple + Ansi.Bold);
                 _output.WriteLine();
                 foreach (string command in group.Commands)
                 {
@@ -623,7 +754,7 @@ namespace WUM.CLI.Interactive
         private bool PrintCommandSpecificHelp(string topic)
         {
             if (!CommandSpecByName.TryGetValue(topic, out CommandSpec? spec)) return false;
-            WriteStyledLine("/" + spec.Name, Ansi.AccentBright + Ansi.Bold);
+            WriteStyledLine("/" + spec.Name, Ansi.Purple + Ansi.Bold);
             _output.WriteLine();
             WriteSection("Usage");
             _output.WriteLine("  " + spec.Usage);
@@ -640,9 +771,9 @@ namespace WUM.CLI.Interactive
             WriteStyled("Hint: ", Ansi.Warn);
             _output.WriteLine("Commands here start with /.");
             _output.Write("      Try ");
-            WriteStyled("/list", Ansi.Accent);
+            WriteStyled("/list", Ansi.Purple + Ansi.Bold);
             _output.Write(" or type ");
-            WriteStyled("/help", Ansi.Accent);
+            WriteStyled("/help", Ansi.Purple + Ansi.Bold);
             _output.WriteLine(" to see everything.");
         }
 
@@ -654,11 +785,11 @@ namespace WUM.CLI.Interactive
             if (suggestion is not null)
             {
                 _output.Write("       Did you mean ");
-                WriteStyled(suggestion, Ansi.Accent);
+                WriteStyled(suggestion, Ansi.Purple + Ansi.Bold);
                 _output.WriteLine("?");
             }
             _output.Write("       Type ");
-            WriteStyled("/commands", Ansi.Accent);
+            WriteStyled("/commands", Ansi.Purple + Ansi.Bold);
             _output.WriteLine(" to browse, or /help for a quick tour.");
         }
 
@@ -806,13 +937,30 @@ namespace WUM.CLI.Interactive
             };
         }
 
-        private void WriteRuleWithLabel(string label)
+        private void WriteRuleWithLabel(string label, string? rightLabel = null)
         {
-            string prefix = "─ " + label + " ";
-            int fill = Math.Max(0, GetRuleWidth() - prefix.Length);
+            int width = GetRuleWidth();
+            int leftLen = label.Length + 3;
+            
             WriteStyled("─ ", Ansi.Rule);
-            WriteStyled(label, Ansi.Bold + Ansi.Muted);
-            WriteStyledLine(" " + new string('─', fill), Ansi.Rule);
+            WriteStyled(label, Ansi.Accent + Ansi.Bold);
+            WriteStyled(" ", Ansi.Reset);
+
+            if (!string.IsNullOrEmpty(rightLabel))
+            {
+                string rightStr = $" {rightLabel} ";
+                int fill = width - leftLen - rightStr.Length;
+                if (fill > 0)
+                {
+                    WriteStyled(new string('─', fill), Ansi.Rule);
+                    WriteStyled(rightStr, Ansi.Muted);
+                    WriteStyledLine("", Ansi.Rule);
+                    return;
+                }
+            }
+            
+            int fill2 = Math.Max(0, width - leftLen);
+            WriteStyledLine(new string('─', fill2), Ansi.Rule);
         }
 
         private int BeginEditorFrame()
@@ -822,16 +970,12 @@ namespace WUM.CLI.Interactive
             readyTop -= shift;
             if (readyTop < 0) readyTop = 0;
 
-            Console.SetCursorPosition(0, readyTop);
-            WriteRuleWithLabel("ready");
-            return GetSafeCursorTop();
-        }
+            int maxTop = Math.Max(0, Console.BufferHeight - 1);
+            if (readyTop > maxTop) readyTop = maxTop;
 
-        private string GetSessionStatus()
-        {
-            string role = IsRunningElevatedSafely() ? "admin" : "standard";
-            string editor = _useKeyEditor ? "smart editor" : "plain input";
-            return $"{role} · {editor} · history {_history.Count} · {Truncate(Environment.CurrentDirectory, 42)}";
+            SafeSetCursorPosition(0, readyTop);
+            WriteRuleWithLabel("ready", $"WUM v{GetDisplayVersion()}");
+            return GetSafeCursorTop();
         }
 
         private static bool IsRunningElevatedSafely()
@@ -843,8 +987,8 @@ namespace WUM.CLI.Interactive
         private void PrintResponseHeader(string label)
         {
             _output.WriteLine();
-            WriteStyled("● ", Ansi.Accent);
-            WriteStyled(label, Ansi.Bold + Ansi.Text);
+            WriteStyled("● ", Ansi.Green);
+            WriteStyled(label, Ansi.Purple + Ansi.Bold);
             int used = 2 + label.Length + 1;
             int fill = Math.Max(1, GetRuleWidth() - used);
             WriteStyledLine(" " + new string('─', fill), Ansi.Rule);
@@ -852,14 +996,43 @@ namespace WUM.CLI.Interactive
 
         private void PrintResponseFooter(int exitCode)
         {
-            string status = exitCode == 0 ? "✓ done" : "✗ failed (exit " + exitCode + ")";
-            WriteStyled("  ", Ansi.Muted);
-            WriteStyledLine(status, exitCode == 0 ? Ansi.Ok : Ansi.Warn);
+            if (exitCode == 0)
+            {
+                WriteStyled("✓ ", Ansi.Green + Ansi.Bold);
+                WriteStyledLine("done", Ansi.Text);
+            }
+            else
+            {
+                WriteStyled("✗ ", Ansi.Red + Ansi.Bold);
+                WriteStyledLine($"failed (exit {exitCode})", Ansi.Text);
+            }
         }
 
-        private void WriteSection(string text) => WriteStyledLine(text + ":", Ansi.Bold + Ansi.Accent);
-        private void WriteCommandHelp(string command, string description) { _output.Write("  "); WriteStyled(command.PadRight(33), Ansi.Accent); _output.WriteLine(description); }
-        private void WriteExample(string command) { _output.Write("  "); WriteStyledLine(command, Ansi.Dim + Ansi.White); }
+        private void WriteSection(string text) => WriteStyledLine(text + ":", Ansi.Yellow + Ansi.Bold);
+        private void WriteCommandHelp(string command, string description) 
+        { 
+            _output.Write("  ");
+            string color = Ansi.Teal;
+            if (command.StartsWith("/")) color = Ansi.Purple + Ansi.Bold;
+            else if (command.StartsWith("↑") || command.StartsWith("Tab") || command.StartsWith("Ctrl") || command.StartsWith("→")) color = Ansi.Orange;
+            
+            WriteStyled(command.PadRight(33), color); 
+            _output.WriteLine(description); 
+        }
+        private void WriteExample(string command) 
+        { 
+            _output.Write("  ");
+            var parts = command.Split(' ');
+            for(int i=0; i<parts.Length; i++)
+            {
+                if (parts[i].StartsWith("/")) WriteStyled(parts[i], Ansi.Purple + Ansi.Bold);
+                else if (parts[i].StartsWith("--")) WriteStyled(parts[i], Ansi.Teal);
+                else WriteStyled(parts[i], Ansi.Orange);
+                
+                if (i < parts.Length - 1) _output.Write(" ");
+            }
+            _output.WriteLine(); 
+        }
         private void WriteStyled(string text, string style) { if (_useAnsi) _output.Write(style); _output.Write(text); if (_useAnsi) _output.Write(Ansi.Reset); }
         private void WriteStyledLine(string text, string style) { WriteStyled(text, style); _output.WriteLine(); }
 
@@ -872,11 +1045,41 @@ namespace WUM.CLI.Interactive
         }
 
         private static string Truncate(string text, int maxLength) => text.Length <= maxLength ? text : (maxLength <= 1 ? text.Substring(0, maxLength) : text.Substring(0, maxLength - 1) + "…");
-        private static int GetRuleWidth() { if (Console.IsOutputRedirected) return 96; try { return Math.Clamp(Console.WindowWidth - 1, 72, 140); } catch { return 96; } }
+        private static int GetRuleWidth() 
+        { 
+            if (Console.IsOutputRedirected) return 96; 
+            try 
+            { 
+                int w = Console.WindowWidth - 1;
+                if (w < 20) return w; 
+                return Math.Min(w, 140); 
+            } 
+            catch 
+            { 
+                return 96; 
+            } 
+        }
         private static int GetSafeCursorTop() { try { return ClampCursorTop(Console.CursorTop); } catch { return 0; } }
         private static int ClampCursorTop(int top) => Math.Clamp(top, 0, GetBufferHeightSafely() - 1);
         private static int GetBufferHeightSafely() { try { return Math.Max(1, Console.BufferHeight); } catch { return 1; } }
         private static int GetEditorRowsForSuggestions(int suggestionCount) => 1 + (suggestionCount > 0 ? suggestionCount + 2 : 0) + 2;
+
+        private static void SafeSetCursorPosition(int left, int top)
+        {
+            try
+            {
+                int maxTop = Math.Max(0, Console.BufferHeight - 1);
+                if (top > maxTop) top = maxTop;
+                if (top < 0) top = 0;
+                
+                int maxLeft = Math.Max(0, Console.BufferWidth - 1);
+                if (left > maxLeft) left = maxLeft;
+                if (left < 0) left = 0;
+
+                Console.SetCursorPosition(left, top);
+            }
+            catch { }
+        }
 
         private static int ReserveVisibleRows(int top, int rows)
         {
@@ -888,15 +1091,28 @@ namespace WUM.CLI.Interactive
 
                 if (neededBottom > visibleBottom)
                 {
+                    if (Console.BufferHeight > Console.WindowHeight)
+                    {
+                        int newWindowTop = neededBottom - Console.WindowHeight + 1;
+                        if (newWindowTop < 0) newWindowTop = 0;
+                        int maxWindowTop = Math.Max(0, Console.BufferHeight - Console.WindowHeight);
+                        if (newWindowTop > maxWindowTop) newWindowTop = maxWindowTop;
+                        
+                        try 
+                        {
+                            Console.SetWindowPosition(0, newWindowTop);
+                            return 0; 
+                        } 
+                        catch { }
+                    }
+
                     int scrollAmount = neededBottom - visibleBottom;
-                    Console.SetCursorPosition(0, visibleBottom);
+                    SafeSetCursorPosition(0, visibleBottom);
                     int beforeTop = Console.CursorTop;
                     for (int i = 0; i < scrollAmount; i++)
                         Console.WriteLine();
 
                     int afterTop = Console.CursorTop;
-                    // If the terminal buffer is fixed (like Linux or Windows Terminal), 
-                    // writing newlines shifts the buffer up. We calculate the shift to adjust coordinates.
                     int shift = (beforeTop + scrollAmount) - afterTop;
                     return shift;
                 }
@@ -991,18 +1207,30 @@ namespace WUM.CLI.Interactive
             public const string Reset = "\u001b[0m";
             public const string Bold = "\u001b[1m";
             public const string Dim = "\u001b[2m";
+            public const string Italic = "\u001b[3m";
+            public const string Underline = "\u001b[4m";
+
+            // Foreground Colors
             public const string Accent = "\u001b[38;2;76;194;255m";        // Fluent Blue
             public const string AccentBright = "\u001b[38;2;160;216;255m";  // Lighter Fluent Blue
-            public const string Ok = "\u001b[38;2;125;214;107m";            // Fluent Green
-            public const string Warn = "\u001b[38;2;255;214;68m";           // Fluent Yellow
-            public const string Error = "\u001b[38;2;255;107;107m";         // Fluent Red
+            public const string Purple = "\u001b[38;2;199;142;240m";        // Fluent Purple
+            public const string Teal = "\u001b[38;2;79;224;181m";           // Fluent Teal
+            public const string Green = "\u001b[38;2;125;214;107m";         // Fluent Green
+            public const string Yellow = "\u001b[38;2;255;214;68m";         // Fluent Yellow
+            public const string Orange = "\u001b[38;2;255;140;0m";          // Fluent Orange
+            public const string Red = "\u001b[38;2;255;107;107m";           // Fluent Red
             public const string Text = "\u001b[38;2;255;255;255m";          // Pure White
             public const string Muted = "\u001b[38;2;153;153;153m";         // Fluent Gray
             public const string Ghost = "\u001b[38;2;102;102;102m";         // Darker Gray
-            public const string Rule = "\u001b[38;2;51;51;51m";             // Dark Gray for borders
-            public const string Green = Ok;
-            public const string Red = Error;
-            public const string Yellow = Warn;
+            public const string Rule = "\u001b[38;2;90;90;120m";            // Muted Indigo/Gray for sleek borders
+
+            // Background Colors (for selected items, etc.)
+            public const string BgSelection = "\u001b[48;2;30;50;80m";      // Dark Blue Selection
+            
+            // Aliases
+            public const string Ok = Green;
+            public const string Warn = Yellow;
+            public const string Error = Red;
             public const string White = Text;
             public const string Cyan = AccentBright;
         }
