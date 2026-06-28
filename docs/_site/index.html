@@ -620,7 +620,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
       </button><a href="/getting-started/" class="nav-list-link">Get Started</a><ul class="nav-list"><li class="nav-list-item"><a href="/installation.html" class="nav-list-link">Installation</a></li><li class="nav-list-item"><a href="/configuration.html" class="nav-list-link">Configuration</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Use WUM submenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
-      </button><a href="/use-wum/" class="nav-list-link">Use WUM</a><ul class="nav-list"><li class="nav-list-item"><a href="/commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/diagnostics.html" class="nav-list-link">Diagnostics</a></li><li class="nav-list-item"><a href="/troubleshooting.html" class="nav-list-link">Troubleshooting</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Internals submenu" aria-expanded="false">
+      </button><a href="/use-wum/" class="nav-list-link">Use WUM</a><ul class="nav-list"><li class="nav-list-item"><a href="/interactive.html" class="nav-list-link">Interactive Mode</a></li><li class="nav-list-item"><a href="/commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/diagnostics.html" class="nav-list-link">Diagnostics</a></li><li class="nav-list-item"><a href="/troubleshooting.html" class="nav-list-link">Troubleshooting</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Internals submenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
       </button><a href="/internals/" class="nav-list-link">Internals</a><ul class="nav-list"><li class="nav-list-item"><a href="/architecture.html" class="nav-list-link">Architecture</a></li><li class="nav-list-item"><a href="/development.html" class="nav-list-link">Development</a></li></ul></li></ul>
   
@@ -729,6 +729,10 @@
       <td>Build from source, publish a single-file <code class="language-plaintext highlighter-rouge">wum.exe</code>, MSI / WinGet install, requirements</td>
     </tr>
     <tr>
+      <td><a href="/interactive.html">Interactive Mode</a></td>
+      <td>Smart shell, slash commands, completion, history, keyboard shortcuts, and session tools</td>
+    </tr>
+    <tr>
       <td><a href="/commands.html">Command Reference</a></td>
       <td>Every command, sub-command, argument, option, and worked examples</td>
     </tr>
@@ -771,6 +775,10 @@
     </tr>
   </thead>
   <tbody>
+    <tr>
+      <td><strong>Interactive shell</strong></td>
+      <td>Run <code class="language-plaintext highlighter-rouge">wum</code> with no arguments for slash commands, smart completion, history, help, clear, and keyboard shortcuts</td>
+    </tr>
     <tr>
       <td><strong>Discovery</strong></td>
       <td>List available, installed, and hidden updates with category filtering and full-text search</td>
@@ -822,7 +830,10 @@
 </h2>
     
 
-<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">#</span><span class="w"> </span>Read-only — no admin needed
+<div class="language-console highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="gp">#</span><span class="w"> </span>Interactive shell
+<span class="gp">wum                        #</span><span class="w"> </span>Open smart prompt with slash commands and completion
+<span class="go">
+</span><span class="gp">#</span><span class="w"> </span>Read-only — no admin needed
 <span class="gp">wum status                 #</span><span class="w"> </span>Dashboard: service state, reboot, pause, update counts
 <span class="gp">wum list --security        #</span><span class="w"> </span>Show security updates only
 <span class="gp">wum search defender        #</span><span class="w"> </span>Find updates matching a keyword

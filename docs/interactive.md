@@ -22,6 +22,11 @@ Run `wum` with no arguments to open the interactive shell:
 wum
 ```
 
+<figure>
+  <img src="{{ '/assets/interactive-shell.svg' | relative_url }}" alt="WUM interactive shell showing the welcome panel, slash command suggestions, option completion, and prompt footer">
+  <figcaption>Interactive mode keeps the welcome panel, smart prompt, completion list, footer shortcuts, and command status together.</figcaption>
+</figure>
+
 Interactive mode uses the same command handlers as one-shot CLI commands. A slash command maps directly to the normal command name:
 
 | Interactive | One-shot equivalent |

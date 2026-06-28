@@ -13,10 +13,29 @@
 
   <style id="jtd-nav-activation">
   
-    .site-nav ul li a {
+
+    .site-nav > ul.nav-list:first-child > li > a,
+    
+    .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a,
+    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a {
       background-image: none;
     }
 
+    .site-nav > ul.nav-list:not(:first-child) a,
+    .site-nav li.external a {
+      background-image: none;
+    }
+
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > a {
+      font-weight: 600;
+      text-decoration: none;
+    }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg,
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > button svg {
+      transform: rotate(-90deg);
+    }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list,
+    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list {
+      display: block;
+    }
   </style>
 
   
@@ -36,21 +55,21 @@
 
 
   <!-- Begin Jekyll SEO tag v2.9.0 -->
-<title>REST API Request | WUM — Windows Update Manager</title>
+<title>Interactive Mode | WUM — Windows Update Manager</title>
 <meta name="generator" content="Jekyll v4.4.1" />
-<meta property="og:title" content="REST API Request" />
+<meta property="og:title" content="Interactive Mode" />
 <meta name="author" content="WUM contributors" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Make REST API requests with Neutrx using typed clients, params, JSON bodies, redacted errors, and secure backend defaults." />
-<meta name="twitter:description" property="og:description" content="Make REST API requests with Neutrx using typed clients, params, JSON bodies, redacted errors, and secure backend defaults." />
-<link rel="canonical" href="http://localhost:4000/examples/rest-api-request.html" />
-<meta property="og:url" content="http://localhost:4000/examples/rest-api-request.html" />
+<meta name="description" content="Run WUM as a smart interactive shell with slash commands, history, completions, keyboard shortcuts, and session tools." />
+<meta name="twitter:description" property="og:description" content="Run WUM as a smart interactive shell with slash commands, history, completions, keyboard shortcuts, and session tools." />
+<link rel="canonical" href="http://localhost:4000/interactive.html" />
+<meta property="og:url" content="http://localhost:4000/interactive.html" />
 <meta property="og:site_name" content="WUM — Windows Update Manager" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="REST API Request" />
+<meta name="twitter:title" content="Interactive Mode" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"WUM contributors","url":"https://github.com/isubroto/wum/graphs/contributors"},"description":"Make REST API requests with Neutrx using typed clients, params, JSON bodies, redacted errors, and secure backend defaults.","headline":"REST API Request","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/wum-logo.svg"},"name":"WUM contributors"},"url":"http://localhost:4000/examples/rest-api-request.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"WUM contributors","url":"https://github.com/isubroto/wum/graphs/contributors"},"description":"Run WUM as a smart interactive shell with slash commands, history, completions, keyboard shortcuts, and session tools.","headline":"Interactive Mode","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/wum-logo.svg"},"name":"WUM contributors"},"url":"http://localhost:4000/interactive.html"}</script>
 <!-- End Jekyll SEO tag -->
 
 
@@ -129,9 +148,9 @@
 {
   "@context": "https://schema.org",
   "@type": "TechArticle",
-  "headline": "REST API Request",
-  "description": "Make REST API requests with Neutrx using typed clients, params, JSON bodies, redacted errors, and secure backend defaults.",
-  "url": "http://localhost:4000/examples/rest-api-request.html",
+  "headline": "Interactive Mode",
+  "description": "Run WUM as a smart interactive shell with slash commands, history, completions, keyboard shortcuts, and session tools.",
+  "url": "http://localhost:4000/interactive.html",
   "dateModified": "2026-06-28T06:56:51+00:00",
   "inLanguage": "en",
   "about": { "@id": "http://localhost:4000/#software" },
@@ -143,7 +162,7 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "http://localhost:4000/" },{ "@type": "ListItem", "position": 2, "name": "Examples" },{ "@type": "ListItem", "position": 3, "name": "REST API Request", "item": "http://localhost:4000/examples/rest-api-request.html" }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "http://localhost:4000/" },{ "@type": "ListItem", "position": 2, "name": "Use WUM", "item": "http://localhost:4000/use-wum/" },{ "@type": "ListItem", "position": 3, "name": "Interactive Mode", "item": "http://localhost:4000/interactive.html" }
   ]
 }
 </script>
@@ -685,7 +704,8 @@
     <div class="main-content-wrap">
       <nav aria-label="Breadcrumb" class="breadcrumb-nav">
   <ol class="breadcrumb-nav-list">
-    <li class="breadcrumb-nav-list-item"><span>REST API Request</span></li>
+    <li class="breadcrumb-nav-list-item"><a href="/use-wum/">Use WUM</a></li>
+    <li class="breadcrumb-nav-list-item"><span>Interactive Mode</span></li>
   </ol>
 </nav>
 
@@ -693,48 +713,311 @@
       <div id="main-content" class="main-content">
         <main>
           
-            <h1 id="rest-api-request">
+            <h1 class="no_toc" id="interactive-mode">
   
   
-    <a href="#rest-api-request" class="anchor-heading" aria-labelledby="rest-api-request"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> REST API Request
+    <a href="#interactive-mode" class="anchor-heading" aria-labelledby="interactive-mode"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Interactive Mode
   
   
 </h1>
     
 
-<p>Create one client for the upstream API, then use verb helpers for each request.</p>
+<ol id="markdown-toc">
+  <li><a href="#prompt-layout" id="markdown-toc-prompt-layout">Prompt layout</a></li>
+  <li><a href="#slash-commands" id="markdown-toc-slash-commands">Slash commands</a></li>
+  <li><a href="#session-commands" id="markdown-toc-session-commands">Session commands</a></li>
+  <li><a href="#keyboard-shortcuts" id="markdown-toc-keyboard-shortcuts">Keyboard shortcuts</a></li>
+  <li><a href="#completion-and-history" id="markdown-toc-completion-and-history">Completion and history</a></li>
+  <li><a href="#quoting-and-arguments" id="markdown-toc-quoting-and-arguments">Quoting and arguments</a></li>
+  <li><a href="#examples" id="markdown-toc-examples">Examples</a></li>
+</ol><hr />
 
-<div class="language-ts highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">neutrx</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">neutrx</span><span class="dl">'</span><span class="p">;</span>
+<p><a href="/use-wum/">← Use WUM</a></p>
 
-<span class="kd">type</span> <span class="nx">User</span> <span class="o">=</span> <span class="p">{</span>
-  <span class="k">readonly</span> <span class="na">id</span><span class="p">:</span> <span class="kr">string</span><span class="p">;</span>
-  <span class="k">readonly</span> <span class="na">name</span><span class="p">:</span> <span class="kr">string</span><span class="p">;</span>
-<span class="p">};</span>
+<p>Run <code class="language-plaintext highlighter-rouge">wum</code> with no arguments to open the interactive shell:</p>
 
-<span class="kd">const</span> <span class="nx">api</span> <span class="o">=</span> <span class="nx">neutrx</span><span class="p">.</span><span class="nf">create</span><span class="p">({</span>
-  <span class="na">baseURL</span><span class="p">:</span> <span class="dl">'</span><span class="s1">https://api.example.com</span><span class="dl">'</span><span class="p">,</span>
-  <span class="na">timeout</span><span class="p">:</span> <span class="mi">10</span><span class="nx">_000</span><span class="p">,</span>
-  <span class="na">security</span><span class="p">:</span> <span class="p">{</span>
-    <span class="na">profile</span><span class="p">:</span> <span class="dl">'</span><span class="s1">standard</span><span class="dl">'</span><span class="p">,</span>
-    <span class="na">allowedHosts</span><span class="p">:</span> <span class="p">[</span><span class="dl">'</span><span class="s1">api.example.com</span><span class="dl">'</span><span class="p">],</span>
-  <span class="p">},</span>
-<span class="p">});</span>
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">wum</span><span class="w">
+</span></code></pre></div></div>
 
-<span class="k">export</span> <span class="k">async</span> <span class="kd">function</span> <span class="nf">listUsers</span><span class="p">(</span><span class="nx">page</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span> <span class="nb">Promise</span><span class="o">&lt;</span><span class="k">readonly</span> <span class="nx">User</span><span class="p">[]</span><span class="o">&gt;</span> <span class="p">{</span>
-  <span class="kd">const</span> <span class="nx">response</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">api</span><span class="p">.</span><span class="kd">get</span><span class="o">&lt;</span><span class="k">readonly</span> <span class="nx">User</span><span class="p">[]</span><span class="o">&gt;</span><span class="p">(</span><span class="dl">'</span><span class="s1">/users</span><span class="dl">'</span><span class="p">,</span> <span class="p">{</span>
-    <span class="na">params</span><span class="p">:</span> <span class="p">{</span> <span class="nx">page</span> <span class="p">},</span>
-  <span class="p">});</span>
+<figure>
+  <img src="/assets/interactive-shell.svg" alt="WUM interactive shell showing the welcome panel, slash command suggestions, option completion, and prompt footer" />
+  <figcaption>Interactive mode keeps the welcome panel, smart prompt, completion list, footer shortcuts, and command status together.</figcaption>
+</figure>
 
-  <span class="k">return</span> <span class="nx">response</span><span class="p">.</span><span class="nx">data</span><span class="p">;</span>
-<span class="p">}</span>
+<p>Interactive mode uses the same command handlers as one-shot CLI commands. A slash command maps directly to the normal command name:</p>
 
-<span class="k">export</span> <span class="k">async</span> <span class="kd">function</span> <span class="nf">createUser</span><span class="p">(</span><span class="nx">name</span><span class="p">:</span> <span class="kr">string</span><span class="p">):</span> <span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span> <span class="p">{</span>
-  <span class="kd">const</span> <span class="nx">response</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">api</span><span class="p">.</span><span class="nx">post</span><span class="o">&lt;</span><span class="nx">User</span><span class="o">&gt;</span><span class="p">(</span><span class="dl">'</span><span class="s1">/users</span><span class="dl">'</span><span class="p">,</span> <span class="p">{</span> <span class="nx">name</span> <span class="p">});</span>
-  <span class="k">return</span> <span class="nx">response</span><span class="p">.</span><span class="nx">data</span><span class="p">;</span>
-<span class="p">}</span>
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Interactive</th>
+      <th>One-shot equivalent</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/status</code></td>
+      <td><code class="language-plaintext highlighter-rouge">wum status</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/list --security --refresh</code></td>
+      <td><code class="language-plaintext highlighter-rouge">wum list --security --refresh</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/install KB5034441 --dry-run</code></td>
+      <td><code class="language-plaintext highlighter-rouge">wum install KB5034441 --dry-run</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/diagnose --fix</code></td>
+      <td><code class="language-plaintext highlighter-rouge">wum diagnose --fix</code></td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show the same elevation guidance as the one-shot CLI.</p>
+<h2 id="prompt-layout">
+  
+  
+    <a href="#prompt-layout" class="anchor-heading" aria-labelledby="prompt-layout"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Prompt layout
+  
+  
+</h2>
+    
+
+<p>The smart prompt keeps the active command area together:</p>
+
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>─ ready ─────────────────────────────────────────
+wum ›
+↑↓ history · Tab complete · Ctrl+L clear · Ctrl+C cancel · Ctrl+D exit
+● admin · smart editor · history 4 · D:\Github\wum
 </code></pre></div></div>
 
-<p>Request config passed to a call overrides instance defaults for that call only.</p>
+<p>After a command completes, WUM prints the command result, a <code class="language-plaintext highlighter-rouge">✓ done</code> or <code class="language-plaintext highlighter-rouge">✗ failed</code> footer, then returns to <code class="language-plaintext highlighter-rouge">ready</code> without pausing for another key.</p>
+<h2 id="slash-commands">
+  
+  
+    <a href="#slash-commands" class="anchor-heading" aria-labelledby="slash-commands"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Slash commands
+  
+  
+</h2>
+    
+
+<p>Use <code class="language-plaintext highlighter-rouge">/commands</code> in the shell to browse these groups.</p>
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Group</th>
+      <th>Commands</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Look around</td>
+      <td><code class="language-plaintext highlighter-rouge">/status</code>, <code class="language-plaintext highlighter-rouge">/list</code>, <code class="language-plaintext highlighter-rouge">/search</code>, <code class="language-plaintext highlighter-rouge">/history</code></td>
+    </tr>
+    <tr>
+      <td>Take action</td>
+      <td><code class="language-plaintext highlighter-rouge">/install</code>, <code class="language-plaintext highlighter-rouge">/uninstall</code>, <code class="language-plaintext highlighter-rouge">/hide</code></td>
+    </tr>
+    <tr>
+      <td>Stay in control</td>
+      <td><code class="language-plaintext highlighter-rouge">/pause</code>, <code class="language-plaintext highlighter-rouge">/schedule</code>, <code class="language-plaintext highlighter-rouge">/settings</code>, <code class="language-plaintext highlighter-rouge">/reboot</code>, <code class="language-plaintext highlighter-rouge">/diagnose</code></td>
+    </tr>
+    <tr>
+      <td>This session</td>
+      <td><code class="language-plaintext highlighter-rouge">/commands</code>, <code class="language-plaintext highlighter-rouge">/help</code>, <code class="language-plaintext highlighter-rouge">/keys</code>, <code class="language-plaintext highlighter-rouge">/clear</code>, <code class="language-plaintext highlighter-rouge">/version</code>, <code class="language-plaintext highlighter-rouge">/info</code>, <code class="language-plaintext highlighter-rouge">/exit</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<h2 id="session-commands">
+  
+  
+    <a href="#session-commands" class="anchor-heading" aria-labelledby="session-commands"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Session commands
+  
+  
+</h2>
+    
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Effect</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/commands</code></td>
+      <td>Show the grouped command palette</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/help</code> or <code class="language-plaintext highlighter-rouge">/?</code></td>
+      <td>Show interactive help</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/help &lt;command&gt;</code></td>
+      <td>Show help for one command, for example <code class="language-plaintext highlighter-rouge">/help list</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/keys</code></td>
+      <td>Show keyboard shortcuts</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/clear</code></td>
+      <td>Clear the screen and terminal scrollback, then redraw the welcome panel</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/version</code></td>
+      <td>Print WUM version</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/info</code></td>
+      <td>Show build and developer information</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">/exit</code>, <code class="language-plaintext highlighter-rouge">/quit</code>, <code class="language-plaintext highlighter-rouge">exit</code>, <code class="language-plaintext highlighter-rouge">quit</code></td>
+      <td>Leave interactive mode</td>
+    </tr>
+  </tbody>
+</table></div>
+<h2 id="keyboard-shortcuts">
+  
+  
+    <a href="#keyboard-shortcuts" class="anchor-heading" aria-labelledby="keyboard-shortcuts"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Keyboard shortcuts
+  
+  
+</h2>
+    
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Key</th>
+      <th>Effect</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Tab</code></td>
+      <td>Complete the current suggestion</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Shift+Tab</code></td>
+      <td>Cycle suggestions backward</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Enter</code></td>
+      <td>Run the command, or complete a selected bare command suggestion</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Right Arrow</code> at end of line</td>
+      <td>Accept ghost-text completion</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Up</code> / <code class="language-plaintext highlighter-rouge">Down</code></td>
+      <td>Browse history at an empty prompt, or move through suggestions</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+P</code> / <code class="language-plaintext highlighter-rouge">Ctrl+N</code></td>
+      <td>Browse history backward / forward</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+A</code> / <code class="language-plaintext highlighter-rouge">Ctrl+E</code></td>
+      <td>Move to start / end of line</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+U</code> / <code class="language-plaintext highlighter-rouge">Ctrl+K</code></td>
+      <td>Delete before / after cursor</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+W</code></td>
+      <td>Delete previous word</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Backspace</code> / <code class="language-plaintext highlighter-rouge">Delete</code></td>
+      <td>Delete previous / next character</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Esc</code></td>
+      <td>Clear the current line</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+L</code></td>
+      <td>Clear screen and scrollback, then redraw interactive mode</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+C</code></td>
+      <td>First press cancels the current line; second press exits</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">Ctrl+D</code> on an empty prompt</td>
+      <td>Exit interactive mode</td>
+    </tr>
+  </tbody>
+</table></div>
+<h2 id="completion-and-history">
+  
+  
+    <a href="#completion-and-history" class="anchor-heading" aria-labelledby="completion-and-history"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Completion and history
+  
+  
+</h2>
+    
+
+<p>Typing <code class="language-plaintext highlighter-rouge">/</code> opens command suggestions. Typing a command plus a space opens option or subcommand suggestions where WUM knows them:</p>
+
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/list --s
+</code></pre></div></div>
+
+<p>can complete to:</p>
+
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>/list --security
+</code></pre></div></div>
+
+<p>History stores recent non-empty, non-exit commands in:</p>
+
+<div class="language-text highlighter-rouge"><div class="highlight"><pre class="highlight"><code>%LOCALAPPDATA%\WUM\interactive-history.txt
+</code></pre></div></div>
+
+<p>WUM keeps the newest 200 entries and skips duplicate consecutive commands.</p>
+<h2 id="quoting-and-arguments">
+  
+  
+    <a href="#quoting-and-arguments" class="anchor-heading" aria-labelledby="quoting-and-arguments"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Quoting and arguments
+  
+  
+</h2>
+    
+
+<p>Interactive mode preserves quoted arguments and passes them to the same parser used by one-shot commands:</p>
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">/search</span><span class="w"> </span><span class="s2">"security update"</span><span class="w">
+</span><span class="n">/settings</span><span class="w"> </span><span class="nx">set</span><span class="w"> </span><span class="nx">active-hours</span><span class="w"> </span><span class="s2">"9-18"</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Single quotes, double quotes, and backslash escapes inside quotes are supported.</p>
+<h2 id="examples">
+  
+  
+    <a href="#examples" class="anchor-heading" aria-labelledby="examples"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Examples
+  
+  
+</h2>
+    
+
+<div class="language-powershell highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">/status</span><span class="w">
+</span><span class="nx">/status</span><span class="w"> </span><span class="nt">--refresh</span><span class="w">
+</span><span class="n">/list</span><span class="w"> </span><span class="nt">--installed</span><span class="w">
+</span><span class="n">/list</span><span class="w"> </span><span class="nt">--security</span><span class="w"> </span><span class="nt">--json</span><span class="w">
+</span><span class="n">/search</span><span class="w"> </span><span class="nx">KB5034441</span><span class="w">
+</span><span class="n">/install</span><span class="w"> </span><span class="nt">--all</span><span class="w"> </span><span class="nt">--dry-run</span><span class="w">
+</span><span class="n">/install</span><span class="w"> </span><span class="nx">KB5034441</span><span class="w"> </span><span class="nt">--no-reboot</span><span class="w">
+</span><span class="n">/schedule</span><span class="w"> </span><span class="nx">show</span><span class="w">
+</span><span class="n">/settings</span><span class="w"> </span><span class="nx">show</span><span class="w">
+</span><span class="n">/diagnose</span><span class="w"> </span><span class="nt">--verbose</span><span class="w">
+</span></code></pre></div></div>
+
+<p>Next: <a href="/commands.html">Command Reference →</a></p>
 
           
 
