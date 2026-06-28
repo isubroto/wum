@@ -15,9 +15,10 @@
   
 
     .site-nav > ul.nav-list:first-child > li > a,
+    .site-nav > ul.nav-list:first-child > li > ul > li > a,
     
-    .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(4)) > a,
-    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a {
+    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(15)) > a,
+    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a {
       background-image: none;
     }
 
@@ -26,14 +27,16 @@
       background-image: none;
     }
 
-    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(4) > a {
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > ul > li:nth-child(15) > a {
       font-weight: 600;
       text-decoration: none;
     }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg,
-    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(4) > button svg {
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > button svg,
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > ul > li:nth-child(15) > button svg {
       transform: rotate(-90deg);
     }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list,
-    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(4) > ul.nav-list {
+    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list,
+    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(15) > ul.nav-list {
       display: block;
     }
   </style>
@@ -151,7 +154,7 @@
   "headline": "Troubleshooting",
   "description": "Symptom → cause → fix for the most common Windows Update problems WUM surfaces.",
   "url": "http://localhost:4000/troubleshooting.html",
-  "dateModified": "2026-06-28T06:56:51+00:00",
+  "dateModified": "2026-06-28T07:29:59+00:00",
   "inLanguage": "en",
   "about": { "@id": "http://localhost:4000/#software" },
   "isPartOf": { "@id": "http://localhost:4000/#website" },
@@ -162,7 +165,7 @@
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "http://localhost:4000/" },{ "@type": "ListItem", "position": 2, "name": "Use WUM", "item": "http://localhost:4000/use-wum/" },{ "@type": "ListItem", "position": 3, "name": "Troubleshooting", "item": "http://localhost:4000/troubleshooting.html" }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "http://localhost:4000/" },{ "@type": "ListItem", "position": 2, "name": "Use WUM", "item": "http://localhost:4000/use-wum/" },{ "@type": "ListItem", "position": 3, "name": "CLI Mode", "item": "http://localhost:4000/cli.html" },{ "@type": "ListItem", "position": 4, "name": "Troubleshooting", "item": "http://localhost:4000/troubleshooting.html" }
   ]
 }
 </script>
@@ -646,7 +649,11 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
       </button><a href="/getting-started/" class="nav-list-link">Get Started</a><ul class="nav-list"><li class="nav-list-item"><a href="/installation.html" class="nav-list-link">Installation</a></li><li class="nav-list-item"><a href="/configuration.html" class="nav-list-link">Configuration</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Use WUM submenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
-      </button><a href="/use-wum/" class="nav-list-link">Use WUM</a><ul class="nav-list"><li class="nav-list-item"><a href="/interactive.html" class="nav-list-link">Interactive Mode</a></li><li class="nav-list-item"><a href="/commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/diagnostics.html" class="nav-list-link">Diagnostics</a></li><li class="nav-list-item"><a href="/troubleshooting.html" class="nav-list-link">Troubleshooting</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Internals submenu" aria-expanded="false">
+      </button><a href="/use-wum/" class="nav-list-link">Use WUM</a><ul class="nav-list"><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="CLI Mode submenu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+      </button><a href="/cli.html" class="nav-list-link">CLI Mode</a><ul class="nav-list"><li class="nav-list-item"><a href="/commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/command-status.html" class="nav-list-link">status</a></li><li class="nav-list-item"><a href="/command-list.html" class="nav-list-link">list</a></li><li class="nav-list-item"><a href="/command-search.html" class="nav-list-link">search</a></li><li class="nav-list-item"><a href="/command-install.html" class="nav-list-link">install</a></li><li class="nav-list-item"><a href="/command-uninstall.html" class="nav-list-link">uninstall</a></li><li class="nav-list-item"><a href="/command-hide.html" class="nav-list-link">hide</a></li><li class="nav-list-item"><a href="/command-history.html" class="nav-list-link">history</a></li><li class="nav-list-item"><a href="/command-pause.html" class="nav-list-link">pause</a></li><li class="nav-list-item"><a href="/command-schedule.html" class="nav-list-link">schedule</a></li><li class="nav-list-item"><a href="/command-settings.html" class="nav-list-link">settings</a></li><li class="nav-list-item"><a href="/command-reboot.html" class="nav-list-link">reboot</a></li><li class="nav-list-item"><a href="/command-diagnose.html" class="nav-list-link">diagnose</a></li><li class="nav-list-item"><a href="/diagnostics.html" class="nav-list-link">Diagnostics</a></li><li class="nav-list-item"><a href="/troubleshooting.html" class="nav-list-link">Troubleshooting</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Interactive Mode submenu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+      </button><a href="/interactive.html" class="nav-list-link">Interactive Mode</a><ul class="nav-list"><li class="nav-list-item"><a href="/interactive-commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/interactive-command-status.html" class="nav-list-link">/status</a></li><li class="nav-list-item"><a href="/interactive-command-list.html" class="nav-list-link">/list</a></li><li class="nav-list-item"><a href="/interactive-command-search.html" class="nav-list-link">/search</a></li><li class="nav-list-item"><a href="/interactive-command-install.html" class="nav-list-link">/install</a></li><li class="nav-list-item"><a href="/interactive-command-uninstall.html" class="nav-list-link">/uninstall</a></li><li class="nav-list-item"><a href="/interactive-command-hide.html" class="nav-list-link">/hide</a></li><li class="nav-list-item"><a href="/interactive-command-history.html" class="nav-list-link">/history</a></li><li class="nav-list-item"><a href="/interactive-command-pause.html" class="nav-list-link">/pause</a></li><li class="nav-list-item"><a href="/interactive-command-schedule.html" class="nav-list-link">/schedule</a></li><li class="nav-list-item"><a href="/interactive-command-settings.html" class="nav-list-link">/settings</a></li><li class="nav-list-item"><a href="/interactive-command-reboot.html" class="nav-list-link">/reboot</a></li><li class="nav-list-item"><a href="/interactive-command-diagnose.html" class="nav-list-link">/diagnose</a></li><li class="nav-list-item"><a href="/interactive-session.html" class="nav-list-link">Session Commands</a></li><li class="nav-list-item"><a href="/interactive-shortcuts.html" class="nav-list-link">Shortcuts</a></li></ul></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Internals submenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
       </button><a href="/internals/" class="nav-list-link">Internals</a><ul class="nav-list"><li class="nav-list-item"><a href="/architecture.html" class="nav-list-link">Architecture</a></li><li class="nav-list-item"><a href="/development.html" class="nav-list-link">Development</a></li></ul></li></ul>
   
@@ -705,6 +712,7 @@
       <nav aria-label="Breadcrumb" class="breadcrumb-nav">
   <ol class="breadcrumb-nav-list">
     <li class="breadcrumb-nav-list-item"><a href="/use-wum/">Use WUM</a></li>
+    <li class="breadcrumb-nav-list-item"><a href="/cli.html">CLI Mode</a></li>
     <li class="breadcrumb-nav-list-item"><span>Troubleshooting</span></li>
   </ol>
 </nav>

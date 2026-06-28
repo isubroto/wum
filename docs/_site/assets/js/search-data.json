@@ -202,632 +202,1920 @@
     
     "relUrl": "/recipes/backend-recipes.html#cache-revalidation"
   },"29": {
+    "doc": "CLI Mode",
+    "title": "CLI Mode",
+    "content": "CLI mode is the one-shot command style: . wum status wum list --security wum install KB5034441 --dry-run . Use CLI mode when you want repeatable commands, scripts, JSON output, CI checks, or a direct terminal workflow. Each command exits after it finishes. ",
+    "url": "/cli.html",
+    
+    "relUrl": "/cli.html"
+  },"30": {
+    "doc": "CLI Mode",
+    "title": "CLI vs interactive",
+    "content": "| Mode | Best for | Command shape | . | CLI mode | Scripts, automation, one-off terminal commands, JSON output | wum list --security | . | Interactive mode | Exploring commands, using completion, repeating update tasks in one session | /list --security | . Both modes call the same command handlers. Interactive mode adds slash prefixes, history, completion, and session commands. ",
+    "url": "/cli.html#cli-vs-interactive",
+    
+    "relUrl": "/cli.html#cli-vs-interactive"
+  },"31": {
+    "doc": "CLI Mode",
+    "title": "CLI docs",
+    "content": "Command Reference Every command, argument, option, admin requirement, and example. Diagnostics Health checks, exit-code bitmask, scan details, and component reset guidance. Troubleshooting Symptom-to-fix notes for common Windows Update failures. ",
+    "url": "/cli.html#cli-docs",
+    
+    "relUrl": "/cli.html#cli-docs"
+  },"32": {
+    "doc": "CLI Mode",
+    "title": "Command pages",
+    "content": "| Command | Detail page | . | status | Status | . | list | List | . | search | Search | . | install | Install | . | uninstall | Uninstall | . | hide | Hide | . | history | History | . | pause | Pause | . | schedule | Schedule | . | settings | Settings | . | reboot | Reboot | . | diagnose | Diagnose | . Next: Command Reference → . ",
+    "url": "/cli.html#command-pages",
+    
+    "relUrl": "/cli.html#command-pages"
+  },"33": {
+    "doc": "diagnose",
+    "title": "wum diagnose",
+    "content": "Runs Windows Update health checks and can optionally reset Windows Update components. ",
+    "url": "/command-diagnose.html#wum-diagnose",
+    
+    "relUrl": "/command-diagnose.html#wum-diagnose"
+  },"34": {
+    "doc": "diagnose",
+    "title": "Synopsis",
+    "content": "wum diagnose [--refresh] [--json] wum diagnose --fix [--force|-f] . ",
+    "url": "/command-diagnose.html#synopsis",
+    
+    "relUrl": "/command-diagnose.html#synopsis"
+  },"35": {
+    "doc": "diagnose",
+    "title": "Interactive form",
+    "content": "/diagnose [--refresh] [--json] /diagnose --fix [--force|-f] . ",
+    "url": "/command-diagnose.html#interactive-form",
+    
+    "relUrl": "/command-diagnose.html#interactive-form"
+  },"36": {
+    "doc": "diagnose",
+    "title": "Options",
+    "content": "| Option | Detail | . | --refresh | Force a fresh available-update scan so diagnose, status, and list agree. | . | --json | Output structured diagnostics and return scriptable exit bitmask. | . | --fix | Reset Windows Update components. Requires Administrator. | . | --force, -f | Skip --fix confirmation prompt. | . ",
+    "url": "/command-diagnose.html#options",
+    
+    "relUrl": "/command-diagnose.html#options"
+  },"37": {
+    "doc": "diagnose",
+    "title": "Behavior",
+    "content": "Normal diagnose mode is read-only. --fix is destructive: pending downloads are discarded and reboot is advised. ",
+    "url": "/command-diagnose.html#behavior",
+    
+    "relUrl": "/command-diagnose.html#behavior"
+  },"38": {
+    "doc": "diagnose",
+    "title": "--fix reset steps",
+    "content": "--fix stops Windows Update services, renames SoftwareDistribution and catroot2 to .bak, reregisters WU DLLs, resets WinSock/WinHTTP proxy, restarts services, invalidates scan cache, and triggers re-detection. ",
+    "url": "/command-diagnose.html#--fix-reset-steps",
+    
+    "relUrl": "/command-diagnose.html#--fix-reset-steps"
+  },"39": {
+    "doc": "diagnose",
+    "title": "Exit bitmask",
+    "content": "With --json, the exit code is a bitmask for automation. See Diagnostics for the full check list, bit values, health score, and HRESULT decoding. ",
+    "url": "/command-diagnose.html#exit-bitmask",
+    
+    "relUrl": "/command-diagnose.html#exit-bitmask"
+  },"40": {
+    "doc": "diagnose",
+    "title": "Examples",
+    "content": "wum diagnose wum diagnose --refresh wum diagnose --json wum diagnose --fix wum diagnose --fix --force . Next: Diagnostics . ",
+    "url": "/command-diagnose.html#examples",
+    
+    "relUrl": "/command-diagnose.html#examples"
+  },"41": {
+    "doc": "diagnose",
+    "title": "diagnose",
+    "content": " ",
+    "url": "/command-diagnose.html",
+    
+    "relUrl": "/command-diagnose.html"
+  },"42": {
+    "doc": "hide",
+    "title": "wum hide",
+    "content": "Hides, unhides, or lists hidden Windows Updates. Hidden updates are suppressed from the normal available-update list. ",
+    "url": "/command-hide.html#wum-hide",
+    
+    "relUrl": "/command-hide.html#wum-hide"
+  },"43": {
+    "doc": "hide",
+    "title": "Synopsis",
+    "content": "wum hide add &lt;update-id&gt; wum hide remove &lt;update-id&gt; wum hide list . ",
+    "url": "/command-hide.html#synopsis",
+    
+    "relUrl": "/command-hide.html#synopsis"
+  },"44": {
+    "doc": "hide",
+    "title": "Interactive form",
+    "content": "/hide add &lt;update-id&gt; /hide remove &lt;update-id&gt; /hide list . ",
+    "url": "/command-hide.html#interactive-form",
+    
+    "relUrl": "/command-hide.html#interactive-form"
+  },"45": {
+    "doc": "hide",
+    "title": "Subcommands",
+    "content": "| Subcommand | Argument | Admin | Detail | . | add | &lt;update-id&gt; | Yes | Sets the update hidden flag. | . | remove | &lt;update-id&gt; | Yes | Clears the update hidden flag. | . | list | none | No | Lists updates currently hidden. | . ",
+    "url": "/command-hide.html#subcommands",
+    
+    "relUrl": "/command-hide.html#subcommands"
+  },"46": {
+    "doc": "hide",
+    "title": "Update IDs",
+    "content": "Use wum list --json or wum search &lt;kb&gt; --json to get an update Id. Depending on scan result, WUM can also match KB-like identifiers when available. ",
+    "url": "/command-hide.html#update-ids",
+    
+    "relUrl": "/command-hide.html#update-ids"
+  },"47": {
+    "doc": "hide",
+    "title": "Examples",
+    "content": "wum hide add 12345678-90ab-cdef-1234-567890abcdef wum hide remove 12345678-90ab-cdef-1234-567890abcdef wum hide list . Next: history . ",
+    "url": "/command-hide.html#examples",
+    
+    "relUrl": "/command-hide.html#examples"
+  },"48": {
+    "doc": "hide",
+    "title": "hide",
+    "content": " ",
+    "url": "/command-hide.html",
+    
+    "relUrl": "/command-hide.html"
+  },"49": {
+    "doc": "history",
+    "title": "wum history",
+    "content": "Shows Windows Update install history from the WUA history store. ",
+    "url": "/command-history.html#wum-history",
+    
+    "relUrl": "/command-history.html#wum-history"
+  },"50": {
+    "doc": "history",
+    "title": "Synopsis",
+    "content": "wum history [--count|-n &lt;N&gt;] [--failed] [--kb &lt;KB&gt;] [--json] . ",
+    "url": "/command-history.html#synopsis",
+    
+    "relUrl": "/command-history.html#synopsis"
+  },"51": {
+    "doc": "history",
+    "title": "Interactive form",
+    "content": "/history [--count|-n &lt;N&gt;] [--failed] [--kb &lt;KB&gt;] [--json] . ",
+    "url": "/command-history.html#interactive-form",
+    
+    "relUrl": "/command-history.html#interactive-form"
+  },"52": {
+    "doc": "history",
+    "title": "Options",
+    "content": "| Option | Default | Detail | . | --count, -n &lt;N&gt; | 20 | Number of records to fetch. | . | --failed | off | Show failed entries only. | . | --kb &lt;KB&gt; | none | Filter to history entries whose KB contains this value. | . | --json | off | Emit history rows as JSON. | . ",
+    "url": "/command-history.html#options",
+    
+    "relUrl": "/command-history.html#options"
+  },"53": {
+    "doc": "history",
+    "title": "Output fields",
+    "content": "Each record includes title, KB, installed date, success flag, result code, error text, and operation type. ",
+    "url": "/command-history.html#output-fields",
+    
+    "relUrl": "/command-history.html#output-fields"
+  },"54": {
+    "doc": "history",
+    "title": "Examples",
+    "content": "wum history wum history -n 50 wum history --failed wum history --kb KB5034441 wum history --json -n 100 . Next: pause . ",
+    "url": "/command-history.html#examples",
+    
+    "relUrl": "/command-history.html#examples"
+  },"55": {
+    "doc": "history",
+    "title": "history",
+    "content": " ",
+    "url": "/command-history.html",
+    
+    "relUrl": "/command-history.html"
+  },"56": {
+    "doc": "install",
+    "title": "wum install",
+    "content": "Downloads and installs selected updates. Shows an install plan first, then per-update progress and a final summary. ",
+    "url": "/command-install.html#wum-install",
+    
+    "relUrl": "/command-install.html#wum-install"
+  },"57": {
+    "doc": "install",
+    "title": "Synopsis",
+    "content": "wum install [&lt;kb-articles&gt;...] [--security] [--critical] [--all] [--definition] [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu] . ",
+    "url": "/command-install.html#synopsis",
+    
+    "relUrl": "/command-install.html#synopsis"
+  },"58": {
+    "doc": "install",
+    "title": "Interactive form",
+    "content": "/install [&lt;kb-articles&gt;...] [--security] [--critical] [--all] [--definition] [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu] . ",
+    "url": "/command-install.html#interactive-form",
+    
+    "relUrl": "/command-install.html#interactive-form"
+  },"59": {
+    "doc": "install",
+    "title": "Arguments",
+    "content": "| Argument | Required | Detail | . | kb-articles | No | Zero or more KB numbers, for example KB5034441 KB5035853. A bare number is auto-prefixed with KB. | . ",
+    "url": "/command-install.html#arguments",
+    
+    "relUrl": "/command-install.html#arguments"
+  },"60": {
+    "doc": "install",
+    "title": "Selection options",
+    "content": "| Option | Detail | . | --security | Install security updates only. | . | --critical | Install critical updates only. | . | --all | Install every available update. | . | --definition | Install definition / Defender updates. | . | --microsoft-update, --mu | Query Microsoft Update while scanning. | . ",
+    "url": "/command-install.html#selection-options",
+    
+    "relUrl": "/command-install.html#selection-options"
+  },"61": {
+    "doc": "install",
+    "title": "Execution options",
+    "content": "| Option | Detail | . | --dry-run | Show install plan and stop. No download, install, or reboot prompt. | . | --force, -f | Skip confirmation prompt. | . | --no-reboot | Do not prompt for restart after installation. | . ",
+    "url": "/command-install.html#execution-options",
+    
+    "relUrl": "/command-install.html#execution-options"
+  },"62": {
+    "doc": "install",
+    "title": "Target resolution",
+    "content": ". | Explicit KBs win. WUM installs those matching updates and warns for KBs not found. | --all installs every available update. | --security --critical installs both categories. | A single category flag installs that category. | No flags installs security + critical updates. If none exist, WUM falls back to all available updates. | . ",
+    "url": "/command-install.html#target-resolution",
+    
+    "relUrl": "/command-install.html#target-resolution"
+  },"63": {
+    "doc": "install",
+    "title": "Flow",
+    "content": "install requires Administrator. Flow: scan -&gt; resolve targets -&gt; show plan -&gt; confirm unless --force -&gt; download/install with progress -&gt; summary -&gt; optional reboot prompt. Any successful install invalidates the scan cache so future status, list, and diagnose calls see fresh state. ",
+    "url": "/command-install.html#flow",
+    
+    "relUrl": "/command-install.html#flow"
+  },"64": {
+    "doc": "install",
+    "title": "Examples",
+    "content": "wum install KB5034441 wum install KB5034441 KB5035853 wum install --security wum install --all wum install --all --force wum install --all --dry-run wum install --all --no-reboot wum install --definition --mu . Next: uninstall . ",
+    "url": "/command-install.html#examples",
+    
+    "relUrl": "/command-install.html#examples"
+  },"65": {
+    "doc": "install",
+    "title": "install",
+    "content": " ",
+    "url": "/command-install.html",
+    
+    "relUrl": "/command-install.html"
+  },"66": {
+    "doc": "list",
+    "title": "wum list",
+    "content": "Lists available updates by default. It can also show installed updates, include hidden updates, query Microsoft Update, and emit JSON. ",
+    "url": "/command-list.html#wum-list",
+    
+    "relUrl": "/command-list.html#wum-list"
+  },"67": {
+    "doc": "list",
+    "title": "Synopsis",
+    "content": "wum list [--security] [--critical] [--optional] [--drivers] [--definition] [--hidden] [--installed] [--microsoft-update|--mu] [--json] [--no-color] [--verbose|-v] [--refresh] . ",
+    "url": "/command-list.html#synopsis",
+    
+    "relUrl": "/command-list.html#synopsis"
+  },"68": {
+    "doc": "list",
+    "title": "Interactive form",
+    "content": "/list [--security] [--critical] [--optional] [--drivers] [--definition] [--hidden] [--installed] [--microsoft-update|--mu] [--json] [--no-color] [--verbose|-v] [--refresh] . ",
+    "url": "/command-list.html#interactive-form",
+    
+    "relUrl": "/command-list.html#interactive-form"
+  },"69": {
+    "doc": "list",
+    "title": "Filter options",
+    "content": "| Option | Detail | . | --security | Security updates only. | . | --critical | Critical updates only. | . | --optional | Optional updates only. | . | --drivers | Driver updates only. | . | --definition | Definition / Defender updates only. | . Category filters are OR-combined. wum list --security --drivers shows security updates and drivers. ",
+    "url": "/command-list.html#filter-options",
+    
+    "relUrl": "/command-list.html#filter-options"
+  },"70": {
+    "doc": "list",
+    "title": "Scan options",
+    "content": "| Option | Detail | . | --hidden | Include hidden updates in the scan result. | . | --installed | Show installed updates instead of available updates. | . | --microsoft-update, --mu | Include Microsoft Update service for drivers and other Microsoft products. | . | --refresh | Force a fresh scan and bypass the shared 5-minute cache. | . ",
+    "url": "/command-list.html#scan-options",
+    
+    "relUrl": "/command-list.html#scan-options"
+  },"71": {
+    "doc": "list",
+    "title": "Output options",
+    "content": "| Option | Detail | . | --json | Emits the filtered list as JSON. | . | --no-color | Disables ANSI colors for piping/log capture. | . | --verbose, -v | Shows full per-update details: KB, category, severity, size, status, reboot requirement, description, support URL. | . ",
+    "url": "/command-list.html#output-options",
+    
+    "relUrl": "/command-list.html#output-options"
+  },"72": {
+    "doc": "list",
+    "title": "Behavior",
+    "content": "list is read-only and does not require Administrator. Filtering happens after scan data is collected. The footer reports total download size and reboot count. ",
+    "url": "/command-list.html#behavior",
+    
+    "relUrl": "/command-list.html#behavior"
+  },"73": {
+    "doc": "list",
+    "title": "Examples",
+    "content": "wum list wum list --installed wum list --security wum list --drivers --mu wum list --hidden wum list -v wum list --json wum list --no-color wum list --refresh . Next: search . ",
+    "url": "/command-list.html#examples",
+    
+    "relUrl": "/command-list.html#examples"
+  },"74": {
+    "doc": "list",
+    "title": "list",
+    "content": " ",
+    "url": "/command-list.html",
+    
+    "relUrl": "/command-list.html"
+  },"75": {
+    "doc": "pause",
+    "title": "wum pause",
+    "content": "Pauses Windows Updates for a fixed number of days, or resumes updates early. ",
+    "url": "/command-pause.html#wum-pause",
+    
+    "relUrl": "/command-pause.html#wum-pause"
+  },"76": {
+    "doc": "pause",
+    "title": "Synopsis",
+    "content": "wum pause [--days &lt;N&gt;] wum pause resume . ",
+    "url": "/command-pause.html#synopsis",
+    
+    "relUrl": "/command-pause.html#synopsis"
+  },"77": {
+    "doc": "pause",
+    "title": "Interactive form",
+    "content": "/pause [--days &lt;N&gt;] /pause resume . ",
+    "url": "/command-pause.html#interactive-form",
+    
+    "relUrl": "/command-pause.html#interactive-form"
+  },"78": {
+    "doc": "pause",
+    "title": "Options",
+    "content": "| Option | Default | Detail | . | --days &lt;N&gt; | 7 | Days to pause. Values are clamped to 1-35. | . ",
+    "url": "/command-pause.html#options",
+    
+    "relUrl": "/command-pause.html#options"
+  },"79": {
+    "doc": "pause",
+    "title": "Subcommands",
+    "content": "| Subcommand | Detail | . | resume | Deletes WU pause registry values and resumes updates immediately. | . ",
+    "url": "/command-pause.html#subcommands",
+    
+    "relUrl": "/command-pause.html#subcommands"
+  },"80": {
+    "doc": "pause",
+    "title": "Behavior",
+    "content": "pause requires Administrator. It writes standard Windows Update pause registry values. resume removes those values. See Configuration -&gt; Pause for exact registry paths. ",
+    "url": "/command-pause.html#behavior",
+    
+    "relUrl": "/command-pause.html#behavior"
+  },"81": {
+    "doc": "pause",
+    "title": "Examples",
+    "content": "wum pause wum pause --days 14 wum pause --days 99 wum pause resume . Next: schedule . ",
+    "url": "/command-pause.html#examples",
+    
+    "relUrl": "/command-pause.html#examples"
+  },"82": {
+    "doc": "pause",
+    "title": "pause",
+    "content": " ",
+    "url": "/command-pause.html",
+    
+    "relUrl": "/command-pause.html"
+  },"83": {
+    "doc": "reboot",
+    "title": "wum reboot",
+    "content": "Schedules or cancels a Windows restart after updates. ",
+    "url": "/command-reboot.html#wum-reboot",
+    
+    "relUrl": "/command-reboot.html#wum-reboot"
+  },"84": {
+    "doc": "reboot",
+    "title": "Synopsis",
+    "content": "wum reboot [--delay &lt;seconds&gt;] [--force|-f] [--cancel] . ",
+    "url": "/command-reboot.html#synopsis",
+    
+    "relUrl": "/command-reboot.html#synopsis"
+  },"85": {
+    "doc": "reboot",
+    "title": "Interactive form",
+    "content": "/reboot [--delay &lt;seconds&gt;] [--force|-f] [--cancel] . ",
+    "url": "/command-reboot.html#interactive-form",
+    
+    "relUrl": "/command-reboot.html#interactive-form"
+  },"86": {
+    "doc": "reboot",
+    "title": "Options",
+    "content": "| Option | Default | Detail | . | --delay &lt;seconds&gt; | 30 | Seconds before restart. | . | --force, -f | off | Skip confirmation and allow reboot even when no reboot is currently required. | . | --cancel | off | Abort scheduled restart with shutdown /a. | . ",
+    "url": "/command-reboot.html#options",
+    
+    "relUrl": "/command-reboot.html#options"
+  },"87": {
+    "doc": "reboot",
+    "title": "Behavior",
+    "content": "reboot requires Administrator. Without --force, WUM checks whether a reboot is required and exits if not. Scheduling uses shutdown /r /t &lt;delay&gt; /c \"&lt;message&gt;\". ",
+    "url": "/command-reboot.html#behavior",
+    
+    "relUrl": "/command-reboot.html#behavior"
+  },"88": {
+    "doc": "reboot",
+    "title": "Examples",
+    "content": "wum reboot wum reboot --delay 60 wum reboot --force wum reboot --cancel . Next: diagnose . ",
+    "url": "/command-reboot.html#examples",
+    
+    "relUrl": "/command-reboot.html#examples"
+  },"89": {
+    "doc": "reboot",
+    "title": "reboot",
+    "content": " ",
+    "url": "/command-reboot.html",
+    
+    "relUrl": "/command-reboot.html"
+  },"90": {
+    "doc": "schedule",
+    "title": "wum schedule",
+    "content": "Manages WUM’s persisted weekly install schedule. ",
+    "url": "/command-schedule.html#wum-schedule",
+    
+    "relUrl": "/command-schedule.html#wum-schedule"
+  },"91": {
+    "doc": "schedule",
+    "title": "Synopsis",
+    "content": "wum schedule wum schedule show wum schedule set [--day &lt;DayOfWeek&gt;] [--time &lt;HH:mm&gt;] [--auto-install] [--auto-reboot] [--all] wum schedule clear . ",
+    "url": "/command-schedule.html#synopsis",
+    
+    "relUrl": "/command-schedule.html#synopsis"
+  },"92": {
+    "doc": "schedule",
+    "title": "Interactive form",
+    "content": "/schedule /schedule show /schedule set [--day &lt;DayOfWeek&gt;] [--time &lt;HH:mm&gt;] [--auto-install] [--auto-reboot] [--all] /schedule clear . ",
+    "url": "/command-schedule.html#interactive-form",
+    
+    "relUrl": "/command-schedule.html#interactive-form"
+  },"93": {
+    "doc": "schedule",
+    "title": "Subcommands",
+    "content": "| Subcommand | Admin | Detail | . | default / show | No | Shows current schedule and next run time. | . | set | Yes | Writes schedule settings. | . | clear | Yes | Removes the schedule. | . ",
+    "url": "/command-schedule.html#subcommands",
+    
+    "relUrl": "/command-schedule.html#subcommands"
+  },"94": {
+    "doc": "schedule",
+    "title": "set options",
+    "content": "| Option | Default | Detail | . | --day &lt;DayOfWeek&gt; | Sunday | Day of week, case-insensitive. | . | --time &lt;HH:mm&gt; | 02:00 | 24-hour time. | . | --auto-install | off | Install updates when schedule fires. | . | --auto-reboot | off | Reboot after scheduled install when needed. | . | --all | off | Install all updates. Without this, scheduled installs target security updates. | . ",
+    "url": "/command-schedule.html#set-options",
+    
+    "relUrl": "/command-schedule.html#set-options"
+  },"95": {
+    "doc": "schedule",
+    "title": "Validation",
+    "content": "Invalid days and non-HH:mm times are rejected. The schedule view shows computed next run time. ",
+    "url": "/command-schedule.html#validation",
+    
+    "relUrl": "/command-schedule.html#validation"
+  },"96": {
+    "doc": "schedule",
+    "title": "Examples",
+    "content": "wum schedule wum schedule show wum schedule set wum schedule set --day Friday --time 03:00 --auto-install --auto-reboot --all wum schedule clear . Next: settings . ",
+    "url": "/command-schedule.html#examples",
+    
+    "relUrl": "/command-schedule.html#examples"
+  },"97": {
+    "doc": "schedule",
+    "title": "schedule",
+    "content": " ",
+    "url": "/command-schedule.html",
+    
+    "relUrl": "/command-schedule.html"
+  },"98": {
+    "doc": "search",
+    "title": "wum search",
+    "content": "Searches available updates by KB number, title, or description. Search includes hidden updates so a hidden match is still discoverable. ",
+    "url": "/command-search.html#wum-search",
+    
+    "relUrl": "/command-search.html#wum-search"
+  },"99": {
+    "doc": "search",
+    "title": "Synopsis",
+    "content": "wum search &lt;term&gt; [--category &lt;name&gt;] [--json] [--microsoft-update|--mu] . ",
+    "url": "/command-search.html#synopsis",
+    
+    "relUrl": "/command-search.html#synopsis"
+  },"100": {
+    "doc": "search",
+    "title": "Interactive form",
+    "content": "/search &lt;term&gt; [--category &lt;name&gt;] [--json] [--microsoft-update|--mu] . ",
+    "url": "/command-search.html#interactive-form",
+    
+    "relUrl": "/command-search.html#interactive-form"
+  },"101": {
+    "doc": "search",
+    "title": "Arguments",
+    "content": "| Argument | Required | Detail | . | term | Yes | KB number or keyword. Matching is case-insensitive. | . ",
+    "url": "/command-search.html#arguments",
+    
+    "relUrl": "/command-search.html#arguments"
+  },"102": {
+    "doc": "search",
+    "title": "Options",
+    "content": "| Option | Detail | . | --category &lt;name&gt; | Restricts matches to one category. Accepted values are parsed case-insensitively. Common values: Security, Critical, Optional, Driver, FeatureUpdate, CumulativeUpdate, Definition, ServicePack. | . | --json | Emits matched updates as JSON. | . | --microsoft-update, --mu | Also query Microsoft Update. Useful for drivers and other Microsoft products. | . ",
+    "url": "/command-search.html#options",
+    
+    "relUrl": "/command-search.html#options"
+  },"103": {
+    "doc": "search",
+    "title": "Behavior",
+    "content": "search is read-only and does not require Administrator. It scans available updates, includes hidden updates, then matches the term against title, KB article, and description. ",
+    "url": "/command-search.html#behavior",
+    
+    "relUrl": "/command-search.html#behavior"
+  },"104": {
+    "doc": "search",
+    "title": "Examples",
+    "content": "wum search KB5034441 wum search defender wum search cumulative --category Security wum search driver --mu --json . Next: install . ",
+    "url": "/command-search.html#examples",
+    
+    "relUrl": "/command-search.html#examples"
+  },"105": {
+    "doc": "search",
+    "title": "search",
+    "content": " ",
+    "url": "/command-search.html",
+    
+    "relUrl": "/command-search.html"
+  },"106": {
+    "doc": "settings",
+    "title": "wum settings",
+    "content": "Shows or changes WUM/Windows Update settings stored in the registry. ",
+    "url": "/command-settings.html#wum-settings",
+    
+    "relUrl": "/command-settings.html#wum-settings"
+  },"107": {
+    "doc": "settings",
+    "title": "Synopsis",
+    "content": "wum settings wum settings show wum settings set &lt;key&gt; &lt;value&gt; wum settings reset . ",
+    "url": "/command-settings.html#synopsis",
+    
+    "relUrl": "/command-settings.html#synopsis"
+  },"108": {
+    "doc": "settings",
+    "title": "Interactive form",
+    "content": "/settings /settings show /settings set &lt;key&gt; &lt;value&gt; /settings reset . ",
+    "url": "/command-settings.html#interactive-form",
+    
+    "relUrl": "/command-settings.html#interactive-form"
+  },"109": {
+    "doc": "settings",
+    "title": "Subcommands",
+    "content": "| Subcommand | Admin | Detail | . | default / show | No | Shows current settings. | . | set &lt;key&gt; &lt;value&gt; | Yes | Changes one setting. | . | reset | Yes | Resets all settings to defaults after confirmation. | . ",
+    "url": "/command-settings.html#subcommands",
+    
+    "relUrl": "/command-settings.html#subcommands"
+  },"110": {
+    "doc": "settings",
+    "title": "Setting keys",
+    "content": "| Key | Values | Detail | . | auto-download | true / false | Automatically download updates. | . | auto-install | true / false | Automatically install updates. | . | install-drivers | true / false | Include driver updates. | . | install-optional | true / false | Include optional updates. | . | notify-new | true / false | Notify when new updates exist. | . | notify-complete | true / false | Notify when install completes. | . | pause-metered | true / false | Pause on metered connections. | . | defer-feature | 0-365 | Defer feature updates in days. | . | defer-quality | 0-30 | Defer quality updates in days. | . | active-hours | start-end | Active hours, for example 8-22. | . Booleans accept true, 1, yes, and on as true values. ",
+    "url": "/command-settings.html#setting-keys",
+    
+    "relUrl": "/command-settings.html#setting-keys"
+  },"111": {
+    "doc": "settings",
+    "title": "Examples",
+    "content": "wum settings wum settings show wum settings set auto-download true wum settings set active-hours 9-18 wum settings set defer-feature 30 wum settings reset . Next: reboot . ",
+    "url": "/command-settings.html#examples",
+    
+    "relUrl": "/command-settings.html#examples"
+  },"112": {
+    "doc": "settings",
+    "title": "settings",
+    "content": " ",
+    "url": "/command-settings.html",
+    
+    "relUrl": "/command-settings.html"
+  },"113": {
+    "doc": "status",
+    "title": "wum status",
+    "content": "Shows current Windows Update state: WU service status, reboot requirement, pause state, available update counts, and category counts. ",
+    "url": "/command-status.html#wum-status",
+    
+    "relUrl": "/command-status.html#wum-status"
+  },"114": {
+    "doc": "status",
+    "title": "Synopsis",
+    "content": "wum status [--json] [--verbose|-v] [--refresh] . ",
+    "url": "/command-status.html#synopsis",
+    
+    "relUrl": "/command-status.html#synopsis"
+  },"115": {
+    "doc": "status",
+    "title": "Interactive form",
+    "content": "/status [--json] [--verbose|-v] [--refresh] . ",
+    "url": "/command-status.html#interactive-form",
+    
+    "relUrl": "/command-status.html#interactive-form"
+  },"116": {
+    "doc": "status",
+    "title": "Options",
+    "content": "| Option | Default | Detail | . | --json | off | Emits machine-readable JSON instead of the colorized dashboard. Use for scripts and monitoring. | . | --verbose, -v | off | Prints each status step: service check, reboot check, pause read, update scan/cache read, and per-update detail. | . | --refresh | off | Forces a fresh online scan and bypasses the 5-minute available-update cache. | . ",
+    "url": "/command-status.html#options",
+    
+    "relUrl": "/command-status.html#options"
+  },"117": {
+    "doc": "status",
+    "title": "Behavior",
+    "content": "status is read-only and does not require Administrator. The command combines local system checks with available-update scan data. Without --refresh, it can reuse the shared scan cache so repeated calls stay fast. ",
+    "url": "/command-status.html#behavior",
+    
+    "relUrl": "/command-status.html#behavior"
+  },"118": {
+    "doc": "status",
+    "title": "Verdicts",
+    "content": "| Condition | Verdict | . | No available updates | System is up to date | . | Security or critical updates exist | Security updates available | . | Other updates exist | Updates available | . ",
+    "url": "/command-status.html#verdicts",
+    
+    "relUrl": "/command-status.html#verdicts"
+  },"119": {
+    "doc": "status",
+    "title": "JSON shape",
+    "content": "{ \"reboot_required\": false, \"updates_available\": 3, \"security_updates\": 1, \"updates_paused\": false, \"paused_until\": null, \"wu_service\": \"Running\", \"checked_at\": \"2026-06-24T10:15:00\" } . ",
+    "url": "/command-status.html#json-shape",
+    
+    "relUrl": "/command-status.html#json-shape"
+  },"120": {
+    "doc": "status",
+    "title": "Examples",
+    "content": "wum status wum status --json wum status -v wum status --refresh . Next: list . ",
+    "url": "/command-status.html#examples",
+    
+    "relUrl": "/command-status.html#examples"
+  },"121": {
+    "doc": "status",
+    "title": "status",
+    "content": " ",
+    "url": "/command-status.html",
+    
+    "relUrl": "/command-status.html"
+  },"122": {
+    "doc": "uninstall",
+    "title": "wum uninstall",
+    "content": "Removes an installed update by KB number using wusa.exe /uninstall. ",
+    "url": "/command-uninstall.html#wum-uninstall",
+    
+    "relUrl": "/command-uninstall.html#wum-uninstall"
+  },"123": {
+    "doc": "uninstall",
+    "title": "Synopsis",
+    "content": "wum uninstall &lt;kb-article&gt; [--force|-f] . ",
+    "url": "/command-uninstall.html#synopsis",
+    
+    "relUrl": "/command-uninstall.html#synopsis"
+  },"124": {
+    "doc": "uninstall",
+    "title": "Interactive form",
+    "content": "/uninstall &lt;kb-article&gt; [--force|-f] . ",
+    "url": "/command-uninstall.html#interactive-form",
+    
+    "relUrl": "/command-uninstall.html#interactive-form"
+  },"125": {
+    "doc": "uninstall",
+    "title": "Arguments",
+    "content": "| Argument | Required | Detail | . | kb-article | Yes | KB number, for example KB5034441. A bare number is auto-prefixed with KB. | . ",
+    "url": "/command-uninstall.html#arguments",
+    
+    "relUrl": "/command-uninstall.html#arguments"
+  },"126": {
+    "doc": "uninstall",
+    "title": "Options",
+    "content": "| Option | Detail | . | --force, -f | Skip confirmation prompt. | . ",
+    "url": "/command-uninstall.html#options",
+    
+    "relUrl": "/command-uninstall.html#options"
+  },"127": {
+    "doc": "uninstall",
+    "title": "Behavior",
+    "content": "uninstall requires Administrator. WUM normalizes the KB value, asks for confirmation unless forced, then calls Windows Update Standalone Installer. Windows may require a reboot even when wusa.exe runs with no immediate restart. ",
+    "url": "/command-uninstall.html#behavior",
+    
+    "relUrl": "/command-uninstall.html#behavior"
+  },"128": {
+    "doc": "uninstall",
+    "title": "Examples",
+    "content": "wum uninstall KB5034441 wum uninstall 5034441 --force . Next: hide . ",
+    "url": "/command-uninstall.html#examples",
+    
+    "relUrl": "/command-uninstall.html#examples"
+  },"129": {
+    "doc": "uninstall",
+    "title": "uninstall",
+    "content": " ",
+    "url": "/command-uninstall.html",
+    
+    "relUrl": "/command-uninstall.html"
+  },"130": {
     "doc": "Command Reference",
     "title": "Command Reference",
-    "content": ". | Global options &amp; flags . | Common output options | . | Command summary | Command argument and option matrix | wum status | wum list | wum search | wum install | wum uninstall | wum hide | wum history | wum pause | wum schedule | wum settings | wum reboot | wum diagnose | . ← Docs index . Complete reference for every WUM command, sub-command, argument, and option. Synopsis applies whether you run the published wum.exe or dotnet run --project src/WUM.CLI -- &lt;args&gt;. Running wum with no arguments opens the smart interactive shell. In that shell, prefix commands with /: /status, /list --security, /install KB5034441 --dry-run. See Interactive Mode for the full prompt, shortcuts, history, and completion behavior. ",
+    "content": ". | Global options &amp; flags . | Common output options | . | Command summary | Command argument and option matrix | Detailed command pages | wum status | wum list | wum search | wum install | wum uninstall | wum hide | wum history | wum pause | wum schedule | wum settings | wum reboot | wum diagnose | . ← Docs index . Complete reference for every WUM command, sub-command, argument, and option. Synopsis applies whether you run the published wum.exe or dotnet run --project src/WUM.CLI -- &lt;args&gt;. Running wum with no arguments opens the smart interactive shell. In that shell, prefix commands with /: /status, /list --security, /install KB5034441 --dry-run. See Interactive Mode for the full prompt, shortcuts, history, and completion behavior. ",
     "url": "/commands.html",
     
     "relUrl": "/commands.html"
-  },"30": {
+  },"131": {
     "doc": "Command Reference",
     "title": "Global options &amp; flags",
     "content": "| Flag | Effect | Admin | . | --version | Print the version string (e.g. 0.2.1.51) | No | . | --info | Show developer / build info (version, commit, build date, author, license, repo, runtime, OS) | No | . | --help | Show help for the root command or any sub-command | No | . --info is a global option intercepted in Program.Main before parsing, so wum --info works from anywhere in the command tree. ",
     "url": "/commands.html#global-options--flags",
     
     "relUrl": "/commands.html#global-options--flags"
-  },"31": {
+  },"132": {
     "doc": "Command Reference",
     "title": "Common output options",
     "content": "Most read commands share these: . | Option | Effect | . | --json | Emit machine-readable JSON instead of the colorized view. Ideal for scripting/piping | . | --no-color | Disable ANSI colors (where supported — list) | . | --verbose, -v | Step-by-step / full-detail debug output (status, list) | . | --refresh | Force a fresh online scan, bypassing the 5-minute scan cache (status, list, diagnose) | . ",
     "url": "/commands.html#common-output-options",
     
     "relUrl": "/commands.html#common-output-options"
-  },"32": {
+  },"133": {
     "doc": "Command Reference",
     "title": "Command summary",
     "content": "| Command | Purpose | Admin | . | status | Dashboard of update state | No | . | list | List available / installed / hidden updates | No | . | search | Full-text search across available updates | No | . | install | Download &amp; install updates | Yes | . | uninstall | Remove an installed update | Yes | . | hide | Hide / unhide / list hidden updates | Partial | . | history | Show install history | No | . | pause | Pause / resume updates | Yes | . | schedule | Manage a weekly update schedule | Yes | . | settings | View / change WU settings | Yes (set/reset) | . | reboot | Schedule / cancel a restart | Yes | . | diagnose | Health check + optional component reset | Yes (--fix) | . ",
     "url": "/commands.html#command-summary",
     
     "relUrl": "/commands.html#command-summary"
-  },"33": {
+  },"134": {
     "doc": "Command Reference",
     "title": "Command argument and option matrix",
-    "content": "| Command | Arguments / subcommands | Supported options | . | wum | none; opens interactive mode when run with no args | --version, --info, --help | . | wum status | none | --json, --verbose/-v, --refresh | . | wum list | none | --security, --critical, --optional, --drivers, --definition, --hidden, --installed, --microsoft-update/--mu, --json, --no-color, --verbose/-v, --refresh | . | wum search | &lt;term&gt; | --category &lt;name&gt;, --json, --microsoft-update/--mu | . | wum install | [&lt;kb-articles&gt;...] | --security, --critical, --all, --definition, --dry-run, --force/-f, --no-reboot, --microsoft-update/--mu | . | wum uninstall | &lt;kb-article&gt; | --force/-f | . | wum hide add | &lt;update-id&gt; | none | . | wum hide remove | &lt;update-id&gt; | none | . | wum hide list | none | none | . | wum history | none | --count/-n &lt;N&gt;, --failed, --kb &lt;KB&gt;, --json | . | wum pause | none | --days &lt;N&gt; | . | wum pause resume | none | none | . | wum schedule | none; same as show | none | . | wum schedule show | none | none | . | wum schedule set | none | --day &lt;DayOfWeek&gt;, --time &lt;HH:mm&gt;, --auto-install, --auto-reboot, --all | . | wum schedule clear | none | none | . | wum settings | none; same as show | none | . | wum settings show | none | none | . | wum settings set | &lt;key&gt; &lt;value&gt; | none | . | wum settings reset | none | none | . | wum reboot | none | --delay &lt;seconds&gt;, --force/-f, --cancel | . | wum diagnose | none | --refresh, --json, --fix, --force/-f | . Interactive mode supports the same command arguments and options with a slash prefix, for example /list --security or /install KB5034441 --dry-run. Session-only commands are documented in Interactive Mode → Session commands. ",
+    "content": "| Command | Arguments / subcommands | Supported options | . | wum | none; opens interactive mode when run with no args | --version, --info, --help | . | wum status | none | --json, --verbose/-v, --refresh | . | wum list | none | --security, --critical, --optional, --drivers, --definition, --hidden, --installed, --microsoft-update/--mu, --json, --no-color, --verbose/-v, --refresh | . | wum search | &lt;term&gt; | --category &lt;name&gt;, --json, --microsoft-update/--mu | . | wum install | [&lt;kb-articles&gt;...] | --security, --critical, --all, --definition, --dry-run, --force/-f, --no-reboot, --microsoft-update/--mu | . | wum uninstall | &lt;kb-article&gt; | --force/-f | . | wum hide add | &lt;update-id&gt; | none | . | wum hide remove | &lt;update-id&gt; | none | . | wum hide list | none | none | . | wum history | none | --count/-n &lt;N&gt;, --failed, --kb &lt;KB&gt;, --json | . | wum pause | none | --days &lt;N&gt; | . | wum pause resume | none | none | . | wum schedule | none; same as show | none | . | wum schedule show | none | none | . | wum schedule set | none | --day &lt;DayOfWeek&gt;, --time &lt;HH:mm&gt;, --auto-install, --auto-reboot, --all | . | wum schedule clear | none | none | . | wum settings | none; same as show | none | . | wum settings show | none | none | . | wum settings set | &lt;key&gt; &lt;value&gt; | none | . | wum settings reset | none | none | . | wum reboot | none | --delay &lt;seconds&gt;, --force/-f, --cancel | . | wum diagnose | none | --refresh, --json, --fix, --force/-f | . Interactive mode supports the same command arguments and options with a slash prefix, for example /list --security or /install KB5034441 --dry-run. The full slash-command matrix and session-only helpers are documented in Interactive Command Reference. ",
     "url": "/commands.html#command-argument-and-option-matrix",
     
     "relUrl": "/commands.html#command-argument-and-option-matrix"
-  },"34": {
+  },"135": {
+    "doc": "Command Reference",
+    "title": "Detailed command pages",
+    "content": "| Command page | Detail covered | . | status | Status verdicts, JSON shape, refresh behavior | . | list | Filters, installed/hidden scans, Microsoft Update, output modes | . | search | Search term matching, category filter, JSON usage | . | install | Target selection, dry-run, confirmation, reboot behavior | . | uninstall | KB normalization, force mode, wusa.exe behavior | . | hide | Add/remove/list hidden updates and update IDs | . | history | Count, failed-only, KB filter, JSON fields | . | pause | Pause duration clamp, resume, registry writes | . | schedule | Schedule defaults, day/time validation, auto-install flags | . | settings | All setting keys, accepted values, reset behavior | . | reboot | Delay, force, cancel, shutdown command behavior | . | diagnose | Checks, JSON, exit bitmask, --fix reset steps | . ",
+    "url": "/commands.html#detailed-command-pages",
+    
+    "relUrl": "/commands.html#detailed-command-pages"
+  },"136": {
     "doc": "Command Reference",
     "title": "wum status",
     "content": "Dashboard showing WU service state, reboot requirement, pause info, and available-update counts by category. Synopsis . wum status [--json] [--verbose|-v] [--refresh] . Options . | Option | Default | Description | . | --json | off | Output as JSON | . | --verbose, -v | off | Step-by-step debug trace (service check, reboot check, pause read, COM fetch, per-update list) | . | --refresh | off | Force a fresh online scan instead of the shared cache | . Examples . wum status # Colorized dashboard wum status --json # Machine-readable wum status -v # Debug trace of every step wum status --refresh # Re-scan WU online, ignore cache . System verdict logic . | 0 updates → ✓ System is up to date (green) | any security/critical update → ! Security updates available (red) | otherwise → ● Updates available (yellow) | . JSON shape . { \"reboot_required\": false, \"updates_available\": 3, \"security_updates\": 1, \"updates_paused\": false, \"paused_until\": null, \"wu_service\": \"Running\", \"checked_at\": \"2026-06-24T10:15:00\" } . ",
     "url": "/commands.html#wum-status",
     
     "relUrl": "/commands.html#wum-status"
-  },"35": {
+  },"137": {
     "doc": "Command Reference",
     "title": "wum list",
     "content": "List available updates (default), installed updates, or include hidden ones — with category filtering. Synopsis . wum list [--security] [--critical] [--optional] [--drivers] [--definition] [--hidden] [--installed] [--microsoft-update|--mu] [--json] [--no-color] [--verbose|-v] [--refresh] . Options . | Option | Description | . | --security | Security updates only | . | --critical | Critical updates only | . | --optional | Optional updates only | . | --drivers | Driver updates only | . | --definition | Definition / Defender updates only | . | --hidden | Include hidden updates in the scan | . | --installed | Show installed updates instead of available | . | --microsoft-update, --mu | Also query the Microsoft Update service (drivers + other MS products) | . | --json | Output as JSON (the filtered list of WindowsUpdate objects) | . | --no-color | Disable ANSI colors | . | --verbose, -v | Full detail per update (KB, category, severity, size, status, reboot, description, support URL) | . | --refresh | Force a fresh online scan instead of the shared cache | . Category flags are OR-combined: wum list --security --drivers shows both. With no filter, all updates are listed. Filtering is applied after the scan, in C#. Examples . wum list # All available updates (table) wum list --installed # Installed updates instead wum list --security # Security only wum list --drivers --mu # Drivers, querying Microsoft Update too wum list --hidden # Include hidden updates wum list -v # Full detail per update wum list --json # JSON for scripting wum list --no-color # Plain text for piping wum list --refresh # Bypass the 5-min cache . The footer reports total download size and how many updates need a reboot. ",
     "url": "/commands.html#wum-list",
     
     "relUrl": "/commands.html#wum-list"
-  },"36": {
+  },"138": {
     "doc": "Command Reference",
     "title": "wum search",
     "content": "Full-text search across available updates. Matches the term (case-insensitive) against title, KB article, and description. The search always includes hidden updates so nothing is missed. Synopsis . wum search &lt;term&gt; [--category &lt;name&gt;] [--json] [--microsoft-update|--mu] . Argument . | Argument | Description | . | term | KB number or keyword (required) | . Options . | Option | Description | . | --category &lt;name&gt; | Filter results by category: Security, Critical, Optional, Driver, FeatureUpdate, CumulativeUpdate, Definition, ServicePack (parsed case-insensitively) | . | --json | Output results as JSON | . | --microsoft-update, --mu | Also query Microsoft Update | . Examples . wum search KB5034441 # By KB number wum search defender # By keyword wum search cumulative --category Security wum search driver --mu --json . ",
     "url": "/commands.html#wum-search",
     
     "relUrl": "/commands.html#wum-search"
-  },"37": {
+  },"139": {
     "doc": "Command Reference",
     "title": "wum install",
     "content": "Download and install updates with an install-plan preview, per-update progress bars, and a post-install summary. Requires Administrator. Synopsis . wum install [&lt;kb-articles&gt;...] [--security] [--critical] [--all] [--definition] [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu] . Argument . | Argument | Description | . | kb-articles | Zero or more KB numbers, e.g. KB5034441 KB5035853. A bare number is auto-prefixed with KB | . Options . | Option | Description | . | --security | Install security updates only | . | --critical | Install critical updates only | . | --all | Install all available updates | . | --definition | Install definition / Defender updates | . | --dry-run | Print the install plan and stop — no changes | . | --force, -f | Skip the confirmation prompt | . | --no-reboot | Do not prompt to reboot after install | . | --microsoft-update, --mu | Also query Microsoft Update when scanning | . Target resolution order (ResolveTargets) . | Explicit KBs given → install exactly those (warns on any not found). | --all → every available update. | --security + --critical → both categories. | A single category flag → that category. | No flags → security + critical only; if there are none, falls back to all available. | . Examples . wum install KB5034441 # Specific KB wum install KB5034441 KB5035853 # Multiple KBs wum install --security # Security only wum install --all # Everything wum install --all --force # No confirmation wum install --all --dry-run # Preview only wum install --all --no-reboot # Don't prompt for restart wum install --definition --mu # Defender defs incl. Microsoft Update . Flow: scan → resolve targets → show plan (grouped by category, totals, reboot count) → confirm (unless --force) → per-update download + install with progress → summary (installed / failed / skipped, with failure reasons) → reboot prompt (unless --no-reboot, schedules a 30s restart via shutdown /r). On any successful install the scan cache is invalidated so the next status/list/diagnose reflects the new state. Failure reasons come from IUpdateService.LastError (decoded HRESULT where possible). ",
     "url": "/commands.html#wum-install",
     
     "relUrl": "/commands.html#wum-install"
-  },"38": {
+  },"140": {
     "doc": "Command Reference",
     "title": "wum uninstall",
     "content": "Remove a previously installed update by KB number, via wusa.exe /uninstall. Requires Administrator. Synopsis . wum uninstall &lt;kb-article&gt; [--force|-f] . Argument . | Argument | Description | . | kb-article | KB number, e.g. KB5034441 (bare number auto-prefixed) | . Options . | Option | Description | . | --force, -f | Skip the confirmation prompt | . Examples . wum uninstall KB5034441 wum uninstall 5034441 --force . Uninstall may trigger a system restart (handled by wusa.exe /quiet /norestart; Windows may still require a reboot to finalize). ",
     "url": "/commands.html#wum-uninstall",
     
     "relUrl": "/commands.html#wum-uninstall"
-  },"39": {
+  },"141": {
     "doc": "Command Reference",
     "title": "wum hide",
     "content": "Hide, unhide, or list hidden updates. Hidden updates are suppressed from the default available list. Sub-commands . wum hide add &lt;update-id&gt; # Hide an update wum hide remove &lt;update-id&gt; # Unhide a hidden update wum hide list # List all hidden updates . | Sub-command | Argument | Admin | Description | . | add | update-id (Update ID or KB) | Yes | Sets IsHidden = true on the update via WUA | . | remove | update-id | Yes | Sets IsHidden = false | . | list | — | No | Scans with hidden included and shows only hidden ones | . Examples . wum hide add 12345678-90ab-cdef-1234-567890abcdef wum hide remove 12345678-90ab-cdef-1234-567890abcdef wum hide list . Get an update’s ID from wum list --json (the Id field) or wum search &lt;kb&gt; --json. ",
     "url": "/commands.html#wum-hide",
     
     "relUrl": "/commands.html#wum-hide"
-  },"40": {
+  },"142": {
     "doc": "Command Reference",
     "title": "wum history",
     "content": "Show Windows Update install history from the WUA history store. Synopsis . wum history [--count|-n &lt;N&gt;] [--failed] [--kb &lt;KB&gt;] [--json] . Options . | Option | Default | Description | . | --count, -n &lt;N&gt; | 20 | Number of records to fetch | . | --failed | off | Show failed entries only (Success == false) | . | --kb &lt;KB&gt; | — | Filter to entries whose KB contains the value (case-insensitive) | . | --json | off | Output as JSON | . Examples . wum history # Last 20 records wum history -n 50 # Last 50 wum history --failed # Only failures wum history --kb KB5034441 # One KB's history wum history --json -n 100 # JSON, last 100 . Each record carries: title, KB, installed date, success flag, result code, error message (hex), and operation type. ",
     "url": "/commands.html#wum-history",
     
     "relUrl": "/commands.html#wum-history"
-  },"41": {
+  },"143": {
     "doc": "Command Reference",
     "title": "wum pause",
     "content": "Pause all Windows Updates for a number of days, or resume early. Writes the standard WU pause registry values. Requires Administrator. Synopsis . wum pause [--days &lt;N&gt;] wum pause resume . Options . | Option | Default | Description | . | --days &lt;N&gt; | 7 | Days to pause. Clamped to 1–35 | . Sub-command . | Sub-command | Description | . | resume | Resume updates immediately (deletes the pause registry values) | . Examples . wum pause # Pause 7 days (default) wum pause --days 14 # Pause 14 days wum pause --days 99 # Clamped to 35 wum pause resume # Resume now . See Configuration → Pause for the exact registry values written. ",
     "url": "/commands.html#wum-pause",
     
     "relUrl": "/commands.html#wum-pause"
-  },"42": {
+  },"144": {
     "doc": "Command Reference",
     "title": "wum schedule",
     "content": "Manage a persisted weekly update schedule. Requires Administrator for set/clear. Sub-commands . wum schedule # Show current schedule (default) wum schedule show # Same as above wum schedule set [options] # Configure wum schedule clear # Remove the schedule . set options . | Option | Default | Description | . | --day &lt;DayOfWeek&gt; | Sunday | Day of week (Monday…Sunday, case-insensitive) | . | --time &lt;HH:mm&gt; | 02:00 | Time of day, 24-hour HH:mm | . | --auto-install | off | Auto-install when the schedule fires | . | --auto-reboot | off | Auto-reboot after install | . | --all | off | Install all updates (otherwise security only) | . Examples . wum schedule # Show wum schedule set # Defaults: Sunday 02:00 wum schedule set --day Friday --time 03:00 --auto-install --auto-reboot --all wum schedule clear # Remove . Invalid --day or non-HH:mm --time is rejected with an error. The schedule view shows the computed Next Run time. ",
     "url": "/commands.html#wum-schedule",
     
     "relUrl": "/commands.html#wum-schedule"
-  },"43": {
+  },"145": {
     "doc": "Command Reference",
     "title": "wum settings",
     "content": "View or change Windows Update settings stored in the registry. Requires Administrator for set/reset. Sub-commands . wum settings # Display all (default) wum settings show # Same as above wum settings set &lt;key&gt; &lt;value&gt; # Change one setting wum settings reset # Reset all to defaults (confirms first) . set arguments . | Argument | Description | . | key | Setting name (see table) | . | value | New value | . Available keys . | Key | Values | Description | . | auto-download | true/false | Automatically download updates | . | auto-install | true/false | Automatically install updates | . | install-drivers | true/false | Include driver updates | . | install-optional | true/false | Include optional updates | . | notify-new | true/false | Notify on new updates | . | notify-complete | true/false | Notify on install complete | . | pause-metered | true/false | Pause on metered connections | . | defer-feature | 0–365 | Defer feature updates (days) | . | defer-quality | 0–30 | Defer quality updates (days) | . | active-hours | start-end | Active-hours range, e.g. 8-22 | . Booleans accept true, 1, yes, or on (anything else is false). An unknown key throws and the CLI prints the full valid-key list. Examples . wum settings # Show everything wum settings set auto-download true # Enable auto-download wum settings set active-hours 9-18 # Active hours 9–18 wum settings set defer-feature 30 # Defer features 30 days wum settings reset # Back to defaults . ",
     "url": "/commands.html#wum-settings",
     
     "relUrl": "/commands.html#wum-settings"
-  },"44": {
+  },"146": {
     "doc": "Command Reference",
     "title": "wum reboot",
     "content": "Schedule or cancel a post-update restart. Requires Administrator. Synopsis . wum reboot [--delay &lt;seconds&gt;] [--force|-f] [--cancel] . Options . | Option | Default | Description | . | --delay &lt;seconds&gt; | 30 | Delay before restart | . | --force, -f | off | Reboot without confirmation (and even if no reboot is “required”) | . | --cancel | off | Cancel a scheduled restart (shutdown /a) | . Examples . wum reboot # Prompt, 30s delay wum reboot --delay 60 # 60s delay wum reboot --force # No confirmation wum reboot --cancel # Abort a scheduled reboot . Without --force, if no reboot is currently required the command reports that and exits. The restart is scheduled with shutdown /r /t &lt;delay&gt; /c \"&lt;message&gt;\". ",
     "url": "/commands.html#wum-reboot",
     
     "relUrl": "/commands.html#wum-reboot"
-  },"45": {
+  },"147": {
     "doc": "Command Reference",
     "title": "wum diagnose",
     "content": "Run a comprehensive Windows Update health check (~30–60s). Optionally reset WU components with --fix. Optionally emit JSON with a scriptable exit code. Synopsis . wum diagnose [--refresh] [--json] wum diagnose --fix [--force|-f] . Options . | Option | Description | . | --refresh | Force a fresh update scan (re-counts available updates and rewrites the cache so status/list agree) | . | --json | Output structured diagnostics + an exit code, then stop | . | --fix | Reset Windows Update components — destructive, admin only (see below) | . | --force, -f | Skip the --fix confirmation prompt | . Examples . wum diagnose # Full colorized report wum diagnose --refresh # Re-scan instead of using the cache wum diagnose --json # Structured output + exit code echo $? # (PowerShell: $LASTEXITCODE) read the bitmask wum diagnose --fix # Reset WU components (confirms first) wum diagnose --fix --force # Reset without confirmation . --fix stops services, renames SoftwareDistribution + catroot2 to .bak, reregisters WU DLLs, resets WinSock/WinHTTP proxy, restarts services, and triggers re-detection. Pending downloads are discarded; a reboot is advised. The exit code is a bitmask for scripting. See Diagnostics for the full check list, the bitmask values, the health score, and how Search Error HRESULTs are decoded. Next: Architecture → . ",
     "url": "/commands.html#wum-diagnose",
     
     "relUrl": "/commands.html#wum-diagnose"
-  },"46": {
+  },"148": {
     "doc": "Configuration",
     "title": "Configuration",
     "content": ". | Settings . | Registry paths | Keys (wum settings set &lt;key&gt; &lt;value&gt;) | Examples | . | Pause | Schedule | Reboot detection | On-disk locations | . ← Docs index . WUM stores configuration in the Windows registry (the same locations Windows itself uses) and on disk for logs/cache. This page documents the exact keys and values each command writes, so you know precisely what changes on your system. All registry access is through RegistryHelper, which opens the 64-bit view of HKEY_LOCAL_MACHINE (HKLM). Writing therefore requires Administrator. ",
     "url": "/configuration.html",
     
     "relUrl": "/configuration.html"
-  },"47": {
+  },"149": {
     "doc": "Configuration",
     "title": "Settings",
     "content": "wum settings reads/writes via SettingsService → UpdateService.GetSettingsAsync/SaveSettingsAsync. ",
     "url": "/configuration.html#settings",
     
     "relUrl": "/configuration.html#settings"
-  },"48": {
+  },"150": {
     "doc": "Configuration",
     "title": "Registry paths",
     "content": "| Constant | Path (under HKLM) | . | UX settings | SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings | . | AU policy | SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU | . ",
     "url": "/configuration.html#registry-paths",
     
     "relUrl": "/configuration.html#registry-paths"
-  },"49": {
+  },"151": {
     "doc": "Configuration",
     "title": "Keys (wum settings set &lt;key&gt; &lt;value&gt;)",
     "content": "| Key | Value range | Maps to | Default | . | auto-download | true/false | AUOptions ≥ 3 | true | . | auto-install | true/false | AUOptions == 4 | false | . | install-drivers | true/false | InstallDrivers | true | . | install-optional | true/false | InstallOptional | false | . | notify-new | true/false | NotifyOnNewUpdates | true | . | notify-complete | true/false | NotifyOnInstallComplete | true | . | pause-metered | true/false | AllowAutoWindowsUpdateDownloadOverMeteredNetwork == 0 | true | . | defer-feature | 0–365 | DeferFeatureUpdatesDays | 0 | . | defer-quality | 0–30 | DeferQualityUpdatesDays | 0 | . | active-hours | start-end (e.g. 8-22) | ActiveHoursStart / ActiveHoursEnd | 8–22 | . Boolean parsing: true, 1, yes, on → true; anything else → false (SettingsService.ParseBool). active-hours expects two integers separated by -. wum settings set active-hours 9-18 sets start=9, end=18. Note on persistence: SaveSettingsAsync currently persists Active Hours (ActiveHoursStart/ActiveHoursEnd) to the UX settings key. The displayed values for auto-download/install etc. are read back from the AU policy + UX keys on GetSettingsAsync. wum settings reset writes a fresh default UpdateSettings. ",
     "url": "/configuration.html#keys-wum-settings-set-key-value",
     
     "relUrl": "/configuration.html#keys-wum-settings-set-key-value"
-  },"50": {
+  },"152": {
     "doc": "Configuration",
     "title": "Examples",
     "content": "wum settings # Show all current values wum settings set auto-download true wum settings set active-hours 9-18 wum settings set defer-feature 30 wum settings reset # Confirm, then restore defaults . ",
     "url": "/configuration.html#examples",
     
     "relUrl": "/configuration.html#examples"
-  },"51": {
+  },"153": {
     "doc": "Configuration",
     "title": "Pause",
     "content": "wum pause / wum pause resume via PauseService. Path: HKLM\\SOFTWARE\\Microsoft\\WindowsUpdate\\UX\\Settings . On pause (--days N, clamped 1–35), these string values are written (UTC, yyyy-MM-ddTHH:mm:ssZ): . | Value name | Meaning | . | PauseFeatureUpdatesStartTime | now (UTC) | . | PauseFeatureUpdatesEndTime | now + N days | . | PauseQualityUpdatesStartTime | now (UTC) | . | PauseQualityUpdatesEndTime | now + N days | . | PauseUpdatesExpiryTime | now + N days | . On resume all five values are deleted. Reading state (GetPauseInfoAsync, used by wum status): IsPaused = now &lt; PauseUpdatesExpiryTime; PausedUntil and PausedOn are converted to local time; DaysLeft is derived. wum pause --days 14 # Sets the five values, expiry = now + 14d wum pause resume # Deletes them wum status # Shows \"Updates Paused: Yes - until … (Nd left)\" . ",
     "url": "/configuration.html#pause",
     
     "relUrl": "/configuration.html#pause"
-  },"52": {
+  },"154": {
     "doc": "Configuration",
     "title": "Schedule",
     "content": "wum schedule via SchedulerService (registry-persisted). The model: . class UpdateSchedule { bool Enabled; // false DayOfWeek Day; // Sunday TimeSpan Time; // 02:00 bool AutoInstall; // false bool AutoReboot; // false bool InstallAll; // false (else security only) } . | set validates --day against DayOfWeek and --time against HH:mm, then saves. | NextRun() computes the next occurrence of Day at Time (rolls to next week if today’s slot already passed). | IsWithinSchedule(now) is true within a 2-hour window from Time on the matching day. | . wum schedule set --day Friday --time 03:00 --auto-install --auto-reboot --all wum schedule show # Day/Time/Auto Install/Auto Reboot/Install All/Next Run wum schedule clear . ",
     "url": "/configuration.html#schedule",
     
     "relUrl": "/configuration.html#schedule"
-  },"53": {
+  },"155": {
     "doc": "Configuration",
     "title": "Reboot detection",
     "content": "IsRebootRequired() checks update-specific markers only (kept in sync with the diagnose D1 check) — PendingFileRenameOperations is deliberately excluded (noisy, set by routine installers): . | Registry key (presence = reboot) | . | HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update\\RebootRequired | . | HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Component Based Servicing\\RebootPending | . diagnose additionally reports …\\RebootRequired\\UpdateExeVolatile as an UpdateExe reason. Used by wum status, wum reboot, and wum install’s post-install prompt. ",
     "url": "/configuration.html#reboot-detection",
     
     "relUrl": "/configuration.html#reboot-detection"
-  },"54": {
+  },"156": {
     "doc": "Configuration",
     "title": "On-disk locations",
     "content": "| Path | Written by | Notes | . | %ProgramData%\\WUM\\logs\\wum-YYYY-MM-DD.log | Serilog | Daily roll, 7-day retention | . | %ProgramData%\\WUM\\cache\\available-h{0/1}-m{0/1}.json | UpdateService | Scan cache, 5-min TTL — see Architecture → Scan cache | . %ProgramData% resolves via Environment.SpecialFolder.CommonApplicationData (normally C:\\ProgramData). Next: Diagnostics → . ",
     "url": "/configuration.html#on-disk-locations",
     
     "relUrl": "/configuration.html#on-disk-locations"
-  },"55": {
+  },"157": {
     "doc": "Development",
     "title": "Development",
     "content": ". | Prerequisites | Solution layout | Key dependencies | Build &amp; run | Test | Publish | Versioning | Adding a new command | Conventions | CI / release | . ← Docs index . ",
     "url": "/development.html",
     
     "relUrl": "/development.html"
-  },"56": {
+  },"158": {
     "doc": "Development",
     "title": "Prerequisites",
     "content": ". | .NET 10 SDK | Windows 10/11 (the projects target net10.0-windows) | An Administrator terminal to exercise modifying commands end-to-end | . ",
     "url": "/development.html#prerequisites",
     
     "relUrl": "/development.html#prerequisites"
-  },"57": {
+  },"159": {
     "doc": "Development",
     "title": "Solution layout",
     "content": "wum.slnx # Solution (newer slnx format) src/ wum.sln # Legacy solution file WUM.CLI/ WUM.CLI.csproj # Exe, net10.0-windows, win-x64, AssemblyName=wum Program.cs # Entry point, DI, Serilog, --info short-circuit app.manifest # asInvoker (Release only) Commands/ # 12 command classes (Build() → Command) Helpers/ # ConsoleRenderer, TableRenderer, ProgressRenderer, AdminHelper WUM.Core/ WUM.Core.csproj # Class library, net10.0-windows Models/ # WindowsUpdate, UpdateHistory, UpdateSettings, UpdateSchedule, PauseInfo Services/ # I*Service + implementations Helpers/ # PowerShellHelper, RegistryHelper, AdminHelper, WuErrorCodes tests/ WUM.CLI.Tests/ # xUnit + Moq + FluentAssertions Installer/ # WiX MSI (Product.wxs, Files.wxs) .github/workflows/ # codeql, release, wingetRelease . ",
     "url": "/development.html#solution-layout",
     
     "relUrl": "/development.html#solution-layout"
-  },"58": {
+  },"160": {
     "doc": "Development",
     "title": "Key dependencies",
     "content": "| Package | Version | Used for | . | System.CommandLine | 2.0.0-beta4.22272.1 | Argument parsing | . | Microsoft.Extensions.DependencyInjection | 10.0.0 | Service wiring | . | Serilog + Sinks.File + Sinks.Console | 4.2.0 / 6.0.0 | Logging | . ",
     "url": "/development.html#key-dependencies",
     
     "relUrl": "/development.html#key-dependencies"
-  },"59": {
+  },"161": {
     "doc": "Development",
     "title": "Build &amp; run",
     "content": "dotnet build # Build all projects dotnet run --project src/WUM.CLI -- status # Run a command dotnet run --project src/WUM.CLI -- list --security # Args go after -- . ",
     "url": "/development.html#build--run",
     
     "relUrl": "/development.html#build--run"
-  },"60": {
+  },"162": {
     "doc": "Development",
     "title": "Test",
     "content": "dotnet test # Run the suite dotnet test --filter FullyQualifiedName~ListCommand # One area . Tests use Moq to mock IUpdateService and FluentAssertions for assertions. They cover command-level behavior (e.g. list/status filtering) and ConsoleRenderer. Heads-up on mock signatures: GetAvailableUpdatesAsync has the shape (bool includeHidden, bool useMicrosoftUpdate, bool forceRefresh, CancellationToken ct). Mocks must match all four positionally: . _mock.Setup(s =&gt; s.GetAvailableUpdatesAsync( It.IsAny&lt;bool&gt;(), It.IsAny&lt;bool&gt;(), It.IsAny&lt;bool&gt;(), It.IsAny&lt;CancellationToken&gt;())) .ReturnsAsync(SampleUpdates()); . If you add a parameter to the interface, update the mocks or the test project fails to compile. ",
     "url": "/development.html#test",
     
     "relUrl": "/development.html#test"
-  },"61": {
+  },"163": {
     "doc": "Development",
     "title": "Publish",
     "content": "dotnet publish src/WUM.CLI -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish . PublishSingleFile/SelfContained are already in the csproj. The Release config applies app.manifest (asInvoker). Output: a standalone ./publish/wum.exe. ",
     "url": "/development.html#publish",
     
     "relUrl": "/development.html#publish"
-  },"62": {
+  },"164": {
     "doc": "Development",
     "title": "Versioning",
     "content": "WUM.CLI.csproj pins a 4-part numeric &lt;Version&gt; (currently 0.2.1.51) and mirrors it into AssemblyVersion/FileVersion/InformationalVersion/PackageVersion. CI overwrites &lt;Version&gt; on tagged releases and refreshes docs/_data/project.yml from the project file. IncludeSourceRevisionInInformationalVersion=false keeps the SDK from appending a git sha, so wum --version stays clean. ",
     "url": "/development.html#versioning",
     
     "relUrl": "/development.html#versioning"
-  },"63": {
+  },"165": {
     "doc": "Development",
     "title": "Adding a new command",
     "content": ". | Create src/WUM.CLI/Commands/FooCommand.cs: | . public class FooCommand { private readonly IUpdateService _updates; public FooCommand(IServiceProvider sp) =&gt; _updates = sp.GetRequiredService&lt;IUpdateService&gt;(); public Command Build() { var cmd = new Command(\"foo\", \"Do the foo thing\"); var barOpt = new Option&lt;bool&gt;(\"--bar\", \"Enable bar\"); cmd.AddOption(barOpt); // ≤ ~8 options: typed handler cmd.SetHandler(async (bool bar) =&gt; await RunAsync(bar), barOpt); // many options: context handler // cmd.SetHandler(async ctx =&gt; { // bool bar = ctx.ParseResult.GetValueForOption(barOpt); // await RunAsync(bar); // }); return cmd; } private async Task RunAsync(bool bar) { /* ... */ } } . | Register it in Program.cs: | . root.AddCommand(new FooCommand(services).Build()); . | If it modifies the system, call WUM.CLI.Helpers.AdminHelper.RequireAdmin(); first. | If it reads available updates, go through IUpdateService.GetAvailableUpdatesAsync(...) so it uses the shared scan cache; add a --refresh option that passes forceRefresh: true. | If it changes state (install/hide/etc.), make sure the underlying service invalidates the cache (the engine already does for its mutations). | Use ConsoleRenderer for output and --json for a machine-readable path. | . ",
     "url": "/development.html#adding-a-new-command",
     
     "relUrl": "/development.html#adding-a-new-command"
-  },"64": {
+  },"166": {
     "doc": "Development",
     "title": "Conventions",
     "content": ". | Output: colorized by default; honor --json and (where relevant) --no-color. | Long-running calls: wrap in ConsoleRenderer.ShowSpinnerAsync(...) with a sensible timeout. | Failures: surface IUpdateService.LastError and decode HRESULTs via WuErrorCodes. | Registry: go through RegistryHelper; never hand-roll HKLM access. | PowerShell: build scripts with single quotes / careful escaping (WUA search criteria doesn’t support UpdateID — search broad, then match in PowerShell). | . ",
     "url": "/development.html#conventions",
     
     "relUrl": "/development.html#conventions"
-  },"65": {
+  },"167": {
     "doc": "Development",
     "title": "CI / release",
     "content": ".github/workflows/: . | codeql.yml — static analysis | release.yml — builds and publishes the portable wum.exe + MSI on tagged builds | wingetRelease.yml — pushes to the WinGet community repo | . ← Back to docs index . ",
     "url": "/development.html#ci--release",
     
     "relUrl": "/development.html#ci--release"
-  },"66": {
+  },"168": {
     "doc": "Diagnostics",
     "title": "Diagnostics",
     "content": ". | What it checks . | Core checks | Deep checks | Updates Found | . | Exit-code bitmask | Health score | JSON output | Error-code decoding (WuErrorCodes) | Footer hints | --fix (component reset) | . ← Docs index . wum diagnose runs a comprehensive Windows Update health check, prints a colorized report (or JSON), and returns a scriptable exit-code bitmask. wum diagnose --fix resets WU components. wum diagnose [--refresh] [--json] wum diagnose --fix [--force|-f] . See Command Reference → diagnose for option semantics. ",
     "url": "/diagnostics.html",
     
     "relUrl": "/diagnostics.html"
-  },"67": {
+  },"169": {
     "doc": "Diagnostics",
     "title": "What it checks",
     "content": "The diagnostic PowerShell script emits label: value lines in two blocks. ",
     "url": "/diagnostics.html#what-it-checks",
     
     "relUrl": "/diagnostics.html#what-it-checks"
-  },"68": {
+  },"170": {
     "doc": "Diagnostics",
     "title": "Core checks",
     "content": "| Label | What it verifies | . | WU Service / BITS / Delivery Opt / App Identity / Crypto Svc / Update Orch / Modules Inst / MSI Installer | Service Status + StartMode (a Disabled start mode is flagged (DISABLED), not just Stopped) | . | Network (WU) | TCP 443 reachability to sls.update.microsoft.com, download.windowsupdate.com, ctldl.windowsupdate.com (ICMP is blocked on MS hosts, so ping would give false negatives) | . | COM Session | New-Object -ComObject Microsoft.Update.Session | . | COM Searcher | CreateUpdateSearcher() with Online = $true | . | Service (registered) / Microsoft Upd | Lists registered update services; flags [default] and whether the Microsoft Update service (7971f918-…) is registered | . | Search Test | A live Search('IsInstalled=0 AND Type=Software') to confirm the searcher works | . | Proxy | System web proxy for windowsupdate.microsoft.com | . | Last WU Check | …\\Auto Update\\Results\\Detect\\LastSuccessTime | . | WU AU Options / WU No AutoUpd | AU policy values | . | Update Source | WSUS (with server URL) vs Microsoft Update direct — explains “0 found” on managed PCs | . ",
     "url": "/diagnostics.html#core-checks",
     
     "relUrl": "/diagnostics.html#core-checks"
-  },"69": {
+  },"171": {
     "doc": "Diagnostics",
     "title": "Deep checks",
     "content": "| Label | What it verifies | . | Pending Reboot | Update-specific reboot markers (WU / CBS / UpdateExe) — aligned with IsRebootRequired() | . | Disk Free | System-drive free space; (LOW) under 10 GB | . | SoftDist Cache | Size of SoftwareDistribution\\Download | . | WU Datastore | Presence/size of DataStore.edb (MISSING breaks search) | . | Uptime | Time since last boot (long uptime delays reboot finalization) | . | Last Install | …\\Auto Update\\Results\\Install\\LastSuccessTime | . | Pending Queue | Count of downloaded-but-not-installed updates | . | Running Admin | Whether the process is elevated | . | OS Version | Caption + build | . ",
     "url": "/diagnostics.html#deep-checks",
     
     "relUrl": "/diagnostics.html#deep-checks"
-  },"70": {
+  },"172": {
     "doc": "Diagnostics",
     "title": "Updates Found",
     "content": "After the script, diagnose performs the shared scan (GetAvailableUpdatesAsync, honoring --refresh) and injects Updates Found: N. Because it reads/writes the same cache, status and list report the identical number within the 5-minute TTL. ",
     "url": "/diagnostics.html#updates-found",
     
     "relUrl": "/diagnostics.html#updates-found"
-  },"71": {
+  },"173": {
     "doc": "Diagnostics",
     "title": "Exit-code bitmask",
     "content": "Exit code 0 = healthy. Failure classes set bits (OR-combined). Informational states (WSUS, Microsoft Update not registered, 0 updates) are not failures and set no bits. | Bit | Value | Constant | Set when | . | 0 | 1 | ExitNetwork | Network (WU) is UNREACHABLE | . | 1 | 2 | ExitCom | COM Session or COM Searcher FAILED | . | 2 | 4 | ExitService | WU Service / BITS down (Stopped/NOT FOUND/DISABLED) or Crypto Svc Stopped/Disabled | . | 3 | 8 | ExitSearch | A Search Error line is present (searcher threw) | . | 4 | 16 | ExitNotElevated | Running Admin is False | . Examples . | 0 → all good | 16 → not elevated only | 5 (1 + 4) → network unreachable and a service down | 2 → COM failed (usually means “not running as admin”) | . Read it in scripts . # PowerShell wum diagnose --json | Out-Null if ($LASTEXITCODE -band 1) { \"Network problem\" } if ($LASTEXITCODE -band 16) { \"Re-run as admin\" } # bash (Git Bash) wum diagnose --json &gt;/dev/null code=$? (( code &amp; 4 )) &amp;&amp; echo \"A WU service is down\" . ",
     "url": "/diagnostics.html#exit-code-bitmask",
     
     "relUrl": "/diagnostics.html#exit-code-bitmask"
-  },"72": {
+  },"174": {
     "doc": "Diagnostics",
     "title": "Health score",
     "content": "A score over the 5 failure classes (network, COM, service, search, elevation): (passed, total) where total = 5 and passed = 5 - (number of bits set). The footer prints Health: passed/5 checks passed (green if all pass, yellow otherwise). ",
     "url": "/diagnostics.html#health-score",
     
     "relUrl": "/diagnostics.html#health-score"
-  },"73": {
+  },"175": {
     "doc": "Diagnostics",
     "title": "JSON output",
     "content": "wum diagnose --json emits: . { \"checks\": { \"WU Service\": \"Running\", \"Network (WU)\": \"Reachable\", \"...\": \"...\" }, \"updatesFound\": 3, \"score\": \"5/5\", \"passed\": 5, \"total\": 5, \"searchError\": null, \"exitCode\": 0, \"healthy\": true } . checks is the full label→value map. searchError, when present, is the decoded HRESULT (see below). ",
     "url": "/diagnostics.html#json-output",
     
     "relUrl": "/diagnostics.html#json-output"
-  },"74": {
+  },"176": {
     "doc": "Diagnostics",
     "title": "Error-code decoding (WuErrorCodes)",
     "content": "When a Search Error (or download/install failure) carries an HRESULT, WUM decodes the first 0x........ code in the message to a human cause. Selected mappings: . | Code | Meaning | . | 0x80072EE2 | Connection timed out reaching Windows Update (WININET). Check network/proxy | . | 0x80072EE7 | Server name could not be resolved (DNS) | . | 0x80072F8F | System clock is wrong, breaking TLS — fix date/time | . | 0x80070422 | Windows Update service is disabled — set wuauserv to Manual and start it | . | 0x8024002E | Access blocked by policy (managed / WSUS) | . | 0x8024402C | Proxy/connection error contacting the update server | . | 0x80240024 | No updates are applicable to this computer | . | 0x8024000C | No operation required (already up to date) | . | 0x80240034 | An update failed to download | . | 0x800F0922 | Install failed — often insufficient WinRE/recovery-partition space | . The full table lives in src/WUM.Core/Helpers/WuErrorCodes.cs. Decode(text) returns \"0xCODE — meaning\" (or \"0xCODE — Unrecognized…\" for unknown codes); Lookup(code) returns the description for an exact code. ",
     "url": "/diagnostics.html#error-code-decoding-wuerrorcodes",
     
     "relUrl": "/diagnostics.html#error-code-decoding-wuerrorcodes"
-  },"75": {
+  },"177": {
     "doc": "Diagnostics",
     "title": "Footer hints",
     "content": "The colorized report ends with targeted hints only for checks that actually failed — e.g. network unreachable → check firewall/proxy on 443; COM failed → run as admin; BITS down → updates can’t download; pending reboot → run wum reboot; low disk → free the system drive; datastore missing → wum diagnose --fix; Microsoft Update off → register it for drivers; WSUS-managed → updates controlled by the org server. If nothing failed, it prints “All checks passed”. ",
     "url": "/diagnostics.html#footer-hints",
     
     "relUrl": "/diagnostics.html#footer-hints"
-  },"76": {
+  },"178": {
     "doc": "Diagnostics",
     "title": "--fix (component reset)",
     "content": "Destructive — Administrator only. Mirrors Reset-WUComponents: . | Stop bits, wuauserv, appidsvc, cryptsvc | Delete qmgr*.dat (BITS queue) | Rename SoftwareDistribution and System32\\catroot2 to .bak | Reregister 13 WU DLLs (wuapi.dll, wuaueng.dll, wups.dll, …) | Reset WinSock + WinHTTP proxy | Restart the services | Trigger detection (wuauclt /detectnow, UsoClient StartScan) | . Pending downloads are discarded; a reboot is advised. Confirm prompt unless --force. The scan cache is invalidated afterward. Re-run wum diagnose after rebooting to re-check. Next: Troubleshooting → . ",
     "url": "/diagnostics.html#--fix-component-reset",
     
     "relUrl": "/diagnostics.html#--fix-component-reset"
-  },"77": {
+  },"179": {
     "doc": "Docker Socket Request",
     "title": "Docker Socket Request",
     "content": "Use socketPath for trusted local HTTP-over-Unix-socket services such as Docker Engine. import neutrx from 'neutrx'; const docker = neutrx.create({ baseURL: 'http://docker', socketPath: '/var/run/docker.sock', proxy: false, timeout: 5_000, maxContentLength: 2 * 1024 * 1024, }); export async function dockerVersion() { const response = await docker.get('/v1/version'); return response.data; } . With socketPath, Neutrx connects to the absolute local socket path and uses the URL host only as the HTTP Host header. DNS, SSRF, private-IP, HTTPS, and egress-policy network checks do not apply to the synthetic URL host because no TCP connection is made. Treat socketPath as privileged configuration. Never accept it from untrusted input. ",
     "url": "/examples/docker-socket-request.html",
     
     "relUrl": "/examples/docker-socket-request.html"
-  },"78": {
+  },"180": {
     "doc": "File Upload",
     "title": "File Upload",
     "content": "Use form helpers for multipart uploads. In Node, plain objects are serialized as multipart bodies by the Node HTTP adapter. In browser runtimes, plain objects are converted to FormData where the platform supports it. import { readFile } from 'node:fs/promises'; import neutrx from 'neutrx'; const api = neutrx.create({ baseURL: 'https://files.example.com', timeout: 30_000, maxBodyLength: 10 * 1024 * 1024, security: { profile: 'standard', allowedHosts: ['files.example.com'], }, }); export async function uploadReport(path: string): Promise&lt;string&gt; { const file = await readFile(path); const response = await api.postForm&lt;{ readonly id: string }&gt;('/uploads', { name: 'monthly-report', file, }, { onUploadProgress(event) { console.log(event.loaded, event.total, event.rate); }, }); return response.data.id; } . Set maxBodyLength for expected upload sizes. Keep upload paths and socket paths out of user-controlled request config. ",
     "url": "/examples/file-upload.html",
     
     "relUrl": "/examples/file-upload.html"
-  },"79": {
+  },"181": {
     "doc": "Get Started",
     "title": "Get Started",
     "content": "Start here when you are setting up WUM or tuning Windows Update behavior. Installation Build from source, publish a single-file executable, or install with MSI / WinGet. Configuration Control active hours, deferrals, pause state, schedule, and update policy settings. ",
     "url": "/getting-started/",
     
     "relUrl": "/getting-started/"
-  },"80": {
+  },"182": {
     "doc": "Home",
     "title": "\n    \n  ",
     "content": "Manage the entire Windows Update lifecycle from the terminal — list, search, install, uninstall, hide, pause, schedule, configure, reboot, and diagnose — without ever opening the Settings app. Get started Command reference View on GitHub . Version: 0.2.1.51 · Target: net10.0-windows (win-x64) · License: MIT . WUM is built on .NET 10 and drives the Windows Update Agent (WUA) COM API through PowerShell, giving administrators and power users full, scriptable control over Windows Updates. ",
     "url": "/",
     
     "relUrl": "/"
-  },"81": {
+  },"183": {
     "doc": "Home",
     "title": "Documentation map",
-    "content": "| Document | What it covers | . | Installation | Build from source, publish a single-file wum.exe, MSI / WinGet install, requirements | . | Interactive Mode | Smart shell, slash commands, completion, history, keyboard shortcuts, and session tools | . | Command Reference | Every command, sub-command, argument, option, and worked examples | . | Architecture | Project layout, services, models, helpers, DI, the scan cache, logging | . | Configuration | Settings keys, schedule, pause, and the exact registry paths each one writes | . | Diagnostics | The diagnose command, exit-code bitmask, health score, WU error-code decoding | . | Troubleshooting | Symptom → cause → fix for the most common Windows Update problems | . | Development | Building, testing, the publish pipeline, and how to add a new command | . ",
+    "content": "| Document | What it covers | . | Installation | Build from source, publish a single-file wum.exe, MSI / WinGet install, requirements | . | CLI Mode | One-shot commands, arguments, options, diagnostics, and troubleshooting | . | Interactive Mode | Smart shell, slash command subpages, completion, history, keyboard shortcuts, and session tools | . | Architecture | Project layout, services, models, helpers, DI, the scan cache, logging | . | Configuration | Settings keys, schedule, pause, and the exact registry paths each one writes | . | Development | Building, testing, the publish pipeline, and how to add a new command | . ",
     "url": "/#documentation-map",
     
     "relUrl": "/#documentation-map"
-  },"82": {
+  },"184": {
     "doc": "Home",
     "title": "What WUM can do",
     "content": "| Area | Capabilities | . | Interactive shell | Run wum with no arguments for slash commands, smart completion, history, help, clear, and keyboard shortcuts | . | Discovery | List available, installed, and hidden updates with category filtering and full-text search | . | Installation | Download &amp; install by KB number, category, or all at once — with an install plan, progress bars, and a summary | . | Uninstall | Remove an installed update by KB number (wusa.exe) | . | Pause / Resume | Pause all updates for 1–35 days via the registry; resume early | . | Scheduling | Persist a weekly update schedule (day, time, auto-install, auto-reboot, install-all) | . | Settings | View and change WU settings — active hours, deferrals, auto-download, metered network | . | Hide / Unhide | Suppress unwanted updates from the available list | . | Reboot | Schedule or cancel a post-update restart with a configurable delay | . | Diagnostics | Multi-point health check with an exit-code bitmask for scripting, plus an optional component reset (--fix) | . | Output | Colorized tables, verbose detail, --json for scripting, --no-color for piping | . ",
     "url": "/#what-wum-can-do",
     
     "relUrl": "/#what-wum-can-do"
-  },"83": {
+  },"185": {
     "doc": "Home",
     "title": "30-second tour",
     "content": "# Interactive shell wum # Open smart prompt with slash commands and completion # Read-only — no admin needed wum status # Dashboard: service state, reboot, pause, update counts wum list --security # Show security updates only wum search defender # Find updates matching a keyword wum diagnose # Health check (why aren't updates showing?) # Modifying — require an elevated (Administrator) terminal wum install --security # Install security updates wum install KB5034441 # Install a specific KB wum pause --days 14 # Pause updates for 14 days wum reboot --delay 60 # Restart in 60 seconds . ",
     "url": "/#30-second-tour",
     
     "relUrl": "/#30-second-tour"
-  },"84": {
+  },"186": {
     "doc": "Home",
     "title": "Privilege model",
     "content": "WUM launches as-invoker — no UAC prompt on start. Commands split into two groups: . Read-only (standard user): status, list, search, history, hide list, --info, --version, --help . Modifying (Administrator): install, uninstall, pause, schedule, settings set/reset, reboot, diagnose --fix. These call AdminHelper.RequireAdmin() and stop with guidance if not elevated. See the Command Reference for the exact requirement per command. ",
     "url": "/#privilege-model",
     
     "relUrl": "/#privilege-model"
-  },"85": {
+  },"187": {
     "doc": "Home",
     "title": "How it works, in one diagram",
     "content": "Command (CLI) ──resolves──▶ IUpdateService (DI singleton) │ ▼ 1. scan cache (5-min TTL, unless --refresh) 2. generate PowerShell script (WUA criteria) 3. powershell.exe ─▶ Microsoft.Update.Session (WUA COM) 4. parse ConvertTo-Json output ─▶ List&lt;WindowsUpdate&gt; 5. write scan cache . Registry-backed operations (pause, schedule, settings) bypass PowerShell and use direct HKLM access. See Architecture for the full picture. ",
     "url": "/#how-it-works-in-one-diagram",
     
     "relUrl": "/#how-it-works-in-one-diagram"
-  },"86": {
+  },"188": {
     "doc": "Home",
     "title": "Home",
     "content": "Windows Update Manager CLI . ",
     "url": "/",
     
     "relUrl": "/"
-  },"87": {
+  },"189": {
     "doc": "Installation",
     "title": "Installation",
     "content": ". | Requirements | Option 1 — Build from source | Option 2 — Publish a single-file wum.exe | Option 3 — MSI / WinGet | Verify the install | Where WUM writes on disk | . ← Docs index . ",
     "url": "/installation.html",
     
     "relUrl": "/installation.html"
-  },"88": {
+  },"190": {
     "doc": "Installation",
     "title": "Requirements",
     "content": "| Requirement | Detail | . | OS | Windows 10 or Windows 11 (x64) | . | SDK | .NET 10 SDK — only needed to build from source | . | Runtime | None when published self-contained; the wum.exe bundles the runtime | . | PowerShell | powershell.exe (Windows PowerShell 5.1, ships with Windows) — WUM shells out to it for all WUA COM calls | . | Privileges | Administrator for update operations only. Read-only commands run as a standard user | . The app targets net10.0-windows with RuntimeIdentifier=win-x64. PowerShell is invoked as: . powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"&lt;script&gt;\" . so WUM works regardless of the machine’s default execution policy. ",
     "url": "/installation.html#requirements",
     
     "relUrl": "/installation.html#requirements"
-  },"89": {
+  },"191": {
     "doc": "Installation",
     "title": "Option 1 — Build from source",
     "content": "git clone https://github.com/isubroto/wum.git cd wum dotnet build . Run directly from the repo (read-only commands need no admin): . dotnet run --project src/WUM.CLI -- status dotnet run --project src/WUM.CLI -- list --security . Everything after -- is passed to wum as arguments. ",
     "url": "/installation.html#option-1--build-from-source",
     
     "relUrl": "/installation.html#option-1--build-from-source"
-  },"90": {
+  },"192": {
     "doc": "Installation",
     "title": "Option 2 — Publish a single-file wum.exe",
     "content": "dotnet publish src/WUM.CLI -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish . Produces a standalone ./publish/wum.exe that needs no .NET runtime on the target machine. The Release build applies app.manifest (asInvoker) so launching never triggers a UAC prompt; modifying commands request elevation themselves. The PublishSingleFile and SelfContained properties are already set in WUM.CLI.csproj, so the -p:/--self-contained flags above are belt-and-suspenders. Add the publish folder to your PATH, or copy wum.exe somewhere already on PATH, to call wum from any terminal. ",
     "url": "/installation.html#option-2--publish-a-single-file-wumexe",
     
     "relUrl": "/installation.html#option-2--publish-a-single-file-wumexe"
-  },"91": {
+  },"193": {
     "doc": "Installation",
     "title": "Option 3 — MSI / WinGet",
     "content": "winget install SubrotoSaha.WUM . The MSI installs wum.exe to: . C:\\Program Files\\Subroto Saha\\WUM . and adds that folder to the system PATH, so wum is available everywhere. Tagged builds publish both the portable wum.exe and the MSI automatically (see .github/workflows/release.yml and wingetRelease.yml). ",
     "url": "/installation.html#option-3--msi--winget",
     
     "relUrl": "/installation.html#option-3--msi--winget"
-  },"92": {
+  },"194": {
     "doc": "Installation",
     "title": "Verify the install",
     "content": "wum --version # e.g. 0.2.1.51 wum --info # Version, commit, build date, author, license, runtime, OS wum --help # Top-level help and the command list . --info prints application metadata (version/commit/build date/author/license/repo), runtime details (framework, CLR, process arch), and system info (OS, machine, user, CPU cores). It is handled in Program.Main before the command pipeline runs, so it is fast and needs no admin. ",
     "url": "/installation.html#verify-the-install",
     
     "relUrl": "/installation.html#verify-the-install"
-  },"93": {
+  },"195": {
     "doc": "Installation",
     "title": "Where WUM writes on disk",
     "content": "| Path | Purpose | . | %ProgramData%\\WUM\\logs\\wum-YYYY-MM-DD.log | Serilog daily rolling logs (7 days retained) | . | %ProgramData%\\WUM\\cache\\available-h{0/1}-m{0/1}.json | Available-updates scan cache (5-minute TTL) | . %ProgramData% is normally C:\\ProgramData. The cache is keyed by search variant (h = include-hidden, m = Microsoft Update) so different scans never collide. See Architecture → Scan cache. Next: Command Reference → . ",
     "url": "/installation.html#where-wum-writes-on-disk",
     
     "relUrl": "/installation.html#where-wum-writes-on-disk"
-  },"94": {
+  },"196": {
+    "doc": "/diagnose",
+    "title": "/diagnose",
+    "content": "Runs Windows Update health checks from interactive mode. ",
+    "url": "/interactive-command-diagnose.html",
+    
+    "relUrl": "/interactive-command-diagnose.html"
+  },"197": {
+    "doc": "/diagnose",
+    "title": "Synopsis",
+    "content": "/diagnose [--refresh] [--json] /diagnose --fix [--force|-f] . CLI equivalent: . wum diagnose [--refresh] [--json] wum diagnose --fix [--force|-f] . ",
+    "url": "/interactive-command-diagnose.html#synopsis",
+    
+    "relUrl": "/interactive-command-diagnose.html#synopsis"
+  },"198": {
+    "doc": "/diagnose",
+    "title": "Options",
+    "content": "| Option | Detail | . | --refresh | Force fresh scan during diagnosis. | . | --json | Print structured diagnostic report. | . | --fix | Reset Windows Update components. Requires Administrator. | . | --force, -f | Skip --fix confirmation prompt. | . ",
+    "url": "/interactive-command-diagnose.html#options",
+    
+    "relUrl": "/interactive-command-diagnose.html#options"
+  },"199": {
+    "doc": "/diagnose",
+    "title": "Behavior",
+    "content": "/diagnose health check is read-only unless --fix is used. /diagnose --fix is destructive: stops WU services, renames WU stores, resets network/proxy pieces, restarts services, then invalidates cache. ",
+    "url": "/interactive-command-diagnose.html#behavior",
+    
+    "relUrl": "/interactive-command-diagnose.html#behavior"
+  },"200": {
+    "doc": "/diagnose",
+    "title": "Examples",
+    "content": "/diagnose /diagnose --refresh /diagnose --json /diagnose --fix /diagnose --fix --force . More backend detail: wum diagnose . Next: Session Commands . ",
+    "url": "/interactive-command-diagnose.html#examples",
+    
+    "relUrl": "/interactive-command-diagnose.html#examples"
+  },"201": {
+    "doc": "/hide",
+    "title": "/hide",
+    "content": "Hides, unhides, or lists hidden Windows Updates. ",
+    "url": "/interactive-command-hide.html",
+    
+    "relUrl": "/interactive-command-hide.html"
+  },"202": {
+    "doc": "/hide",
+    "title": "Synopsis",
+    "content": "/hide add &lt;update-id&gt; /hide remove &lt;update-id&gt; /hide list . CLI equivalent: . wum hide add &lt;update-id&gt; wum hide remove &lt;update-id&gt; wum hide list . ",
+    "url": "/interactive-command-hide.html#synopsis",
+    
+    "relUrl": "/interactive-command-hide.html#synopsis"
+  },"203": {
+    "doc": "/hide",
+    "title": "Subcommands",
+    "content": "| Subcommand | Argument | Admin | Detail | . | add | &lt;update-id&gt; | Yes | Hide update. | . | remove | &lt;update-id&gt; | Yes | Unhide update. | . | list | none | No | Show hidden updates. | . ",
+    "url": "/interactive-command-hide.html#subcommands",
+    
+    "relUrl": "/interactive-command-hide.html#subcommands"
+  },"204": {
+    "doc": "/hide",
+    "title": "Update IDs",
+    "content": "Use /list --json or /search &lt;kb&gt; --json to find update Id values. ",
+    "url": "/interactive-command-hide.html#update-ids",
+    
+    "relUrl": "/interactive-command-hide.html#update-ids"
+  },"205": {
+    "doc": "/hide",
+    "title": "Examples",
+    "content": "/hide add 12345678-90ab-cdef-1234-567890abcdef /hide remove 12345678-90ab-cdef-1234-567890abcdef /hide list . More backend detail: wum hide . Next: /history . ",
+    "url": "/interactive-command-hide.html#examples",
+    
+    "relUrl": "/interactive-command-hide.html#examples"
+  },"206": {
+    "doc": "/history",
+    "title": "/history",
+    "content": "Shows Windows Update install history. ",
+    "url": "/interactive-command-history.html",
+    
+    "relUrl": "/interactive-command-history.html"
+  },"207": {
+    "doc": "/history",
+    "title": "Synopsis",
+    "content": "/history [--count|-n &lt;N&gt;] [--failed] [--kb &lt;KB&gt;] [--json] . CLI equivalent: . wum history [--count|-n &lt;N&gt;] [--failed] [--kb &lt;KB&gt;] [--json] . ",
+    "url": "/interactive-command-history.html#synopsis",
+    
+    "relUrl": "/interactive-command-history.html#synopsis"
+  },"208": {
+    "doc": "/history",
+    "title": "Options",
+    "content": "| Option | Detail | . | --count, -n &lt;N&gt; | Limit number of rows. | . | --failed | Show failed history entries only. | . | --kb &lt;KB&gt; | Filter by KB number. | . | --json | Print JSON history. | . ",
+    "url": "/interactive-command-history.html#options",
+    
+    "relUrl": "/interactive-command-history.html#options"
+  },"209": {
+    "doc": "/history",
+    "title": "Behavior",
+    "content": "/history is read-only. No Administrator terminal needed. This is different from interactive command-line history. It reads Windows Update install history. ",
+    "url": "/interactive-command-history.html#behavior",
+    
+    "relUrl": "/interactive-command-history.html#behavior"
+  },"210": {
+    "doc": "/history",
+    "title": "Examples",
+    "content": "/history /history -n 50 /history --failed /history --kb KB5034441 /history --json -n 100 . More backend detail: wum history . Next: /pause . ",
+    "url": "/interactive-command-history.html#examples",
+    
+    "relUrl": "/interactive-command-history.html#examples"
+  },"211": {
+    "doc": "/install",
+    "title": "/install",
+    "content": "Downloads and installs selected updates from interactive mode. ",
+    "url": "/interactive-command-install.html",
+    
+    "relUrl": "/interactive-command-install.html"
+  },"212": {
+    "doc": "/install",
+    "title": "Synopsis",
+    "content": "/install [&lt;kb-articles&gt;...] [--security] [--critical] [--all] [--definition] [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu] . CLI equivalent: . wum install [&lt;kb-articles&gt;...] [options] . ",
+    "url": "/interactive-command-install.html#synopsis",
+    
+    "relUrl": "/interactive-command-install.html#synopsis"
+  },"213": {
+    "doc": "/install",
+    "title": "Arguments",
+    "content": "| Argument | Required | Detail | . | kb-articles | No | One or more KBs, such as KB5034441 KB5035853. Bare numbers are normalized to KB form. | . ",
+    "url": "/interactive-command-install.html#arguments",
+    
+    "relUrl": "/interactive-command-install.html#arguments"
+  },"214": {
+    "doc": "/install",
+    "title": "Selection options",
+    "content": "| Option | Detail | . | --security | Install security updates only. | . | --critical | Install critical updates only. | . | --all | Install every available update. | . | --definition | Install definition / Defender updates. | . | --microsoft-update, --mu | Include Microsoft Update service during scan. | . ",
+    "url": "/interactive-command-install.html#selection-options",
+    
+    "relUrl": "/interactive-command-install.html#selection-options"
+  },"215": {
+    "doc": "/install",
+    "title": "Execution options",
+    "content": "| Option | Detail | . | --dry-run | Show install plan only. No download or install. | . | --force, -f | Skip confirmation prompt. | . | --no-reboot | Do not prompt for restart after install. | . ",
+    "url": "/interactive-command-install.html#execution-options",
+    
+    "relUrl": "/interactive-command-install.html#execution-options"
+  },"216": {
+    "doc": "/install",
+    "title": "Behavior",
+    "content": "/install requires Administrator. It scans, resolves targets, shows plan, confirms unless forced, downloads/installs with progress, then returns to interactive ready. ",
+    "url": "/interactive-command-install.html#behavior",
+    
+    "relUrl": "/interactive-command-install.html#behavior"
+  },"217": {
+    "doc": "/install",
+    "title": "Examples",
+    "content": "/install KB5034441 /install KB5034441 KB5035853 /install --security /install --all --dry-run /install --all --force /install KB5034441 --no-reboot . More backend detail: wum install . Next: /uninstall . ",
+    "url": "/interactive-command-install.html#examples",
+    
+    "relUrl": "/interactive-command-install.html#examples"
+  },"218": {
+    "doc": "/list",
+    "title": "/list",
+    "content": "Lists available updates inside interactive mode. Can also show installed updates, hidden updates, Microsoft Update results, and machine-readable JSON. ",
+    "url": "/interactive-command-list.html",
+    
+    "relUrl": "/interactive-command-list.html"
+  },"219": {
+    "doc": "/list",
+    "title": "Synopsis",
+    "content": "/list [--security] [--critical] [--optional] [--drivers] [--definition] [--hidden] [--installed] [--microsoft-update|--mu] [--json] [--no-color] [--verbose|-v] [--refresh] . CLI equivalent: . wum list [filters] [options] . ",
+    "url": "/interactive-command-list.html#synopsis",
+    
+    "relUrl": "/interactive-command-list.html#synopsis"
+  },"220": {
+    "doc": "/list",
+    "title": "Filter options",
+    "content": "| Option | Detail | . | --security | Show security updates only. | . | --critical | Show critical updates only. | . | --optional | Show optional updates only. | . | --drivers | Show driver updates only. | . | --definition | Show definition / Defender updates only. | . Filters combine as OR. /list --security --drivers shows security updates and drivers. ",
+    "url": "/interactive-command-list.html#filter-options",
+    
+    "relUrl": "/interactive-command-list.html#filter-options"
+  },"221": {
+    "doc": "/list",
+    "title": "Scan and output options",
+    "content": "| Option | Detail | . | --hidden | Include hidden updates. | . | --installed | Show installed updates instead of available updates. | . | --microsoft-update, --mu | Include Microsoft Update service. Useful for drivers and other Microsoft products. | . | --refresh | Force fresh scan and bypass cache. | . | --json | Print JSON list. | . | --no-color | Disable ANSI color. | . | --verbose, -v | Show full update detail. | . ",
+    "url": "/interactive-command-list.html#scan-and-output-options",
+    
+    "relUrl": "/interactive-command-list.html#scan-and-output-options"
+  },"222": {
+    "doc": "/list",
+    "title": "Behavior",
+    "content": "/list is read-only. No Administrator terminal needed. Interactive completion suggests known filters and aliases after /list . ",
+    "url": "/interactive-command-list.html#behavior",
+    
+    "relUrl": "/interactive-command-list.html#behavior"
+  },"223": {
+    "doc": "/list",
+    "title": "Examples",
+    "content": "/list /list --installed /list --security /list --drivers --mu /list -v /list --json /list --refresh . More backend detail: wum list . Next: /search . ",
+    "url": "/interactive-command-list.html#examples",
+    
+    "relUrl": "/interactive-command-list.html#examples"
+  },"224": {
+    "doc": "/pause",
+    "title": "/pause",
+    "content": "Pauses Windows Updates for fixed days, or resumes updates early. ",
+    "url": "/interactive-command-pause.html",
+    
+    "relUrl": "/interactive-command-pause.html"
+  },"225": {
+    "doc": "/pause",
+    "title": "Synopsis",
+    "content": "/pause [--days &lt;N&gt;] /pause resume . CLI equivalent: . wum pause [--days &lt;N&gt;] wum pause resume . ",
+    "url": "/interactive-command-pause.html#synopsis",
+    
+    "relUrl": "/interactive-command-pause.html#synopsis"
+  },"226": {
+    "doc": "/pause",
+    "title": "Options and subcommands",
+    "content": "| Form | Detail | . | /pause | Pause for default 7 days. | . | /pause --days &lt;N&gt; | Pause for N days. Values clamp to 1-35. | . | /pause resume | Resume updates early. | . ",
+    "url": "/interactive-command-pause.html#options-and-subcommands",
+    
+    "relUrl": "/interactive-command-pause.html#options-and-subcommands"
+  },"227": {
+    "doc": "/pause",
+    "title": "Behavior",
+    "content": "/pause requires Administrator. It writes standard Windows Update pause registry values. resume deletes those values. ",
+    "url": "/interactive-command-pause.html#behavior",
+    
+    "relUrl": "/interactive-command-pause.html#behavior"
+  },"228": {
+    "doc": "/pause",
+    "title": "Examples",
+    "content": "/pause /pause --days 14 /pause --days 99 /pause resume . More backend detail: wum pause . Next: /schedule . ",
+    "url": "/interactive-command-pause.html#examples",
+    
+    "relUrl": "/interactive-command-pause.html#examples"
+  },"229": {
+    "doc": "/reboot",
+    "title": "/reboot",
+    "content": "Schedules or cancels restart from interactive mode. ",
+    "url": "/interactive-command-reboot.html",
+    
+    "relUrl": "/interactive-command-reboot.html"
+  },"230": {
+    "doc": "/reboot",
+    "title": "Synopsis",
+    "content": "/reboot [--delay &lt;seconds&gt;] [--force|-f] [--cancel] . CLI equivalent: . wum reboot [--delay &lt;seconds&gt;] [--force|-f] [--cancel] . ",
+    "url": "/interactive-command-reboot.html#synopsis",
+    
+    "relUrl": "/interactive-command-reboot.html#synopsis"
+  },"231": {
+    "doc": "/reboot",
+    "title": "Options",
+    "content": "| Option | Detail | . | --delay &lt;seconds&gt; | Seconds before restart. | . | --force, -f | Force applications to close. | . | --cancel | Cancel pending scheduled restart. | . ",
+    "url": "/interactive-command-reboot.html#options",
+    
+    "relUrl": "/interactive-command-reboot.html#options"
+  },"232": {
+    "doc": "/reboot",
+    "title": "Behavior",
+    "content": "/reboot requires Administrator. It uses the same restart scheduling and cancellation behavior as CLI mode. ",
+    "url": "/interactive-command-reboot.html#behavior",
+    
+    "relUrl": "/interactive-command-reboot.html#behavior"
+  },"233": {
+    "doc": "/reboot",
+    "title": "Examples",
+    "content": "/reboot /reboot --delay 60 /reboot --force /reboot --cancel . More backend detail: wum reboot . Next: /diagnose . ",
+    "url": "/interactive-command-reboot.html#examples",
+    
+    "relUrl": "/interactive-command-reboot.html#examples"
+  },"234": {
+    "doc": "/schedule",
+    "title": "/schedule",
+    "content": "Shows, sets, or clears WUM weekly update schedule. ",
+    "url": "/interactive-command-schedule.html",
+    
+    "relUrl": "/interactive-command-schedule.html"
+  },"235": {
+    "doc": "/schedule",
+    "title": "Synopsis",
+    "content": "/schedule /schedule show /schedule set [--day &lt;DayOfWeek&gt;] [--time &lt;HH:mm&gt;] [--auto-install] [--auto-reboot] [--all] /schedule clear . CLI equivalent: . wum schedule [show|set|clear] [options] . ",
+    "url": "/interactive-command-schedule.html#synopsis",
+    
+    "relUrl": "/interactive-command-schedule.html#synopsis"
+  },"236": {
+    "doc": "/schedule",
+    "title": "Subcommands",
+    "content": "| Subcommand | Detail | . | none | Same as show. | . | show | Show saved schedule. | . | set | Save weekly schedule. | . | clear | Remove saved schedule. | . ",
+    "url": "/interactive-command-schedule.html#subcommands",
+    
+    "relUrl": "/interactive-command-schedule.html#subcommands"
+  },"237": {
+    "doc": "/schedule",
+    "title": "Set options",
+    "content": "| Option | Detail | . | --day &lt;DayOfWeek&gt; | Schedule day, such as Friday. | . | --time &lt;HH:mm&gt; | 24-hour time, such as 03:00. | . | --auto-install | Install automatically when schedule runs. | . | --auto-reboot | Reboot automatically if needed. | . | --all | Install all available updates, not only default targets. | . ",
+    "url": "/interactive-command-schedule.html#set-options",
+    
+    "relUrl": "/interactive-command-schedule.html#set-options"
+  },"238": {
+    "doc": "/schedule",
+    "title": "Behavior",
+    "content": "/schedule set and /schedule clear require Administrator. /schedule show is read-only. ",
+    "url": "/interactive-command-schedule.html#behavior",
+    
+    "relUrl": "/interactive-command-schedule.html#behavior"
+  },"239": {
+    "doc": "/schedule",
+    "title": "Examples",
+    "content": "/schedule /schedule show /schedule set /schedule set --day Friday --time 03:00 --auto-install --auto-reboot --all /schedule clear . More backend detail: wum schedule . Next: /settings . ",
+    "url": "/interactive-command-schedule.html#examples",
+    
+    "relUrl": "/interactive-command-schedule.html#examples"
+  },"240": {
+    "doc": "/search",
+    "title": "/search",
+    "content": "Searches available updates by KB number, title, or description. ",
+    "url": "/interactive-command-search.html",
+    
+    "relUrl": "/interactive-command-search.html"
+  },"241": {
+    "doc": "/search",
+    "title": "Synopsis",
+    "content": "/search &lt;term&gt; [--category &lt;name&gt;] [--json] [--microsoft-update|--mu] . CLI equivalent: . wum search &lt;term&gt; [--category &lt;name&gt;] [--json] [--microsoft-update|--mu] . ",
+    "url": "/interactive-command-search.html#synopsis",
+    
+    "relUrl": "/interactive-command-search.html#synopsis"
+  },"242": {
+    "doc": "/search",
+    "title": "Arguments",
+    "content": "| Argument | Required | Detail | . | term | Yes | KB number or keyword. Matching is case-insensitive. | . Use quotes for multi-word terms: . /search \"security update\" . ",
+    "url": "/interactive-command-search.html#arguments",
+    
+    "relUrl": "/interactive-command-search.html#arguments"
+  },"243": {
+    "doc": "/search",
+    "title": "Options",
+    "content": "| Option | Detail | . | --category &lt;name&gt; | Limit matches to one category, such as Security, Critical, Driver, or Definition. | . | --json | Print JSON results. | . | --microsoft-update, --mu | Include Microsoft Update service. | . ",
+    "url": "/interactive-command-search.html#options",
+    
+    "relUrl": "/interactive-command-search.html#options"
+  },"244": {
+    "doc": "/search",
+    "title": "Behavior",
+    "content": "/search is read-only. No Administrator terminal needed. It includes hidden updates, so a hidden matching update can still be found. ",
+    "url": "/interactive-command-search.html#behavior",
+    
+    "relUrl": "/interactive-command-search.html#behavior"
+  },"245": {
+    "doc": "/search",
+    "title": "Examples",
+    "content": "/search KB5034441 /search defender /search cumulative --category Security /search driver --mu --json . More backend detail: wum search . Next: /install . ",
+    "url": "/interactive-command-search.html#examples",
+    
+    "relUrl": "/interactive-command-search.html#examples"
+  },"246": {
+    "doc": "/settings",
+    "title": "/settings",
+    "content": "Shows, changes, or resets Windows Update preferences. ",
+    "url": "/interactive-command-settings.html",
+    
+    "relUrl": "/interactive-command-settings.html"
+  },"247": {
+    "doc": "/settings",
+    "title": "Synopsis",
+    "content": "/settings /settings show /settings set &lt;key&gt; &lt;value&gt; /settings reset . CLI equivalent: . wum settings [show|set|reset] [key] [value] . ",
+    "url": "/interactive-command-settings.html#synopsis",
+    
+    "relUrl": "/interactive-command-settings.html#synopsis"
+  },"248": {
+    "doc": "/settings",
+    "title": "Subcommands",
+    "content": "| Subcommand | Detail | . | none | Same as show. | . | show | Show current settings. | . | set &lt;key&gt; &lt;value&gt; | Set one preference. | . | reset | Reset preferences to defaults. | . ",
+    "url": "/interactive-command-settings.html#subcommands",
+    
+    "relUrl": "/interactive-command-settings.html#subcommands"
+  },"249": {
+    "doc": "/settings",
+    "title": "Common keys",
+    "content": "| Key | Example | . | auto-download | /settings set auto-download true | . | active-hours | /settings set active-hours 9-18 | . | defer-feature | /settings set defer-feature 30 | . ",
+    "url": "/interactive-command-settings.html#common-keys",
+    
+    "relUrl": "/interactive-command-settings.html#common-keys"
+  },"250": {
+    "doc": "/settings",
+    "title": "Behavior",
+    "content": "/settings show is read-only. /settings set and /settings reset require Administrator. Use quotes if a value needs spaces. ",
+    "url": "/interactive-command-settings.html#behavior",
+    
+    "relUrl": "/interactive-command-settings.html#behavior"
+  },"251": {
+    "doc": "/settings",
+    "title": "Examples",
+    "content": "/settings /settings show /settings set auto-download true /settings set active-hours 9-18 /settings set defer-feature 30 /settings reset . More backend detail: wum settings . Next: /reboot . ",
+    "url": "/interactive-command-settings.html#examples",
+    
+    "relUrl": "/interactive-command-settings.html#examples"
+  },"252": {
+    "doc": "/status",
+    "title": "/status",
+    "content": "Shows current Windows Update state inside interactive mode. ",
+    "url": "/interactive-command-status.html",
+    
+    "relUrl": "/interactive-command-status.html"
+  },"253": {
+    "doc": "/status",
+    "title": "Synopsis",
+    "content": "/status [--json] [--verbose|-v] [--refresh] . CLI equivalent: . wum status [--json] [--verbose|-v] [--refresh] . ",
+    "url": "/interactive-command-status.html#synopsis",
+    
+    "relUrl": "/interactive-command-status.html#synopsis"
+  },"254": {
+    "doc": "/status",
+    "title": "Options",
+    "content": "| Option | Detail | . | --json | Print machine-readable status JSON instead of the dashboard. | . | --verbose, -v | Show service check, reboot check, pause check, scan/cache detail, and per-update detail. | . | --refresh | Force fresh online scan and bypass the 5-minute scan cache. | . ",
+    "url": "/interactive-command-status.html#options",
+    
+    "relUrl": "/interactive-command-status.html#options"
+  },"255": {
+    "doc": "/status",
+    "title": "Behavior",
+    "content": "/status is read-only. No Administrator terminal needed. It prints service state, reboot requirement, pause state, available update count, and category counts. After output, interactive mode returns to the ready prompt without pause. ",
+    "url": "/interactive-command-status.html#behavior",
+    
+    "relUrl": "/interactive-command-status.html#behavior"
+  },"256": {
+    "doc": "/status",
+    "title": "Examples",
+    "content": "/status /status --json /status -v /status --refresh . More backend detail: wum status . Next: /list . ",
+    "url": "/interactive-command-status.html#examples",
+    
+    "relUrl": "/interactive-command-status.html#examples"
+  },"257": {
+    "doc": "/uninstall",
+    "title": "/uninstall",
+    "content": "Removes an installed update by KB number. ",
+    "url": "/interactive-command-uninstall.html",
+    
+    "relUrl": "/interactive-command-uninstall.html"
+  },"258": {
+    "doc": "/uninstall",
+    "title": "Synopsis",
+    "content": "/uninstall &lt;kb-article&gt; [--force|-f] . CLI equivalent: . wum uninstall &lt;kb-article&gt; [--force|-f] . ",
+    "url": "/interactive-command-uninstall.html#synopsis",
+    
+    "relUrl": "/interactive-command-uninstall.html#synopsis"
+  },"259": {
+    "doc": "/uninstall",
+    "title": "Arguments",
+    "content": "| Argument | Required | Detail | . | kb-article | Yes | KB identifier, such as KB5034441 or 5034441. | . ",
+    "url": "/interactive-command-uninstall.html#arguments",
+    
+    "relUrl": "/interactive-command-uninstall.html#arguments"
+  },"260": {
+    "doc": "/uninstall",
+    "title": "Options",
+    "content": "| Option | Detail | . | --force, -f | Skip confirmation prompt. | . ",
+    "url": "/interactive-command-uninstall.html#options",
+    
+    "relUrl": "/interactive-command-uninstall.html#options"
+  },"261": {
+    "doc": "/uninstall",
+    "title": "Behavior",
+    "content": "/uninstall requires Administrator. It normalizes the KB number and uses the same uninstall path as CLI mode. ",
+    "url": "/interactive-command-uninstall.html#behavior",
+    
+    "relUrl": "/interactive-command-uninstall.html#behavior"
+  },"262": {
+    "doc": "/uninstall",
+    "title": "Examples",
+    "content": "/uninstall KB5034441 /uninstall 5034441 --force . More backend detail: wum uninstall . Next: /hide . ",
+    "url": "/interactive-command-uninstall.html#examples",
+    
+    "relUrl": "/interactive-command-uninstall.html#examples"
+  },"263": {
+    "doc": "Command Reference",
+    "title": "Interactive Command Reference",
+    "content": "Interactive mode uses slash-prefixed commands. These map directly to CLI commands: . /status /list --security /install KB5034441 --dry-run . equals: . wum status wum list --security wum install KB5034441 --dry-run . All normal command arguments and options work in interactive mode. The prompt adds completion, history, command groups, and session-only helpers. ",
+    "url": "/interactive-commands.html#interactive-command-reference",
+    
+    "relUrl": "/interactive-commands.html#interactive-command-reference"
+  },"264": {
+    "doc": "Command Reference",
+    "title": "Command groups",
+    "content": "| Group | Commands | . | Look around | /status, /list, /search, /history | . | Take action | /install, /uninstall, /hide | . | Stay in control | /pause, /schedule, /settings, /reboot, /diagnose | . | This session | /commands, /help, /keys, /clear, /version, /info, /exit | . ",
+    "url": "/interactive-commands.html#command-groups",
+    
+    "relUrl": "/interactive-commands.html#command-groups"
+  },"265": {
+    "doc": "Command Reference",
+    "title": "Slash command matrix",
+    "content": "| Interactive command | Arguments / subcommands | Supported options | Interactive page | CLI page | . | /status | none | --json, --verbose/-v, --refresh | /status | wum status | . | /list | none | --security, --critical, --optional, --drivers, --definition, --hidden, --installed, --microsoft-update/--mu, --json, --no-color, --verbose/-v, --refresh | /list | wum list | . | /search | &lt;term&gt; | --category &lt;name&gt;, --json, --microsoft-update/--mu | /search | wum search | . | /install | [&lt;kb-articles&gt;...] | --security, --critical, --all, --definition, --dry-run, --force/-f, --no-reboot, --microsoft-update/--mu | /install | wum install | . | /uninstall | &lt;kb-article&gt; | --force/-f | /uninstall | wum uninstall | . | /hide add | &lt;update-id&gt; | none | /hide | wum hide | . | /hide remove | &lt;update-id&gt; | none | /hide | wum hide | . | /hide list | none | none | /hide | wum hide | . | /history | none | --count/-n &lt;N&gt;, --failed, --kb &lt;KB&gt;, --json | /history | wum history | . | /pause | none | --days &lt;N&gt; | /pause | wum pause | . | /pause resume | none | none | /pause | wum pause | . | /schedule | none; same as show | none | /schedule | wum schedule | . | /schedule show | none | none | /schedule | wum schedule | . | /schedule set | none | --day &lt;DayOfWeek&gt;, --time &lt;HH:mm&gt;, --auto-install, --auto-reboot, --all | /schedule | wum schedule | . | /schedule clear | none | none | /schedule | wum schedule | . | /settings | none; same as show | none | /settings | wum settings | . | /settings show | none | none | /settings | wum settings | . | /settings set | &lt;key&gt; &lt;value&gt; | none | /settings | wum settings | . | /settings reset | none | none | /settings | wum settings | . | /reboot | none | --delay &lt;seconds&gt;, --force/-f, --cancel | /reboot | wum reboot | . | /diagnose | none | --refresh, --json, --fix, --force/-f | /diagnose | wum diagnose | . ",
+    "url": "/interactive-commands.html#slash-command-matrix",
+    
+    "relUrl": "/interactive-commands.html#slash-command-matrix"
+  },"266": {
+    "doc": "Command Reference",
+    "title": "Detailed interactive pages",
+    "content": "| Page | Detail covered | . | /status | Status display, JSON, verbose, refresh | . | /list | Filters, installed/hidden scans, output modes | . | /search | Search terms, category filter, Microsoft Update | . | /install | KB targets, category installs, dry-run, confirmation | . | /uninstall | KB uninstall, force mode | . | /hide | Add/remove/list hidden updates | . | /history | Count, failed-only, KB filter, JSON | . | /pause | Pause days, resume | . | /schedule | Weekly schedule, auto install, clear | . | /settings | Show/set/reset WU settings | . | /reboot | Delay, force, cancel restart | . | /diagnose | Health check, JSON, fix | . | Session Commands | /commands, /help, /keys, /clear, /version, /info, /exit | . ",
+    "url": "/interactive-commands.html#detailed-interactive-pages",
+    
+    "relUrl": "/interactive-commands.html#detailed-interactive-pages"
+  },"267": {
+    "doc": "Command Reference",
+    "title": "Completion behavior",
+    "content": "Typing / opens command suggestions. Typing a command plus a space opens subcommand or option suggestions when WUM knows them: . /status --v . can complete to: . /status --verbose . Tab accepts current suggestion. Shift+Tab cycles backward. Right Arrow accepts ghost-text completion at end of line. Next: /status . ",
+    "url": "/interactive-commands.html#completion-behavior",
+    
+    "relUrl": "/interactive-commands.html#completion-behavior"
+  },"268": {
+    "doc": "Command Reference",
+    "title": "Command Reference",
+    "content": " ",
+    "url": "/interactive-commands.html",
+    
+    "relUrl": "/interactive-commands.html"
+  },"269": {
+    "doc": "Session Commands",
+    "title": "Session Commands",
+    "content": "These commands exist only inside interactive mode. They control the shell session, not Windows Update state. ",
+    "url": "/interactive-session.html",
+    
+    "relUrl": "/interactive-session.html"
+  },"270": {
+    "doc": "Session Commands",
+    "title": "Commands",
+    "content": "| Command | Effect | . | /commands | Show grouped command palette. | . | /help or /? | Show interactive help. | . | /help &lt;command&gt; | Show help for one command, for example /help list. | . | /keys | Show keyboard shortcuts. | . | /clear | Clear visible screen and terminal scrollback, then redraw welcome panel. | . | /version | Print WUM version. | . | /info | Show build and developer information. | . | /exit, /quit, exit, quit | Leave interactive mode. | . ",
+    "url": "/interactive-session.html#commands",
+    
+    "relUrl": "/interactive-session.html#commands"
+  },"271": {
+    "doc": "Session Commands",
+    "title": "Behavior",
+    "content": "Session commands do not use a slash command’s Windows Update handler. They execute immediately in the interactive shell. /clear redraws interactive mode after clearing. /exit and /quit print goodbye and return to the parent terminal. ",
+    "url": "/interactive-session.html#behavior",
+    
+    "relUrl": "/interactive-session.html#behavior"
+  },"272": {
+    "doc": "Session Commands",
+    "title": "Examples",
+    "content": "/commands /help status /keys /clear /version /info /exit . Next: Shortcuts . ",
+    "url": "/interactive-session.html#examples",
+    
+    "relUrl": "/interactive-session.html#examples"
+  },"273": {
+    "doc": "Shortcuts",
+    "title": "Interactive Shortcuts",
+    "content": " ",
+    "url": "/interactive-shortcuts.html#interactive-shortcuts",
+    
+    "relUrl": "/interactive-shortcuts.html#interactive-shortcuts"
+  },"274": {
+    "doc": "Shortcuts",
+    "title": "Keyboard shortcuts",
+    "content": "| Key | Effect | . | Tab | Complete the current suggestion | . | Shift+Tab | Cycle suggestions backward | . | Enter | Run the command, or complete a selected bare command suggestion | . | Right Arrow at end of line | Accept ghost-text completion | . | Up / Down | Browse history at an empty prompt, or move through suggestions | . | Ctrl+P / Ctrl+N | Browse history backward / forward | . | Ctrl+A / Ctrl+E | Move to start / end of line | . | Ctrl+U / Ctrl+K | Delete before / after cursor | . | Ctrl+W | Delete previous word | . | Backspace / Delete | Delete previous / next character | . | Esc | Clear the current line | . | Ctrl+L | Clear screen and scrollback, then redraw interactive mode | . | Ctrl+C | First press cancels the current line; second press exits | . | Ctrl+D on an empty prompt | Exit interactive mode | . ",
+    "url": "/interactive-shortcuts.html#keyboard-shortcuts",
+    
+    "relUrl": "/interactive-shortcuts.html#keyboard-shortcuts"
+  },"275": {
+    "doc": "Shortcuts",
+    "title": "History",
+    "content": "History stores recent non-empty, non-exit commands in: . %LOCALAPPDATA%\\WUM\\interactive-history.txt . WUM keeps the newest 200 entries and skips duplicate consecutive commands. Back to Session Commands · Interactive Command Reference · Interactive Mode . ",
+    "url": "/interactive-shortcuts.html#history",
+    
+    "relUrl": "/interactive-shortcuts.html#history"
+  },"276": {
+    "doc": "Shortcuts",
+    "title": "Shortcuts",
+    "content": " ",
+    "url": "/interactive-shortcuts.html",
+    
+    "relUrl": "/interactive-shortcuts.html"
+  },"277": {
     "doc": "Interactive Mode",
     "title": "Interactive Mode",
-    "content": ". | Prompt layout | Slash commands | Session commands | Keyboard shortcuts | Completion and history | Quoting and arguments | Examples | . ← Use WUM . Run wum with no arguments to open the interactive shell: . wum . Interactive mode keeps the welcome panel, smart prompt, completion list, footer shortcuts, and command status together. Interactive mode uses the same command handlers as one-shot CLI commands. A slash command maps directly to the normal command name: . | Interactive | One-shot equivalent | . | /status | wum status | . | /list --security --refresh | wum list --security --refresh | . | /install KB5034441 --dry-run | wum install KB5034441 --dry-run | . | /diagnose --fix | wum diagnose --fix | . Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show the same elevation guidance as the one-shot CLI. ",
+    "content": ". | Prompt layout | Slash commands | Interactive submenus | Session commands | Keyboard shortcuts | Completion and history | Quoting and arguments | Examples | . ← Use WUM . Run wum with no arguments to open the interactive shell: . wum . Interactive mode opens with the welcome panel, smart prompt, footer shortcuts, and session status. Typing `/` or a command prefix opens command suggestions with descriptions. After a command, WUM suggests supported options and aliases. Interactive mode uses the same command handlers as one-shot CLI commands. A slash command maps directly to the normal command name: . | Interactive | One-shot equivalent | . | /status | wum status | . | /list --security --refresh | wum list --security --refresh | . | /install KB5034441 --dry-run | wum install KB5034441 --dry-run | . | /diagnose --fix | wum diagnose --fix | . Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show the same elevation guidance as the one-shot CLI. For every slash command, argument, option, and subcommand, see Interactive Command Reference. Each slash command also has its own Interactive Mode page in the left nav. ",
     "url": "/interactive.html",
     
     "relUrl": "/interactive.html"
-  },"95": {
+  },"278": {
     "doc": "Interactive Mode",
     "title": "Prompt layout",
     "content": "The smart prompt keeps the active command area together: . ─ ready ───────────────────────────────────────── wum › ↑↓ history · Tab complete · Ctrl+L clear · Ctrl+C cancel · Ctrl+D exit ● admin · smart editor · history 4 · D:\\Github\\wum . After a command completes, WUM prints the command result, a ✓ done or ✗ failed footer, then returns to ready without pausing for another key. ",
     "url": "/interactive.html#prompt-layout",
     
     "relUrl": "/interactive.html#prompt-layout"
-  },"96": {
+  },"279": {
     "doc": "Interactive Mode",
     "title": "Slash commands",
-    "content": "Use /commands in the shell to browse these groups. | Group | Commands | . | Look around | /status, /list, /search, /history | . | Take action | /install, /uninstall, /hide | . | Stay in control | /pause, /schedule, /settings, /reboot, /diagnose | . | This session | /commands, /help, /keys, /clear, /version, /info, /exit | . ",
+    "content": "Use /commands in the shell to browse these groups. | Group | Commands | . | Look around | /status, /list, /search, /history | . | Take action | /install, /uninstall, /hide | . | Stay in control | /pause, /schedule, /settings, /reboot, /diagnose | . | This session | /commands, /help, /keys, /clear, /version, /info, /exit | . See Interactive Command Reference for the full slash command matrix and per-command interactive pages. ",
     "url": "/interactive.html#slash-commands",
     
     "relUrl": "/interactive.html#slash-commands"
-  },"97": {
+  },"280": {
+    "doc": "Interactive Mode",
+    "title": "Interactive submenus",
+    "content": "| Page | Detail | . | Command Reference | Slash command matrix and command groups | . | /status through /diagnose | One page per slash command | . | Session Commands | /commands, /help, /keys, /clear, /version, /info, /exit | . | Shortcuts | Keyboard shortcuts, completion, and history | . ",
+    "url": "/interactive.html#interactive-submenus",
+    
+    "relUrl": "/interactive.html#interactive-submenus"
+  },"281": {
     "doc": "Interactive Mode",
     "title": "Session commands",
     "content": "| Command | Effect | . | /commands | Show the grouped command palette | . | /help or /? | Show interactive help | . | /help &lt;command&gt; | Show help for one command, for example /help list | . | /keys | Show keyboard shortcuts | . | /clear | Clear the screen and terminal scrollback, then redraw the welcome panel | . | /version | Print WUM version | . | /info | Show build and developer information | . | /exit, /quit, exit, quit | Leave interactive mode | . ",
     "url": "/interactive.html#session-commands",
     
     "relUrl": "/interactive.html#session-commands"
-  },"98": {
+  },"282": {
     "doc": "Interactive Mode",
     "title": "Keyboard shortcuts",
     "content": "| Key | Effect | . | Tab | Complete the current suggestion | . | Shift+Tab | Cycle suggestions backward | . | Enter | Run the command, or complete a selected bare command suggestion | . | Right Arrow at end of line | Accept ghost-text completion | . | Up / Down | Browse history at an empty prompt, or move through suggestions | . | Ctrl+P / Ctrl+N | Browse history backward / forward | . | Ctrl+A / Ctrl+E | Move to start / end of line | . | Ctrl+U / Ctrl+K | Delete before / after cursor | . | Ctrl+W | Delete previous word | . | Backspace / Delete | Delete previous / next character | . | Esc | Clear the current line | . | Ctrl+L | Clear screen and scrollback, then redraw interactive mode | . | Ctrl+C | First press cancels the current line; second press exits | . | Ctrl+D on an empty prompt | Exit interactive mode | . ",
     "url": "/interactive.html#keyboard-shortcuts",
     
     "relUrl": "/interactive.html#keyboard-shortcuts"
-  },"99": {
+  },"283": {
     "doc": "Interactive Mode",
     "title": "Completion and history",
     "content": "Typing / opens command suggestions. Typing a command plus a space opens option or subcommand suggestions where WUM knows them: . /list --s . can complete to: . /list --security . History stores recent non-empty, non-exit commands in: . %LOCALAPPDATA%\\WUM\\interactive-history.txt . WUM keeps the newest 200 entries and skips duplicate consecutive commands. ",
     "url": "/interactive.html#completion-and-history",
     
     "relUrl": "/interactive.html#completion-and-history"
-  },"100": {
+  },"284": {
     "doc": "Interactive Mode",
     "title": "Quoting and arguments",
     "content": "Interactive mode preserves quoted arguments and passes them to the same parser used by one-shot commands: . /search \"security update\" /settings set active-hours \"9-18\" . Single quotes, double quotes, and backslash escapes inside quotes are supported. ",
     "url": "/interactive.html#quoting-and-arguments",
     
     "relUrl": "/interactive.html#quoting-and-arguments"
-  },"101": {
+  },"285": {
     "doc": "Interactive Mode",
     "title": "Examples",
-    "content": "/status /status --refresh /list --installed /list --security --json /search KB5034441 /install --all --dry-run /install KB5034441 --no-reboot /schedule show /settings show /diagnose --verbose . Next: Command Reference → . ",
+    "content": "/status /status --refresh /list --installed /list --security --json /search KB5034441 /install --all --dry-run /install KB5034441 --no-reboot /schedule show /settings show /diagnose --verbose . Next: Command Reference → · Session Commands → · Shortcuts → . ",
     "url": "/interactive.html#examples",
     
     "relUrl": "/interactive.html#examples"
-  },"102": {
+  },"286": {
     "doc": "Internals",
     "title": "Internals",
     "content": "Implementation docs for understanding and extending WUM. Architecture Project layout, service boundaries, scan cache, logging, and WUA integration. Development Build, test, publish, and add new commands safely. ",
     "url": "/internals/",
     
     "relUrl": "/internals/"
-  },"103": {
+  },"287": {
     "doc": "OTel Tracing",
     "title": "OTel Tracing",
     "content": "Neutrx can create OpenTelemetry-friendly spans and propagation headers when the application installs @opentelemetry/api. Neutrx core does not require it as a runtime dependency. npm install @opentelemetry/api . import neutrx, { createOtelPlugin, createTraceContextPlugin } from 'neutrx'; const api = neutrx.create({ baseURL: 'https://api.example.com', timeout: 10_000, security: { profile: 'standard' }, }); api.use(createOtelPlugin({ tracerName: 'billing-http', propagateTraceHeaders: true, })); api.use(createTraceContextPlugin({ formats: ['w3c', 'b3-multi', 'b3-single'], sampled: true, })); export async function fetchHealth(): Promise&lt;number&gt; { const response = await api.get('/health'); console.log(response.traceContext); console.log(api.getMetrics()); return response.status; } . The OTel carrier is injected from the client span created for the request. Additional B3 headers reuse the same identity, retry attempts are span events, and response.traceContext exposes the trace and span IDs for correlation. Span attributes avoid raw query strings and use safe request details such as method, path target, host, retry count, status, cache state, duration, and circuit breaker state. ",
     "url": "/examples/otel-tracing.html",
     
     "relUrl": "/examples/otel-tracing.html"
-  },"104": {
+  },"288": {
     "doc": "Request Retry",
     "title": "Request Retry",
     "content": "Retries are enabled by default for idempotent methods. Configure the retry budget and delay behavior on the client. import neutrx from 'neutrx'; const api = neutrx.create({ baseURL: 'https://catalog.example.com', timeout: 8_000, security: { profile: 'standard' }, resilience: { enableRetry: true, maxRetries: 3, retryStrategy: 'exponential', retryDelay: 250, maxRetryDelay: 5_000, retryJitter: true, retryBudget: { maxRetries: 100, windowMs: 60_000, scope: 'origin', namespace: 'catalog-api', }, }, }); export async function listProducts() { const response = await api.get('/products'); console.log(response.attempts); return response.data; } . For POST and PATCH, use idempotencyKey only when the upstream API treats duplicate keys as one operation: . await api.post('/payments', { amount: 42 }, { idempotencyKey: crypto.randomUUID(), }); . ",
     "url": "/examples/request-retry.html",
     
     "relUrl": "/examples/request-retry.html"
-  },"105": {
+  },"289": {
     "doc": "REST API Request",
     "title": "REST API Request",
     "content": "Create one client for the upstream API, then use verb helpers for each request. import neutrx from 'neutrx'; type User = { readonly id: string; readonly name: string; }; const api = neutrx.create({ baseURL: 'https://api.example.com', timeout: 10_000, security: { profile: 'standard', allowedHosts: ['api.example.com'], }, }); export async function listUsers(page = 1): Promise&lt;readonly User[]&gt; { const response = await api.get&lt;readonly User[]&gt;('/users', { params: { page }, }); return response.data; } export async function createUser(name: string): Promise&lt;User&gt; { const response = await api.post&lt;User&gt;('/users', { name }); return response.data; } . Request config passed to a call overrides instance defaults for that call only. ",
     "url": "/examples/rest-api-request.html",
     
     "relUrl": "/examples/rest-api-request.html"
-  },"106": {
+  },"290": {
     "doc": "Schema Validation",
     "title": "Schema Validation",
     "content": "Use schema to validate and optionally transform parsed response data before a successful response is returned. Neutrx accepts Zod-like safeParse, parse, validate, TypeBox-style Check/Errors, or function validators. import neutrx, { NeutrxValidationError, type ResponseValidationSchema, } from 'neutrx'; type User = { readonly id: string; readonly name: string; readonly active: boolean; }; const userSchema = { safeParse(value: unknown) { if ( value !== null &amp;&amp; typeof value === 'object' &amp;&amp; !Array.isArray(value) &amp;&amp; 'id' in value &amp;&amp; 'name' in value &amp;&amp; 'active' in value ) { const record = value as Record&lt;string, unknown&gt;; if ( typeof record.id === 'number' &amp;&amp; typeof record.name === 'string' &amp;&amp; typeof record.active === 'boolean' ) { return { success: true as const, data: { id: String(record.id), name: record.name.trim(), active: record.active, }, }; } } return { success: false as const, issues: [{ path: ['id'], message: 'user response is invalid' }], }; }, } satisfies ResponseValidationSchema&lt;User&gt;; const api = neutrx.create({ baseURL: 'https://api.example.com', security: { profile: 'standard' }, }); export async function fetchUser(userId: string): Promise&lt;User&gt; { try { const response = await api.get(`/users/${encodeURIComponent(userId)}`, { schema: userSchema, }); return response.data; } catch (error) { if (error instanceof NeutrxValidationError) { console.error(error.issues); } throw error; } } . Validation failures do not retry. ",
     "url": "/examples/schema-validation.html",
     
     "relUrl": "/examples/schema-validation.html"
-  },"107": {
+  },"291": {
     "doc": "Troubleshooting",
     "title": "Troubleshooting",
     "content": ". | “0 updates found” but I expect some | “COM Session: FAILED” / search throws | Network shows UNREACHABLE | Updates won’t download or install | “A reboot is required” never clears | Pause / settings / schedule changes “don’t stick” | wum is not recognized | Reading the logs | Windows Update error codes | Last resort: reset Windows Update | . ← Docs index . Most problems are diagnosable with one command: . wum diagnose . It prints targeted hints for whatever actually failed. This page expands each common symptom into cause → fix, and decodes the error codes WUM reports. When in doubt, run wum diagnose --json and read the exitCode bitmask (see Diagnostics). It tells you the failure class without reading the whole report. ",
     "url": "/troubleshooting.html",
     
     "relUrl": "/troubleshooting.html"
-  },"108": {
+  },"292": {
     "doc": "Troubleshooting",
     "title": "“0 updates found” but I expect some",
     "content": "wum status / wum list show zero, yet Windows Update GUI shows updates (or you know some are due). | Likely cause | How to confirm | Fix | . | Managed by WSUS / policy | wum diagnose → Update Source : WSUS (...) | Updates come from the org server, not Microsoft Update. Expected on managed PCs — not a fault | . | Microsoft Update service not registered | wum diagnose → Microsoft Upd : NOT registered | Driver / MS-product updates are hidden from the default scan. Use --mu: wum list --mu | . | Stale cache | Ran a scan &lt; 5 min ago | Force a fresh scan: wum list --refresh (or status --refresh) | . | Not elevated | wum diagnose → Running Admin : False | Some results need admin. Re-run in an Administrator terminal | . | Genuinely up to date | Updates Found : 0 and no other hint | Nothing to do | . wum list --refresh # bypass the 5-minute scan cache wum list --mu # include Microsoft Update (drivers + MS products) wum diagnose # see Update Source + Microsoft Upd lines . ",
     "url": "/troubleshooting.html#0-updates-found-but-i-expect-some",
     
     "relUrl": "/troubleshooting.html#0-updates-found-but-i-expect-some"
-  },"109": {
+  },"293": {
     "doc": "Troubleshooting",
     "title": "“COM Session: FAILED” / search throws",
     "content": "| Cause | Fix | . | Not running as Administrator | Re-run from an elevated terminal. COM failures almost always mean “not admin” | . | WU service disabled | wum diagnose shows WU Service : ... (DISABLED) → set wuauserv to Manual and start it | . | Corrupted WU components | wum diagnose --fix (resets SoftwareDistribution, re-registers DLLs), then reboot | . ",
     "url": "/troubleshooting.html#com-session-failed--search-throws",
     
     "relUrl": "/troubleshooting.html#com-session-failed--search-throws"
-  },"110": {
+  },"294": {
     "doc": "Troubleshooting",
     "title": "Network shows UNREACHABLE",
     "content": "wum diagnose → Network (WU) : UNREACHABLE. WUM probes TCP 443 to sls.update.microsoft.com, download.windowsupdate.com, ctldl.windowsupdate.com (it does not use ping — ICMP is blocked on MS hosts). | Cause | Fix | . | Firewall blocking 443 to WU hosts | Allow outbound 443 to *.windowsupdate.com / *.update.microsoft.com | . | Proxy required but not configured | Check wum diagnose → Proxy : line; set WinHTTP proxy (netsh winhttp set proxy ...) | . | Wrong system clock breaks TLS | Error 0x80072F8F — fix date/time, then retry | . | DNS failure | Error 0x80072EE7 — check DNS / hosts file | . ",
     "url": "/troubleshooting.html#network-shows-unreachable",
     
     "relUrl": "/troubleshooting.html#network-shows-unreachable"
-  },"111": {
+  },"295": {
     "doc": "Troubleshooting",
     "title": "Updates won’t download or install",
     "content": "| Symptom | Cause | Fix | . | ✗ Download failed | BITS service down | wum diagnose → BITS : Stopped → start bits | . | ✗ Install failed — 0x800F0922 | Insufficient WinRE / recovery-partition space | Free space / resize the recovery partition | . | update not found in catalog | Already installed, hidden, or superseded | wum list --hidden; wum history --kb &lt;KB&gt; to check | . | Everything fails | Corrupt WU datastore | wum diagnose → WU Datastore : MISSING → wum diagnose --fix | . | Low disk space | Disk Free : N GB (LOW) (under 10 GB) | Free space on the system drive — WU needs headroom to stage | . WUM surfaces the underlying reason from IUpdateService.LastError, decoding the HRESULT where it can. See the error-code table below. ",
     "url": "/troubleshooting.html#updates-wont-download-or-install",
     
     "relUrl": "/troubleshooting.html#updates-wont-download-or-install"
-  },"112": {
+  },"296": {
     "doc": "Troubleshooting",
     "title": "“A reboot is required” never clears",
     "content": "wum status keeps showing Reboot Required : Yes. | Cause | Fix | . | Pending reboot genuinely outstanding | wum reboot (or wum reboot --delay 60) | . | Very long uptime delays finalization | wum diagnose → Uptime : Nd ... → just reboot | . | Stuck CBS state | wum diagnose --fix, then reboot | . WUM checks update-specific reboot markers only (WU / CBS / UpdateExe). It deliberately ignores PendingFileRenameOperations (set by routine installers), so a “Yes” here means a real update reboot is pending. See Configuration → Reboot detection. ",
     "url": "/troubleshooting.html#a-reboot-is-required-never-clears",
     
     "relUrl": "/troubleshooting.html#a-reboot-is-required-never-clears"
-  },"113": {
+  },"297": {
     "doc": "Troubleshooting",
     "title": "Pause / settings / schedule changes “don’t stick”",
     "content": "| Cause | Fix | . | Not elevated | These write HKLM — run as Administrator | . | Org policy overrides | A WSUS/GPO-managed PC may re-apply policy. WUM writes the value; policy can revert it | . | Wrong key name | wum settings set prints the valid key list on an unknown key — see Configuration → Settings | . wum pause --days 14 # writes 5 pause values under HKLM\\...\\UX\\Settings wum pause resume # deletes them wum settings # show current values to confirm . ",
     "url": "/troubleshooting.html#pause--settings--schedule-changes-dont-stick",
     
     "relUrl": "/troubleshooting.html#pause--settings--schedule-changes-dont-stick"
-  },"114": {
+  },"298": {
     "doc": "Troubleshooting",
     "title": "wum is not recognized",
     "content": "| Cause | Fix | . | Not on PATH | MSI install adds it automatically; for a manual publish, add the folder containing wum.exe to PATH | . | Running from source | Use dotnet run --project src/WUM.CLI -- &lt;args&gt; instead | . ",
     "url": "/troubleshooting.html#wum-is-not-recognized",
     
     "relUrl": "/troubleshooting.html#wum-is-not-recognized"
-  },"115": {
+  },"299": {
     "doc": "Troubleshooting",
     "title": "Reading the logs",
     "content": "Every run logs to: . %ProgramData%\\WUM\\logs\\wum-YYYY-MM-DD.log . Debug-level, 7-day retention. When a command fails unexpectedly, the log has the full PowerShell stderr and exception. The colorized report footer points here too. # PowerShell — tail today's log Get-Content \"$env:ProgramData\\WUM\\logs\\wum-$(Get-Date -f yyyy-MM-dd).log\" -Tail 40 -Wait . ",
     "url": "/troubleshooting.html#reading-the-logs",
     
     "relUrl": "/troubleshooting.html#reading-the-logs"
-  },"116": {
+  },"300": {
     "doc": "Troubleshooting",
     "title": "Windows Update error codes",
     "content": "WUM decodes the first 0x........ HRESULT in any failure message (WuErrorCodes.Decode). The high-signal set: . | Code | Meaning | Typical fix | . | 0x80072EE2 | Connection timed out (WININET) | Check network / proxy | . | 0x80072EE7 | Server name not resolved (DNS) | Check DNS / hosts | . | 0x80072EFD | Cannot connect to update server | Check firewall / proxy | . | 0x80072F8F | System clock wrong → TLS broken | Fix date/time | . | 0x8024401C | HTTP 408 request timeout | Retry / check proxy | . | 0x80244022 | HTTP 503 — WSUS/IIS down | Wait / contact WSUS admin | . | 0x80244019 | HTTP 404 — content not found | Update superseded / retry later | . | 0x8024402C | Proxy/connection error | Check proxy settings | . | 0x80070422 | WU service disabled | Set wuauserv to Manual + start | . | 0x8024002E | Blocked by policy (WSUS/managed) | Expected on managed PCs | . | 0x8024A005 | Automatic Updates disabled by policy | Adjust GPO | . | 0x80240024 | No updates applicable | Up to date — no action | . | 0x8024000C | No operation required | Up to date — no action | . | 0x80240034 | An update failed to download | Retry; check BITS / disk | . | 0x80246007 | Update not downloaded | Download first, then install | . | 0x800F0922 | Install failed — WinRE space | Free / resize recovery partition | . Full list: src/WUM.Core/Helpers/WuErrorCodes.cs. Unknown codes are reported as 0xCODE — Unrecognized Windows Update error code. ",
     "url": "/troubleshooting.html#windows-update-error-codes",
     
     "relUrl": "/troubleshooting.html#windows-update-error-codes"
-  },"117": {
+  },"301": {
     "doc": "Troubleshooting",
     "title": "Last resort: reset Windows Update",
     "content": "When the datastore is corrupt or nothing scans, reset the components: . wum diagnose --fix is destructive. It stops WU services, renames SoftwareDistribution and catroot2 to .bak (discarding pending downloads), re-registers WU DLLs, resets WinSock/WinHTTP proxy, and restarts services. A reboot is advised afterward. wum diagnose --fix # confirms first wum diagnose --fix --force # skip confirmation # reboot, then: wum diagnose # re-check health . Next: Development → . ",
     "url": "/troubleshooting.html#last-resort-reset-windows-update",
     
     "relUrl": "/troubleshooting.html#last-resort-reset-windows-update"
-  },"118": {
+  },"302": {
     "doc": "Use WUM",
     "title": "Use WUM",
-    "content": "Operational docs for listing, installing, diagnosing, and fixing Windows Update issues. Interactive Mode Smart shell, slash commands, completion, history, and keyboard shortcuts. Command Reference Every command, option, argument, and practical example. Diagnostics Health checks, exit-code bitmask, scan details, and component reset guidance. Troubleshooting Symptom-to-fix notes for common Windows Update failures. ",
+    "content": "Operational docs for listing, installing, diagnosing, and fixing Windows Update issues. CLI Mode One-shot commands, arguments, options, diagnostics, and troubleshooting. Interactive Mode Smart shell, slash command subpages, screenshots, completion, history, and shortcuts. ",
     "url": "/use-wum/",
     
     "relUrl": "/use-wum/"

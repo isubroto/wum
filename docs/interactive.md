@@ -2,7 +2,8 @@
 title: Interactive Mode
 layout: default
 parent: Use WUM
-nav_order: 1
+nav_order: 2
+has_children: true
 description: "Run WUM as a smart interactive shell with slash commands, history, completions, keyboard shortcuts, and session tools."
 ---
 
@@ -23,8 +24,18 @@ wum
 ```
 
 <figure>
-  <img src="{{ '/assets/interactive-shell.svg' | relative_url }}" alt="WUM interactive shell showing the welcome panel, slash command suggestions, option completion, and prompt footer">
-  <figcaption>Interactive mode keeps the welcome panel, smart prompt, completion list, footer shortcuts, and command status together.</figcaption>
+  <img src="{{ '/assets/wum-new-terminal.png' | relative_url }}" alt="WUM interactive shell welcome panel and ready prompt">
+  <figcaption>Interactive mode opens with the welcome panel, smart prompt, footer shortcuts, and session status.</figcaption>
+</figure>
+
+<figure>
+  <img src="{{ '/assets/wum-with-command.png' | relative_url }}" alt="WUM interactive shell showing slash command suggestions">
+  <figcaption>Typing `/` or a command prefix opens command suggestions with descriptions.</figcaption>
+</figure>
+
+<figure>
+  <img src="{{ '/assets/wum-with-command-options.png' | relative_url }}" alt="WUM interactive shell showing option suggestions for a command">
+  <figcaption>After a command, WUM suggests supported options and aliases.</figcaption>
 </figure>
 
 Interactive mode uses the same command handlers as one-shot CLI commands. A slash command maps directly to the normal command name:
@@ -37,6 +48,8 @@ Interactive mode uses the same command handlers as one-shot CLI commands. A slas
 | `/diagnose --fix` | `wum diagnose --fix` |
 
 Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show the same elevation guidance as the one-shot CLI.
+
+For every slash command, argument, option, and subcommand, see [Interactive Command Reference](interactive-commands.md). Each slash command also has its own Interactive Mode page in the left nav.
 
 ## Prompt layout
 
@@ -61,6 +74,17 @@ Use `/commands` in the shell to browse these groups.
 | Take action | `/install`, `/uninstall`, `/hide` |
 | Stay in control | `/pause`, `/schedule`, `/settings`, `/reboot`, `/diagnose` |
 | This session | `/commands`, `/help`, `/keys`, `/clear`, `/version`, `/info`, `/exit` |
+
+See [Interactive Command Reference](interactive-commands.md) for the full slash command matrix and per-command interactive pages.
+
+## Interactive submenus
+
+| Page | Detail |
+|---|---|
+| [Command Reference](interactive-commands.md) | Slash command matrix and command groups |
+| [`/status`](interactive-command-status.md) through [`/diagnose`](interactive-command-diagnose.md) | One page per slash command |
+| [Session Commands](interactive-session.md) | `/commands`, `/help`, `/keys`, `/clear`, `/version`, `/info`, `/exit` |
+| [Shortcuts](interactive-shortcuts.md) | Keyboard shortcuts, completion, and history |
 
 ## Session commands
 
@@ -142,4 +166,4 @@ Single quotes, double quotes, and backslash escapes inside quotes are supported.
 /diagnose --verbose
 ```
 
-Next: [Command Reference →](commands.md)
+Next: [Command Reference →](interactive-commands.md) · [Session Commands →](interactive-session.md) · [Shortcuts →](interactive-shortcuts.md)

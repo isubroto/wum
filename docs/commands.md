@@ -1,8 +1,9 @@
 ---
 title: Command Reference
 layout: default
-parent: Use WUM
-nav_order: 2
+parent: CLI Mode
+grand_parent: Use WUM
+nav_order: 1
 description: "Every WUM command, sub-command, argument, option, and example."
 ---
 
@@ -47,18 +48,18 @@ Most read commands share these:
 
 | Command | Purpose | Admin |
 |---|---|---|
-| [`status`](#wum-status) | Dashboard of update state | No |
-| [`list`](#wum-list) | List available / installed / hidden updates | No |
-| [`search`](#wum-search) | Full-text search across available updates | No |
-| [`install`](#wum-install) | Download & install updates | **Yes** |
-| [`uninstall`](#wum-uninstall) | Remove an installed update | **Yes** |
-| [`hide`](#wum-hide) | Hide / unhide / list hidden updates | Partial |
-| [`history`](#wum-history) | Show install history | No |
-| [`pause`](#wum-pause) | Pause / resume updates | **Yes** |
-| [`schedule`](#wum-schedule) | Manage a weekly update schedule | **Yes** |
-| [`settings`](#wum-settings) | View / change WU settings | **Yes** (set/reset) |
-| [`reboot`](#wum-reboot) | Schedule / cancel a restart | **Yes** |
-| [`diagnose`](#wum-diagnose) | Health check + optional component reset | **Yes** (`--fix`) |
+| [`status`](command-status.md) | Dashboard of update state | No |
+| [`list`](command-list.md) | List available / installed / hidden updates | No |
+| [`search`](command-search.md) | Full-text search across available updates | No |
+| [`install`](command-install.md) | Download & install updates | **Yes** |
+| [`uninstall`](command-uninstall.md) | Remove an installed update | **Yes** |
+| [`hide`](command-hide.md) | Hide / unhide / list hidden updates | Partial |
+| [`history`](command-history.md) | Show install history | No |
+| [`pause`](command-pause.md) | Pause / resume updates | **Yes** |
+| [`schedule`](command-schedule.md) | Manage a weekly update schedule | **Yes** |
+| [`settings`](command-settings.md) | View / change WU settings | **Yes** (set/reset) |
+| [`reboot`](command-reboot.md) | Schedule / cancel a restart | **Yes** |
+| [`diagnose`](command-diagnose.md) | Health check + optional component reset | **Yes** (`--fix`) |
 
 ---
 
@@ -89,7 +90,26 @@ Most read commands share these:
 | `wum reboot` | none | `--delay <seconds>`, `--force`/`-f`, `--cancel` |
 | `wum diagnose` | none | `--refresh`, `--json`, `--fix`, `--force`/`-f` |
 
-Interactive mode supports the same command arguments and options with a slash prefix, for example `/list --security` or `/install KB5034441 --dry-run`. Session-only commands are documented in [Interactive Mode → Session commands](interactive.md#session-commands).
+Interactive mode supports the same command arguments and options with a slash prefix, for example `/list --security` or `/install KB5034441 --dry-run`. The full slash-command matrix and session-only helpers are documented in [Interactive Command Reference](interactive-commands.md).
+
+---
+
+## Detailed command pages
+
+| Command page | Detail covered |
+|---|---|
+| [`status`](command-status.md) | Status verdicts, JSON shape, refresh behavior |
+| [`list`](command-list.md) | Filters, installed/hidden scans, Microsoft Update, output modes |
+| [`search`](command-search.md) | Search term matching, category filter, JSON usage |
+| [`install`](command-install.md) | Target selection, dry-run, confirmation, reboot behavior |
+| [`uninstall`](command-uninstall.md) | KB normalization, force mode, `wusa.exe` behavior |
+| [`hide`](command-hide.md) | Add/remove/list hidden updates and update IDs |
+| [`history`](command-history.md) | Count, failed-only, KB filter, JSON fields |
+| [`pause`](command-pause.md) | Pause duration clamp, resume, registry writes |
+| [`schedule`](command-schedule.md) | Schedule defaults, day/time validation, auto-install flags |
+| [`settings`](command-settings.md) | All setting keys, accepted values, reset behavior |
+| [`reboot`](command-reboot.md) | Delay, force, cancel, shutdown command behavior |
+| [`diagnose`](command-diagnose.md) | Checks, JSON, exit bitmask, `--fix` reset steps |
 
 ---
 

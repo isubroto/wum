@@ -1,8 +1,9 @@
 ---
 title: Diagnostics
 layout: default
-parent: Use WUM
-nav_order: 3
+parent: CLI Mode
+grand_parent: Use WUM
+nav_order: 20
 description: "The diagnose command: checks, exit-code bitmask, health score, error decoding."
 ---
 
