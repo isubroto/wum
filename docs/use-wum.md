@@ -12,16 +12,12 @@ description: "Command reference, diagnostics, and troubleshooting for day-to-day
 Operational docs for listing, installing, diagnosing, and fixing Windows Update issues.
 
 <div class="card-grid">
-  <a class="card" href="{{ '/commands/' | relative_url }}">
-    <span class="card-title">Command Reference</span>
-    <span class="card-desc">Every command, option, argument, and practical example.</span>
+  <a class="card" href="{{ '/cli.html' | relative_url }}">
+    <span class="card-title">CLI Mode</span>
+    <span class="card-desc">One-shot commands, arguments, options, diagnostics, and troubleshooting.</span>
   </a>
-  <a class="card" href="{{ '/diagnostics/' | relative_url }}">
-    <span class="card-title">Diagnostics</span>
-    <span class="card-desc">Health checks, exit-code bitmask, scan details, and component reset guidance.</span>
-  </a>
-  <a class="card" href="{{ '/troubleshooting/' | relative_url }}">
-    <span class="card-title">Troubleshooting</span>
-    <span class="card-desc">Symptom-to-fix notes for common Windows Update failures.</span>
+  <a class="card" href="{{ '/interactive.html' | relative_url }}">
+    <span class="card-title">Interactive Mode</span>
+    <span class="card-desc">Smart shell, slash command subpages, screenshots, completion, history, and shortcuts.</span>
   </a>
 </div>

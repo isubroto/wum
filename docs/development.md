@@ -92,7 +92,7 @@ dotnet publish src/WUM.CLI -c Release -r win-x64 --self-contained true -p:Publis
 
 ## Versioning
 
-`WUM.CLI.csproj` pins a 4-part numeric `<Version>` (currently `0.2.0.77`) and mirrors it into `AssemblyVersion`/`FileVersion`/`InformationalVersion`/`PackageVersion`. CI overwrites `<Version>` on tagged releases. `IncludeSourceRevisionInInformationalVersion=false` keeps the SDK from appending a git sha, so `wum --version` stays clean.
+`WUM.CLI.csproj` pins a 4-part numeric `<Version>` (currently `{{ site.data.project.version }}`) and mirrors it into `AssemblyVersion`/`FileVersion`/`InformationalVersion`/`PackageVersion`. CI overwrites `<Version>` on tagged releases and refreshes `docs/_data/project.yml` from the project file. `IncludeSourceRevisionInInformationalVersion=false` keeps the SDK from appending a git sha, so `wum --version` stays clean.
 
 ---
 

@@ -15,9 +15,10 @@
   
 
     .site-nav > ul.nav-list:first-child > li > a,
+    .site-nav > ul.nav-list:first-child > li > ul > li > a,
     
-    .site-nav > ul.nav-list:first-child > li > ul > li:not(:nth-child(1)) > a,
-    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li a {
+    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li:not(:nth-child(1)) > a,
+    .site-nav > ul.nav-list:first-child > li > ul > li > ul > li > ul > li a {
       background-image: none;
     }
 
@@ -26,14 +27,16 @@
       background-image: none;
     }
 
-    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > a {
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > ul > li:nth-child(1) > a {
       font-weight: 600;
       text-decoration: none;
     }.site-nav > ul.nav-list:first-child > li:nth-child(3) > button svg,
-    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > button svg {
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > button svg,
+    .site-nav > ul.nav-list:first-child > li:nth-child(3) > ul > li:nth-child(1) > ul > li:nth-child(1) > button svg {
       transform: rotate(-90deg);
     }.site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list,
-    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list {
+    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list,
+    .site-nav > ul.nav-list:first-child > li.nav-list-item:nth-child(3) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list > li.nav-list-item:nth-child(1) > ul.nav-list {
       display: block;
     }
   </style>
@@ -58,17 +61,18 @@
 <title>Command Reference | WUM — Windows Update Manager</title>
 <meta name="generator" content="Jekyll v4.4.1" />
 <meta property="og:title" content="Command Reference" />
+<meta name="author" content="WUM contributors" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="Every WUM command, sub-command, argument, option, and example." />
 <meta name="twitter:description" property="og:description" content="Every WUM command, sub-command, argument, option, and example." />
-<link rel="canonical" href="http://localhost:4001/commands.html" />
-<meta property="og:url" content="http://localhost:4001/commands.html" />
+<link rel="canonical" href="http://localhost:4000/commands.html" />
+<meta property="og:url" content="http://localhost:4000/commands.html" />
 <meta property="og:site_name" content="WUM — Windows Update Manager" />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="Command Reference" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","description":"Every WUM command, sub-command, argument, option, and example.","headline":"Command Reference","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4001/assets/wum-logo.svg"}},"url":"http://localhost:4001/commands.html"}</script>
+{"@context":"https://schema.org","@type":"WebPage","author":{"@type":"Person","name":"WUM contributors","url":"https://github.com/isubroto/wum/graphs/contributors"},"description":"Every WUM command, sub-command, argument, option, and example.","headline":"Command Reference","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"http://localhost:4000/assets/wum-logo.svg"},"name":"WUM contributors"},"url":"http://localhost:4000/commands.html"}</script>
 <!-- End Jekyll SEO tag -->
 
 
@@ -79,23 +83,23 @@
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0f17">
-<meta property="og:image" content="http://localhost:4001/assets/wum-social.png">
+<meta property="og:image" content="http://localhost:4000/assets/wum-social.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="WUM Windows Update Manager CLI documentation">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="http://localhost:4001/assets/wum-social.png">
+<meta name="twitter:image" content="http://localhost:4000/assets/wum-social.png">
 <meta name="twitter:image:alt" content="WUM Windows Update Manager CLI documentation">
 
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "SoftwareSourceCode",
-  "@id": "http://localhost:4001/#software",
+  "@id": "http://localhost:4000/#software",
   "name": "WUM — Windows Update Manager",
   "alternateName": "WUM CLI",
   "description": "A modern .NET 10 command-line tool for managing Windows Updates from the terminal — list, install, pause, schedule, diagnose, and more.",
-  "url": "http://localhost:4001/",
+  "url": "http://localhost:4000/",
   "codeRepository": "https://github.com/isubroto/wum",
   "downloadUrl": "https://github.com/isubroto/wum/releases",
   "license": "https://github.com/isubroto/wum/blob/main/LICENSE",
@@ -119,10 +123,10 @@
 {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "@id": "http://localhost:4001/#org",
+  "@id": "http://localhost:4000/#org",
   "name": "WUM — Windows Update Manager",
-  "url": "http://localhost:4001/",
-  "logo": "http://localhost:4001/assets/wum-logo.svg",
+  "url": "http://localhost:4000/",
+  "logo": "http://localhost:4000/assets/wum-logo.svg",
   "sameAs": [
     "https://github.com/isubroto/wum"
   ]
@@ -132,14 +136,14 @@
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "@id": "http://localhost:4001/#website",
+  "@id": "http://localhost:4000/#website",
   "name": "WUM — Windows Update Manager",
   "alternateName": "WUM docs",
   "description": "A modern .NET 10 command-line tool for managing Windows Updates from the terminal — list, install, pause, schedule, diagnose, and more.",
-  "url": "http://localhost:4001/",
+  "url": "http://localhost:4000/",
   "inLanguage": "en",
-  "publisher": { "@id": "http://localhost:4001/#org" },
-  "about": { "@id": "http://localhost:4001/#software" }
+  "publisher": { "@id": "http://localhost:4000/#org" },
+  "about": { "@id": "http://localhost:4000/#software" }
 }
 </script>
 
@@ -149,19 +153,19 @@
   "@type": "TechArticle",
   "headline": "Command Reference",
   "description": "Every WUM command, sub-command, argument, option, and example.",
-  "url": "http://localhost:4001/commands.html",
-  "dateModified": "2026-06-24T22:13:58+06:00",
+  "url": "http://localhost:4000/commands.html",
+  "dateModified": "2026-06-29T06:24:35+00:00",
   "inLanguage": "en",
-  "about": { "@id": "http://localhost:4001/#software" },
-  "isPartOf": { "@id": "http://localhost:4001/#website" },
-  "publisher": { "@id": "http://localhost:4001/#org" }
+  "about": { "@id": "http://localhost:4000/#software" },
+  "isPartOf": { "@id": "http://localhost:4000/#website" },
+  "publisher": { "@id": "http://localhost:4000/#org" }
 }
 </script><script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": [
-    { "@type": "ListItem", "position": 1, "name": "Home", "item": "http://localhost:4001/" },{ "@type": "ListItem", "position": 2, "name": "Use WUM", "item": "http://localhost:4001/use-wum/" },{ "@type": "ListItem", "position": 3, "name": "Command Reference", "item": "http://localhost:4001/commands.html" }
+    { "@type": "ListItem", "position": 1, "name": "Home", "item": "http://localhost:4000/" },{ "@type": "ListItem", "position": 2, "name": "Use WUM", "item": "http://localhost:4000/use-wum/" },{ "@type": "ListItem", "position": 3, "name": "CLI Mode", "item": "http://localhost:4000/cli.html" },{ "@type": "ListItem", "position": 4, "name": "Command Reference", "item": "http://localhost:4000/commands.html" }
   ]
 }
 </script>
@@ -645,7 +649,11 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
       </button><a href="/getting-started/" class="nav-list-link">Get Started</a><ul class="nav-list"><li class="nav-list-item"><a href="/installation.html" class="nav-list-link">Installation</a></li><li class="nav-list-item"><a href="/configuration.html" class="nav-list-link">Configuration</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Use WUM submenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
-      </button><a href="/use-wum/" class="nav-list-link">Use WUM</a><ul class="nav-list"><li class="nav-list-item"><a href="/commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/diagnostics.html" class="nav-list-link">Diagnostics</a></li><li class="nav-list-item"><a href="/troubleshooting.html" class="nav-list-link">Troubleshooting</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Internals submenu" aria-expanded="false">
+      </button><a href="/use-wum/" class="nav-list-link">Use WUM</a><ul class="nav-list"><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="CLI Mode submenu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+      </button><a href="/cli.html" class="nav-list-link">CLI Mode</a><ul class="nav-list"><li class="nav-list-item"><a href="/commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/command-status.html" class="nav-list-link">status</a></li><li class="nav-list-item"><a href="/command-list.html" class="nav-list-link">list</a></li><li class="nav-list-item"><a href="/command-search.html" class="nav-list-link">search</a></li><li class="nav-list-item"><a href="/command-install.html" class="nav-list-link">install</a></li><li class="nav-list-item"><a href="/command-uninstall.html" class="nav-list-link">uninstall</a></li><li class="nav-list-item"><a href="/command-hide.html" class="nav-list-link">hide</a></li><li class="nav-list-item"><a href="/command-history.html" class="nav-list-link">history</a></li><li class="nav-list-item"><a href="/command-pause.html" class="nav-list-link">pause</a></li><li class="nav-list-item"><a href="/command-schedule.html" class="nav-list-link">schedule</a></li><li class="nav-list-item"><a href="/command-settings.html" class="nav-list-link">settings</a></li><li class="nav-list-item"><a href="/command-reboot.html" class="nav-list-link">reboot</a></li><li class="nav-list-item"><a href="/command-diagnose.html" class="nav-list-link">diagnose</a></li><li class="nav-list-item"><a href="/diagnostics.html" class="nav-list-link">Diagnostics</a></li><li class="nav-list-item"><a href="/troubleshooting.html" class="nav-list-link">Troubleshooting</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Interactive Mode submenu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+      </button><a href="/interactive.html" class="nav-list-link">Interactive Mode</a><ul class="nav-list"><li class="nav-list-item"><a href="/interactive-commands.html" class="nav-list-link">Command Reference</a></li><li class="nav-list-item"><a href="/interactive-command-status.html" class="nav-list-link">/status</a></li><li class="nav-list-item"><a href="/interactive-command-list.html" class="nav-list-link">/list</a></li><li class="nav-list-item"><a href="/interactive-command-search.html" class="nav-list-link">/search</a></li><li class="nav-list-item"><a href="/interactive-command-install.html" class="nav-list-link">/install</a></li><li class="nav-list-item"><a href="/interactive-command-uninstall.html" class="nav-list-link">/uninstall</a></li><li class="nav-list-item"><a href="/interactive-command-hide.html" class="nav-list-link">/hide</a></li><li class="nav-list-item"><a href="/interactive-command-history.html" class="nav-list-link">/history</a></li><li class="nav-list-item"><a href="/interactive-command-pause.html" class="nav-list-link">/pause</a></li><li class="nav-list-item"><a href="/interactive-command-schedule.html" class="nav-list-link">/schedule</a></li><li class="nav-list-item"><a href="/interactive-command-settings.html" class="nav-list-link">/settings</a></li><li class="nav-list-item"><a href="/interactive-command-reboot.html" class="nav-list-link">/reboot</a></li><li class="nav-list-item"><a href="/interactive-command-diagnose.html" class="nav-list-link">/diagnose</a></li><li class="nav-list-item"><a href="/interactive-session.html" class="nav-list-link">Session Commands</a></li><li class="nav-list-item"><a href="/interactive-shortcuts.html" class="nav-list-link">Shortcuts</a></li></ul></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="Internals submenu" aria-expanded="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
       </button><a href="/internals/" class="nav-list-link">Internals</a><ul class="nav-list"><li class="nav-list-item"><a href="/architecture.html" class="nav-list-link">Architecture</a></li><li class="nav-list-item"><a href="/development.html" class="nav-list-link">Development</a></li></ul></li></ul>
   
@@ -690,7 +698,7 @@
           target="_blank" rel="noopener noreferrer"
           
         >
-          WUM on GitHub
+          GitHub
         </a>
       </li>
     
@@ -704,6 +712,7 @@
       <nav aria-label="Breadcrumb" class="breadcrumb-nav">
   <ol class="breadcrumb-nav-list">
     <li class="breadcrumb-nav-list-item"><a href="/use-wum/">Use WUM</a></li>
+    <li class="breadcrumb-nav-list-item"><a href="/cli.html">CLI Mode</a></li>
     <li class="breadcrumb-nav-list-item"><span>Command Reference</span></li>
   </ol>
 </nav>
@@ -727,6 +736,8 @@
     </ol>
   </li>
   <li><a href="#command-summary" id="markdown-toc-command-summary">Command summary</a></li>
+  <li><a href="#command-argument-and-option-matrix" id="markdown-toc-command-argument-and-option-matrix">Command argument and option matrix</a></li>
+  <li><a href="#detailed-command-pages" id="markdown-toc-detailed-command-pages">Detailed command pages</a></li>
   <li><a href="#wum-status" id="markdown-toc-wum-status"><code class="language-plaintext highlighter-rouge">wum status</code></a></li>
   <li><a href="#wum-list" id="markdown-toc-wum-list"><code class="language-plaintext highlighter-rouge">wum list</code></a></li>
   <li><a href="#wum-search" id="markdown-toc-wum-search"><code class="language-plaintext highlighter-rouge">wum search</code></a></li>
@@ -741,9 +752,11 @@
   <li><a href="#wum-diagnose" id="markdown-toc-wum-diagnose"><code class="language-plaintext highlighter-rouge">wum diagnose</code></a></li>
 </ol><hr />
 
-<p><a href="index.md">← Docs index</a></p>
+<p><a href="/">← Docs index</a></p>
 
 <p>Complete reference for every WUM command, sub-command, argument, and option. Synopsis applies whether you run the published <code class="language-plaintext highlighter-rouge">wum.exe</code> or <code class="language-plaintext highlighter-rouge">dotnet run --project src/WUM.CLI -- &lt;args&gt;</code>.</p>
+
+<p>Running <code class="language-plaintext highlighter-rouge">wum</code> with no arguments opens the smart interactive shell. In that shell, prefix commands with <code class="language-plaintext highlighter-rouge">/</code>: <code class="language-plaintext highlighter-rouge">/status</code>, <code class="language-plaintext highlighter-rouge">/list --security</code>, <code class="language-plaintext highlighter-rouge">/install KB5034441 --dry-run</code>. See <a href="/interactive.html">Interactive Mode</a> for the full prompt, shortcuts, history, and completion behavior.</p>
 <h2 id="global-options--flags">
   
   
@@ -764,7 +777,7 @@
   <tbody>
     <tr>
       <td><code class="language-plaintext highlighter-rouge">--version</code></td>
-      <td>Print the version string (e.g. <code class="language-plaintext highlighter-rouge">0.2.0.77</code>)</td>
+      <td>Print the version string (e.g. <code class="language-plaintext highlighter-rouge">0.2.1.51</code>)</td>
       <td>No</td>
     </tr>
     <tr>
@@ -837,64 +850,263 @@
   </thead>
   <tbody>
     <tr>
-      <td><a href="#wum-status"><code class="language-plaintext highlighter-rouge">status</code></a></td>
+      <td><a href="/command-status.html"><code class="language-plaintext highlighter-rouge">status</code></a></td>
       <td>Dashboard of update state</td>
       <td>No</td>
     </tr>
     <tr>
-      <td><a href="#wum-list"><code class="language-plaintext highlighter-rouge">list</code></a></td>
+      <td><a href="/command-list.html"><code class="language-plaintext highlighter-rouge">list</code></a></td>
       <td>List available / installed / hidden updates</td>
       <td>No</td>
     </tr>
     <tr>
-      <td><a href="#wum-search"><code class="language-plaintext highlighter-rouge">search</code></a></td>
+      <td><a href="/command-search.html"><code class="language-plaintext highlighter-rouge">search</code></a></td>
       <td>Full-text search across available updates</td>
       <td>No</td>
     </tr>
     <tr>
-      <td><a href="#wum-install"><code class="language-plaintext highlighter-rouge">install</code></a></td>
+      <td><a href="/command-install.html"><code class="language-plaintext highlighter-rouge">install</code></a></td>
       <td>Download &amp; install updates</td>
       <td><strong>Yes</strong></td>
     </tr>
     <tr>
-      <td><a href="#wum-uninstall"><code class="language-plaintext highlighter-rouge">uninstall</code></a></td>
+      <td><a href="/command-uninstall.html"><code class="language-plaintext highlighter-rouge">uninstall</code></a></td>
       <td>Remove an installed update</td>
       <td><strong>Yes</strong></td>
     </tr>
     <tr>
-      <td><a href="#wum-hide"><code class="language-plaintext highlighter-rouge">hide</code></a></td>
+      <td><a href="/command-hide.html"><code class="language-plaintext highlighter-rouge">hide</code></a></td>
       <td>Hide / unhide / list hidden updates</td>
       <td>Partial</td>
     </tr>
     <tr>
-      <td><a href="#wum-history"><code class="language-plaintext highlighter-rouge">history</code></a></td>
+      <td><a href="/command-history.html"><code class="language-plaintext highlighter-rouge">history</code></a></td>
       <td>Show install history</td>
       <td>No</td>
     </tr>
     <tr>
-      <td><a href="#wum-pause"><code class="language-plaintext highlighter-rouge">pause</code></a></td>
+      <td><a href="/command-pause.html"><code class="language-plaintext highlighter-rouge">pause</code></a></td>
       <td>Pause / resume updates</td>
       <td><strong>Yes</strong></td>
     </tr>
     <tr>
-      <td><a href="#wum-schedule"><code class="language-plaintext highlighter-rouge">schedule</code></a></td>
+      <td><a href="/command-schedule.html"><code class="language-plaintext highlighter-rouge">schedule</code></a></td>
       <td>Manage a weekly update schedule</td>
       <td><strong>Yes</strong></td>
     </tr>
     <tr>
-      <td><a href="#wum-settings"><code class="language-plaintext highlighter-rouge">settings</code></a></td>
+      <td><a href="/command-settings.html"><code class="language-plaintext highlighter-rouge">settings</code></a></td>
       <td>View / change WU settings</td>
       <td><strong>Yes</strong> (set/reset)</td>
     </tr>
     <tr>
-      <td><a href="#wum-reboot"><code class="language-plaintext highlighter-rouge">reboot</code></a></td>
+      <td><a href="/command-reboot.html"><code class="language-plaintext highlighter-rouge">reboot</code></a></td>
       <td>Schedule / cancel a restart</td>
       <td><strong>Yes</strong></td>
     </tr>
     <tr>
-      <td><a href="#wum-diagnose"><code class="language-plaintext highlighter-rouge">diagnose</code></a></td>
+      <td><a href="/command-diagnose.html"><code class="language-plaintext highlighter-rouge">diagnose</code></a></td>
       <td>Health check + optional component reset</td>
       <td><strong>Yes</strong> (<code class="language-plaintext highlighter-rouge">--fix</code>)</td>
+    </tr>
+  </tbody>
+</table></div><hr />
+<h2 id="command-argument-and-option-matrix">
+  
+  
+    <a href="#command-argument-and-option-matrix" class="anchor-heading" aria-labelledby="command-argument-and-option-matrix"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Command argument and option matrix
+  
+  
+</h2>
+    
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Command</th>
+      <th>Arguments / subcommands</th>
+      <th>Supported options</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum</code></td>
+      <td>none; opens interactive mode when run with no args</td>
+      <td><code class="language-plaintext highlighter-rouge">--version</code>, <code class="language-plaintext highlighter-rouge">--info</code>, <code class="language-plaintext highlighter-rouge">--help</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum status</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--json</code>, <code class="language-plaintext highlighter-rouge">--verbose</code>/<code class="language-plaintext highlighter-rouge">-v</code>, <code class="language-plaintext highlighter-rouge">--refresh</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum list</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--security</code>, <code class="language-plaintext highlighter-rouge">--critical</code>, <code class="language-plaintext highlighter-rouge">--optional</code>, <code class="language-plaintext highlighter-rouge">--drivers</code>, <code class="language-plaintext highlighter-rouge">--definition</code>, <code class="language-plaintext highlighter-rouge">--hidden</code>, <code class="language-plaintext highlighter-rouge">--installed</code>, <code class="language-plaintext highlighter-rouge">--microsoft-update</code>/<code class="language-plaintext highlighter-rouge">--mu</code>, <code class="language-plaintext highlighter-rouge">--json</code>, <code class="language-plaintext highlighter-rouge">--no-color</code>, <code class="language-plaintext highlighter-rouge">--verbose</code>/<code class="language-plaintext highlighter-rouge">-v</code>, <code class="language-plaintext highlighter-rouge">--refresh</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum search</code></td>
+      <td><code class="language-plaintext highlighter-rouge">&lt;term&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">--category &lt;name&gt;</code>, <code class="language-plaintext highlighter-rouge">--json</code>, <code class="language-plaintext highlighter-rouge">--microsoft-update</code>/<code class="language-plaintext highlighter-rouge">--mu</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum install</code></td>
+      <td><code class="language-plaintext highlighter-rouge">[&lt;kb-articles&gt;...]</code></td>
+      <td><code class="language-plaintext highlighter-rouge">--security</code>, <code class="language-plaintext highlighter-rouge">--critical</code>, <code class="language-plaintext highlighter-rouge">--all</code>, <code class="language-plaintext highlighter-rouge">--definition</code>, <code class="language-plaintext highlighter-rouge">--dry-run</code>, <code class="language-plaintext highlighter-rouge">--force</code>/<code class="language-plaintext highlighter-rouge">-f</code>, <code class="language-plaintext highlighter-rouge">--no-reboot</code>, <code class="language-plaintext highlighter-rouge">--microsoft-update</code>/<code class="language-plaintext highlighter-rouge">--mu</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum uninstall</code></td>
+      <td><code class="language-plaintext highlighter-rouge">&lt;kb-article&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">--force</code>/<code class="language-plaintext highlighter-rouge">-f</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum hide add</code></td>
+      <td><code class="language-plaintext highlighter-rouge">&lt;update-id&gt;</code></td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum hide remove</code></td>
+      <td><code class="language-plaintext highlighter-rouge">&lt;update-id&gt;</code></td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum hide list</code></td>
+      <td>none</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum history</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--count</code>/<code class="language-plaintext highlighter-rouge">-n &lt;N&gt;</code>, <code class="language-plaintext highlighter-rouge">--failed</code>, <code class="language-plaintext highlighter-rouge">--kb &lt;KB&gt;</code>, <code class="language-plaintext highlighter-rouge">--json</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum pause</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--days &lt;N&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum pause resume</code></td>
+      <td>none</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum schedule</code></td>
+      <td>none; same as <code class="language-plaintext highlighter-rouge">show</code></td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum schedule show</code></td>
+      <td>none</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum schedule set</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--day &lt;DayOfWeek&gt;</code>, <code class="language-plaintext highlighter-rouge">--time &lt;HH:mm&gt;</code>, <code class="language-plaintext highlighter-rouge">--auto-install</code>, <code class="language-plaintext highlighter-rouge">--auto-reboot</code>, <code class="language-plaintext highlighter-rouge">--all</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum schedule clear</code></td>
+      <td>none</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum settings</code></td>
+      <td>none; same as <code class="language-plaintext highlighter-rouge">show</code></td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum settings show</code></td>
+      <td>none</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum settings set</code></td>
+      <td><code class="language-plaintext highlighter-rouge">&lt;key&gt; &lt;value&gt;</code></td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum settings reset</code></td>
+      <td>none</td>
+      <td>none</td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum reboot</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--delay &lt;seconds&gt;</code>, <code class="language-plaintext highlighter-rouge">--force</code>/<code class="language-plaintext highlighter-rouge">-f</code>, <code class="language-plaintext highlighter-rouge">--cancel</code></td>
+    </tr>
+    <tr>
+      <td><code class="language-plaintext highlighter-rouge">wum diagnose</code></td>
+      <td>none</td>
+      <td><code class="language-plaintext highlighter-rouge">--refresh</code>, <code class="language-plaintext highlighter-rouge">--json</code>, <code class="language-plaintext highlighter-rouge">--fix</code>, <code class="language-plaintext highlighter-rouge">--force</code>/<code class="language-plaintext highlighter-rouge">-f</code></td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>Interactive mode supports the same command arguments and options with a slash prefix, for example <code class="language-plaintext highlighter-rouge">/list --security</code> or <code class="language-plaintext highlighter-rouge">/install KB5034441 --dry-run</code>. The full slash-command matrix and session-only helpers are documented in <a href="/interactive-commands.html">Interactive Command Reference</a>.</p><hr />
+<h2 id="detailed-command-pages">
+  
+  
+    <a href="#detailed-command-pages" class="anchor-heading" aria-labelledby="detailed-command-pages"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Detailed command pages
+  
+  
+</h2>
+    
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Command page</th>
+      <th>Detail covered</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="/command-status.html"><code class="language-plaintext highlighter-rouge">status</code></a></td>
+      <td>Status verdicts, JSON shape, refresh behavior</td>
+    </tr>
+    <tr>
+      <td><a href="/command-list.html"><code class="language-plaintext highlighter-rouge">list</code></a></td>
+      <td>Filters, installed/hidden scans, Microsoft Update, output modes</td>
+    </tr>
+    <tr>
+      <td><a href="/command-search.html"><code class="language-plaintext highlighter-rouge">search</code></a></td>
+      <td>Search term matching, category filter, JSON usage</td>
+    </tr>
+    <tr>
+      <td><a href="/command-install.html"><code class="language-plaintext highlighter-rouge">install</code></a></td>
+      <td>Target selection, dry-run, confirmation, reboot behavior</td>
+    </tr>
+    <tr>
+      <td><a href="/command-uninstall.html"><code class="language-plaintext highlighter-rouge">uninstall</code></a></td>
+      <td>KB normalization, force mode, <code class="language-plaintext highlighter-rouge">wusa.exe</code> behavior</td>
+    </tr>
+    <tr>
+      <td><a href="/command-hide.html"><code class="language-plaintext highlighter-rouge">hide</code></a></td>
+      <td>Add/remove/list hidden updates and update IDs</td>
+    </tr>
+    <tr>
+      <td><a href="/command-history.html"><code class="language-plaintext highlighter-rouge">history</code></a></td>
+      <td>Count, failed-only, KB filter, JSON fields</td>
+    </tr>
+    <tr>
+      <td><a href="/command-pause.html"><code class="language-plaintext highlighter-rouge">pause</code></a></td>
+      <td>Pause duration clamp, resume, registry writes</td>
+    </tr>
+    <tr>
+      <td><a href="/command-schedule.html"><code class="language-plaintext highlighter-rouge">schedule</code></a></td>
+      <td>Schedule defaults, day/time validation, auto-install flags</td>
+    </tr>
+    <tr>
+      <td><a href="/command-settings.html"><code class="language-plaintext highlighter-rouge">settings</code></a></td>
+      <td>All setting keys, accepted values, reset behavior</td>
+    </tr>
+    <tr>
+      <td><a href="/command-reboot.html"><code class="language-plaintext highlighter-rouge">reboot</code></a></td>
+      <td>Delay, force, cancel, shutdown command behavior</td>
+    </tr>
+    <tr>
+      <td><a href="/command-diagnose.html"><code class="language-plaintext highlighter-rouge">diagnose</code></a></td>
+      <td>Checks, JSON, exit bitmask, <code class="language-plaintext highlighter-rouge">--fix</code> reset steps</td>
     </tr>
   </tbody>
 </table></div><hr />
@@ -1478,7 +1690,7 @@ wum pause <span class="nt">--days</span> 99            <span class="c"># Clamped
 wum pause resume               <span class="c"># Resume now</span>
 </code></pre></div></div>
 
-<p>See <a href="configuration.md#pause">Configuration → Pause</a> for the exact registry values written.</p><hr />
+<p>See <a href="/configuration.html#pause">Configuration → Pause</a> for the exact registry values written.</p><hr />
 <h2 id="wum-schedule">
   
   
@@ -1778,9 +1990,9 @@ wum diagnose <span class="nt">--fix</span> <span class="nt">--force</span>     <
 
 <p><code class="language-plaintext highlighter-rouge">--fix</code> stops services, renames <code class="language-plaintext highlighter-rouge">SoftwareDistribution</code> + <code class="language-plaintext highlighter-rouge">catroot2</code> to <code class="language-plaintext highlighter-rouge">.bak</code>, reregisters WU DLLs, resets WinSock/WinHTTP proxy, restarts services, and triggers re-detection. <strong>Pending downloads are discarded; a reboot is advised.</strong></p>
 
-<p>The exit code is a <strong>bitmask</strong> for scripting. See <a href="diagnostics.md">Diagnostics</a> for the full check list, the bitmask values, the health score, and how <code class="language-plaintext highlighter-rouge">Search Error</code> HRESULTs are decoded.</p>
+<p>The exit code is a <strong>bitmask</strong> for scripting. See <a href="/diagnostics.html">Diagnostics</a> for the full check list, the bitmask values, the health score, and how <code class="language-plaintext highlighter-rouge">Search Error</code> HRESULTs are decoded.</p>
 
-<p>Next: <a href="architecture.md">Architecture →</a></p>
+<p>Next: <a href="/architecture.html">Architecture →</a></p>
 
           
 
@@ -1811,15 +2023,6 @@ wum diagnose <span class="nt">--fix</span> <span class="nt">--force</span>     <
 </div>
 
 
-  
-    <div class="d-flex mt-2">
-      
-      
-        <p class="text-small mb-0">
-          <a href="https://github.com/isubroto/wum/tree/main/docs/commands.md" id="edit-this-page">Edit this page on GitHub</a>
-        </p>
-      
-    </div>
   <div class="d-md-none mt-4 fs-2">
     
     

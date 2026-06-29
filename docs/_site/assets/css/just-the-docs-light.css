@@ -7591,7 +7591,7 @@ p.danger, blockquote.danger {
 }
 p.danger::before, blockquote.danger::before {
   color: #dd2e2e;
-  content: "Danger";
+  content: "Security";
   display: block;
   font-weight: bold;
   text-transform: uppercase;

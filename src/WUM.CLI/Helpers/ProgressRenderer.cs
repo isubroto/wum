@@ -8,13 +8,15 @@ namespace WUM.CLI.Helpers
         private readonly string _label;
         private readonly int    _barWidth;
         private int             _lastPercent = -1;
+        private int             _lastRenderLength;
+        private int             _frame;
         private bool            _disposed;
 
         public ProgressRenderer(string label, int barWidth = 30)
         {
-            _label    = label;
-            _barWidth = barWidth;
-            Console.CursorVisible = false;
+            _label    = label.Trim();
+            _barWidth = Math.Max(10, barWidth);
+            TrySetCursorVisible(false);
         }
 
         public void Update(double percent)
@@ -23,46 +25,99 @@ namespace WUM.CLI.Helpers
             if (p == _lastPercent) return;
             _lastPercent = p;
 
-            int    filled  = (int)(p / 100.0 * _barWidth);
-            int    empty   = _barWidth - filled;
-
-            // fix: use new string(char, int) correctly
-            string bar = string.Concat(
-                new string('█', filled),
-                new string('░', empty)
-            );
-
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write($"\r    {_label}  ");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write($"[{bar}]");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write($" {p,3}%");
-            Console.ResetColor();
+            Render(p, false, false);
         }
 
         public void Complete(bool success)
         {
-            Update(100);
-            if (success)
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write(" ✓");
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write(" ✗");
-            }
-            Console.ResetColor();
+            int p = success ? 100 : Math.Max(_lastPercent, 0);
+            Render(p, true, success);
             Console.WriteLine();
+        }
+
+        private void Render(int percent, bool completed, bool success)
+        {
+            int width = GetBarWidth();
+            int filled = (int)Math.Floor(percent / 100.0 * width);
+            bool showHead = percent > 0 && percent < 100 && filled < width;
+
+            string filledBar = new('━', Math.Clamp(filled, 0, width));
+            string head = showHead ? "╸" : string.Empty;
+            int emptyCount = width - filled - head.Length;
+            string emptyBar = new('─', Math.Max(0, emptyCount));
+
+            string icon = completed
+                ? success ? "✓" : "✗"
+                : SpinnerFrame();
+            string suffix = completed
+                ? success ? " done" : " failed"
+                : string.Empty;
+
+            Console.Write('\r');
+            Console.Write("    ");
+            WriteColor(icon + " ", completed
+                ? success ? ConsoleColor.Green : ConsoleColor.Red
+                : ConsoleColor.Cyan);
+            WriteColor(_label.PadRight(11), ConsoleColor.Gray);
+            WriteColor(filledBar, ConsoleColor.Cyan);
+            WriteColor(head, ConsoleColor.White);
+            WriteColor(emptyBar, ConsoleColor.DarkGray);
+            Console.Write(" ");
+            WriteColor($"{percent,3}%", ConsoleColor.White);
+            WriteColor(suffix, completed
+                ? success ? ConsoleColor.Green : ConsoleColor.Red
+                : ConsoleColor.Gray);
+
+            int renderLength = 4 + 2 + 11 + width + 1 + 4 + suffix.Length;
+            if (_lastRenderLength > renderLength)
+                Console.Write(new string(' ', _lastRenderLength - renderLength));
+
+            _lastRenderLength = renderLength;
+            Console.ResetColor();
+        }
+
+        private string SpinnerFrame()
+        {
+            string[] frames = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" };
+            string frame = frames[_frame % frames.Length];
+            _frame++;
+            return frame;
+        }
+
+        private int GetBarWidth()
+        {
+            try
+            {
+                if (!Console.IsOutputRedirected)
+                {
+                    int available = Console.WindowWidth - 4 - 2 - 11 - 1 - 4 - 2;
+                    return Math.Clamp(Math.Min(_barWidth, available), 10, _barWidth);
+                }
+            }
+            catch
+            {
+            }
+
+            return _barWidth;
+        }
+
+        private static void WriteColor(string text, ConsoleColor color)
+        {
+            Console.ForegroundColor = color;
+            Console.Write(text);
+        }
+
+        private static void TrySetCursorVisible(bool visible)
+        {
+            try { Console.CursorVisible = visible; }
+            catch { }
         }
 
         public void Dispose()
         {
             if (_disposed) return;
-            _disposed             = true;
-            Console.CursorVisible = true;
+            _disposed = true;
+            TrySetCursorVisible(true);
         }
     }
 }

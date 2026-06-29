@@ -1,30 +1,106 @@
-# Local development overrides — layer ON TOP of _config.yml:
-#
-#   cd docs
-#   bundle install
-#   bundle exec jekyll serve --config _config.yml,_config.dev.yml --livereload
-#
-# Then open http://127.0.0.1:4000/ (baseurl is blanked below so no /wum prefix).
-#
-# Why a separate file: production (_config.yml) uses `remote_theme`, which needs
-# network access and the jekyll-remote-theme plugin. Locally we use the
-# just-the-docs *gem* instead — faster, offline, identical output.
-
-# Use the gem theme, not the remote theme.
-remote_theme: ~
-theme: just-the-docs
+# GitHub Pages (Jekyll) configuration — served directly from /docs, no local build.
+# Theme is fetched and built by GitHub Pages' own Jekyll pipeline via remote_theme.
+title: WUM — Windows Update Manager
+tagline: Secure Windows Update client
+description: A modern .NET 10 command-line tool for managing Windows Updates from the terminal — list, install, pause, schedule, diagnose, and more.
+lang: en-US
+locale: en_US
+timezone: UTC
+# Sidebar wordmark — rendered in the .site-header by Just the Docs. baseurl is
+# prepended via `relative_url`, so keep this site-root-relative.
 logo: "/assets/wum-logo.svg"
 favicon_ico: "/favicon.ico"
 image: "/assets/wum-social.png"
 
-# Serve at the site root locally (no project subpath).
-baseurl: ''
-url: 'http://127.0.0.1:4000'
+theme: just-the-docs
 
-# Pages declare `layout: default` in frontmatter. Avoid a global default here:
-# it also catches theme CSS assets and wraps them in HTML.
+# Site is published at https://<owner>.github.io/neutrx/
+#url: 'https://xenial-devil.github.io'
+baseurl: ""
 
-# remote_theme plugin is unavailable/unneeded locally; drop it from the list.
+# Local-only: gem theme (`theme: just-the-docs`) does not auto-apply a layout the
+# way GitHub Pages' remote_theme build does. Force the `default` layout on every
+# page lacking its own `layout:`, else Jekyll emits bare fragments — no <head>,
+# no CSS link, broken design.
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+# Silence Dart Sass deprecation noise from the just-the-docs gem's own .scss
+# (darken()/lighten()/@import live in the theme dependency, not our custom.scss).
+sass:
+  quiet_deps: true
+  silence_deprecations:
+    - color-functions
+    - global-builtin
+    - import
+
+# just-the-docs options
+search_enabled: true
+search:
+  heading_level: 4
+  previews: 4
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+heading_anchors: true
+back_to_top: true
+back_to_top_text: "Back to top"
+
+aux_links:
+  GitHub:
+    - "https://github.com/isubroto/wum"
+aux_links_new_tab: true
+
+# Edit-on-GitHub links disabled; footer lives in _includes/footer_custom.html
+gh_edit_link: false
+
+last_edit_timestamp: false
+
+# Microsoft Learn-style light theme. Visual design lives in _sass/custom/custom.scss.
+color_scheme: light
+
+# Callout boxes (used across the docs as `{: .note }`, `{: .warning }`, etc.)
+callouts:
+  note:
+    title: Note
+    color: blue
+  tip:
+    title: Tip
+    color: green
+  important:
+    title: Important
+    color: purple
+  warning:
+    title: Warning
+    color: yellow
+  danger:
+    title: Security
+    color: red
+
+# Main-content page footer lives in _includes/footer_custom.html
+
+# GitHub Pages-whitelisted plugins
 plugins:
   - jekyll-seo-tag
-  - jekyll-sitemap
+  - jekyll-relative-links
+  - jekyll-include-cache
+
+# Let relative .md links resolve to the rendered .html pages
+relative_links:
+  enabled: true
+  collections: false
+
+# Don't process repo meta files as site pages
+exclude:
+  - "*.original.md"
+  - PLAN.md
+  - THREATMODEL.md
+  - Gemfile
+  - Gemfile.lock
+  - vendor

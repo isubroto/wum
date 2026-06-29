@@ -1,7 +1,8 @@
 ---
 title: Command Reference
 layout: default
-parent: Use WUM
+parent: CLI Mode
+grand_parent: Use WUM
 nav_order: 1
 description: "Every WUM command, sub-command, argument, option, and example."
 ---
@@ -18,11 +19,13 @@ description: "Every WUM command, sub-command, argument, option, and example."
 
 Complete reference for every WUM command, sub-command, argument, and option. Synopsis applies whether you run the published `wum.exe` or `dotnet run --project src/WUM.CLI -- <args>`.
 
+Running `wum` with no arguments opens the smart interactive shell. In that shell, prefix commands with `/`: `/status`, `/list --security`, `/install KB5034441 --dry-run`. See [Interactive Mode](interactive.md) for the full prompt, shortcuts, history, and completion behavior.
+
 ## Global options & flags
 
 | Flag | Effect | Admin |
 |---|---|---|
-| `--version` | Print the version string (e.g. `0.2.0.77`) | No |
+| `--version` | Print the version string (e.g. `{{ site.data.project.version }}`) | No |
 | `--info` | Show developer / build info (version, commit, build date, author, license, repo, runtime, OS) | No |
 | `--help` | Show help for the root command or any sub-command | No |
 
@@ -45,18 +48,68 @@ Most read commands share these:
 
 | Command | Purpose | Admin |
 |---|---|---|
-| [`status`](#wum-status) | Dashboard of update state | No |
-| [`list`](#wum-list) | List available / installed / hidden updates | No |
-| [`search`](#wum-search) | Full-text search across available updates | No |
-| [`install`](#wum-install) | Download & install updates | **Yes** |
-| [`uninstall`](#wum-uninstall) | Remove an installed update | **Yes** |
-| [`hide`](#wum-hide) | Hide / unhide / list hidden updates | Partial |
-| [`history`](#wum-history) | Show install history | No |
-| [`pause`](#wum-pause) | Pause / resume updates | **Yes** |
-| [`schedule`](#wum-schedule) | Manage a weekly update schedule | **Yes** |
-| [`settings`](#wum-settings) | View / change WU settings | **Yes** (set/reset) |
-| [`reboot`](#wum-reboot) | Schedule / cancel a restart | **Yes** |
-| [`diagnose`](#wum-diagnose) | Health check + optional component reset | **Yes** (`--fix`) |
+| [`status`](command-status.md) | Dashboard of update state | No |
+| [`list`](command-list.md) | List available / installed / hidden updates | No |
+| [`search`](command-search.md) | Full-text search across available updates | No |
+| [`install`](command-install.md) | Download & install updates | **Yes** |
+| [`uninstall`](command-uninstall.md) | Remove an installed update | **Yes** |
+| [`hide`](command-hide.md) | Hide / unhide / list hidden updates | Partial |
+| [`history`](command-history.md) | Show install history | No |
+| [`pause`](command-pause.md) | Pause / resume updates | **Yes** |
+| [`schedule`](command-schedule.md) | Manage a weekly update schedule | **Yes** |
+| [`settings`](command-settings.md) | View / change WU settings | **Yes** (set/reset) |
+| [`reboot`](command-reboot.md) | Schedule / cancel a restart | **Yes** |
+| [`diagnose`](command-diagnose.md) | Health check + optional component reset | **Yes** (`--fix`) |
+
+---
+
+## Command argument and option matrix
+
+| Command | Arguments / subcommands | Supported options |
+|---|---|---|
+| `wum` | none; opens interactive mode when run with no args | `--version`, `--info`, `--help` |
+| `wum status` | none | `--json`, `--verbose`/`-v`, `--refresh` |
+| `wum list` | none | `--security`, `--critical`, `--optional`, `--drivers`, `--definition`, `--hidden`, `--installed`, `--microsoft-update`/`--mu`, `--json`, `--no-color`, `--verbose`/`-v`, `--refresh` |
+| `wum search` | `<term>` | `--category <name>`, `--json`, `--microsoft-update`/`--mu` |
+| `wum install` | `[<kb-articles>...]` | `--security`, `--critical`, `--all`, `--definition`, `--dry-run`, `--force`/`-f`, `--no-reboot`, `--microsoft-update`/`--mu` |
+| `wum uninstall` | `<kb-article>` | `--force`/`-f` |
+| `wum hide add` | `<update-id>` | none |
+| `wum hide remove` | `<update-id>` | none |
+| `wum hide list` | none | none |
+| `wum history` | none | `--count`/`-n <N>`, `--failed`, `--kb <KB>`, `--json` |
+| `wum pause` | none | `--days <N>` |
+| `wum pause resume` | none | none |
+| `wum schedule` | none; same as `show` | none |
+| `wum schedule show` | none | none |
+| `wum schedule set` | none | `--day <DayOfWeek>`, `--time <HH:mm>`, `--auto-install`, `--auto-reboot`, `--all` |
+| `wum schedule clear` | none | none |
+| `wum settings` | none; same as `show` | none |
+| `wum settings show` | none | none |
+| `wum settings set` | `<key> <value>` | none |
+| `wum settings reset` | none | none |
+| `wum reboot` | none | `--delay <seconds>`, `--force`/`-f`, `--cancel` |
+| `wum diagnose` | none | `--refresh`, `--json`, `--fix`, `--force`/`-f` |
+
+Interactive mode supports the same command arguments and options with a slash prefix, for example `/list --security` or `/install KB5034441 --dry-run`. The full slash-command matrix and session-only helpers are documented in [Interactive Command Reference](interactive-commands.md).
+
+---
+
+## Detailed command pages
+
+| Command page | Detail covered |
+|---|---|
+| [`status`](command-status.md) | Status verdicts, JSON shape, refresh behavior |
+| [`list`](command-list.md) | Filters, installed/hidden scans, Microsoft Update, output modes |
+| [`search`](command-search.md) | Search term matching, category filter, JSON usage |
+| [`install`](command-install.md) | Target selection, dry-run, confirmation, reboot behavior |
+| [`uninstall`](command-uninstall.md) | KB normalization, force mode, `wusa.exe` behavior |
+| [`hide`](command-hide.md) | Add/remove/list hidden updates and update IDs |
+| [`history`](command-history.md) | Count, failed-only, KB filter, JSON fields |
+| [`pause`](command-pause.md) | Pause duration clamp, resume, registry writes |
+| [`schedule`](command-schedule.md) | Schedule defaults, day/time validation, auto-install flags |
+| [`settings`](command-settings.md) | All setting keys, accepted values, reset behavior |
+| [`reboot`](command-reboot.md) | Delay, force, cancel, shutdown command behavior |
+| [`diagnose`](command-diagnose.md) | Checks, JSON, exit bitmask, `--fix` reset steps |
 
 ---
 

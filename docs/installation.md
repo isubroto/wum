@@ -88,7 +88,7 @@ and **adds that folder to the system `PATH`**, so `wum` is available everywhere.
 ## Verify the install
 
 ```bash
-wum --version      # e.g. 0.2.0.77
+wum --version      # e.g. {{ site.data.project.version }}
 wum --info         # Version, commit, build date, author, license, runtime, OS
 wum --help         # Top-level help and the command list
 ```

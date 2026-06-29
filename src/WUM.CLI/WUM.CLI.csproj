@@ -19,6 +19,7 @@
 
     <!-- Version: CI overwrites this on release. Keep 4-part numeric. -->
     <Version>0.2.1.51</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
