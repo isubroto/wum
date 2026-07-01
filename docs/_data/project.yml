@@ -1,5 +1,5 @@
 # Generated from src/WUM.CLI/WUM.CLI.csproj. Run scripts/Update-DocsMetadata.ps1 after changing project metadata.
-version: '0.3.0.58'
+version: '0.4.0.62'
 target_framework: 'net10.0-windows'
 runtime_identifier: 'win-x64'
 license: 'MIT'
