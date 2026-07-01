@@ -47,7 +47,7 @@ namespace WUM.CLI.Commands
 
             if (!force && !ConsoleRenderer.Confirm("Uninstall " + norm + "?"))
             {
-                ConsoleRenderer.Info("  Cancelled.");
+                ConsoleRenderer.Cancelled(norm + " was not removed.");
                 Console.WriteLine();
                 return;
             }
@@ -56,8 +56,16 @@ namespace WUM.CLI.Commands
             await ConsoleRenderer.ShowSpinnerAsync("Uninstalling " + norm + "...", async () =>
             {
                 bool ok = await _updates.UninstallUpdateAsync(norm);
-                if (ok) ConsoleRenderer.Success("  ✓ " + norm + " uninstalled");
-                else    ConsoleRenderer.Error("  ✗ Failed to uninstall " + norm);
+                if (ok)
+                    ConsoleRenderer.SuccessResult(
+                        norm + " uninstall requested.",
+                        "Windows Update accepted the uninstall command.",
+                        "Restart if Windows asks for it.");
+                else
+                    ConsoleRenderer.Failure(
+                        "Failed to uninstall " + norm + ".",
+                        "The update may not be installed, may not support uninstall, or WUSA returned an error.",
+                        "Run wum list --installed or wum history --kb " + norm + " to verify.");
             });
             Console.WriteLine();
         }

@@ -74,6 +74,16 @@ namespace WUM.CLI.Commands
             ConsoleRenderer.Header("  Update History  (" + history.Count + " records)");
             Console.WriteLine();
 
+            if (history.Count == 0)
+            {
+                ConsoleRenderer.Notice(
+                    "No history records matched.",
+                    "Windows Update returned no entries for the selected filters.",
+                    "Remove --failed or --kb filters, or increase --count.");
+                Console.WriteLine();
+                return;
+            }
+
             TableRenderer.RenderHistory(history);
         }
     }

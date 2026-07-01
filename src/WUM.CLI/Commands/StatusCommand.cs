@@ -106,12 +106,14 @@ namespace WUM.CLI.Commands
                 {
                     foreach (var u in updates)
                     {
-                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                        Console.WriteLine(
-                            "         • " + u.KBArticle.PadRight(14) +
-                            u.Category.ToString().PadRight(14) +
-                            u.Title.Substring(0, Math.Min(50, u.Title.Length)));
-                        Console.ResetColor();
+                        ConsoleRenderer.Inline("         • ", ConsoleColor.Blue);
+                        ConsoleRenderer.Inline(u.KBArticle.PadRight(14), ConsoleColor.White);
+                        ConsoleRenderer.Inline(u.Category.ToString().PadRight(14),
+                            CategoryColor(u.Category));
+                        ConsoleRenderer.Inline(
+                            u.Title.Substring(0, Math.Min(50, u.Title.Length)),
+                            ConsoleColor.DarkGray);
+                        Console.WriteLine();
                     }
                 }
             }
@@ -200,33 +202,32 @@ namespace WUM.CLI.Commands
         private static void PrintDebugHeader(string title)
         {
             Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.WriteLine(
-                "  ┌─────────────────────────────────────────┐");
-            Console.WriteLine(
-                "  │  DEBUG MODE: " + title.PadRight(28) + "│");
-            Console.WriteLine(
-                "  └─────────────────────────────────────────┘");
-            Console.ResetColor();
+            ConsoleRenderer.SectionHeader("Debug: " + title);
             Console.WriteLine();
         }
 
         private static void PrintStep(string num, string desc)
         {
-            Console.ForegroundColor = ConsoleColor.DarkCyan;
-            Console.Write("  [STEP " + num + "] ");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine(desc);
-            Console.ResetColor();
+            ConsoleRenderer.StepLine(num, desc);
         }
 
         private static void PrintResult(string label, string value, bool ok)
         {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("           → " + label + ": ");
-            Console.ForegroundColor = ok ? ConsoleColor.Green : ConsoleColor.Yellow;
-            Console.WriteLine(value);
-            Console.ResetColor();
+            ConsoleRenderer.Inline("           → ", ConsoleColor.Blue);
+            ConsoleRenderer.Inline(label.PadRight(16), ConsoleColor.Cyan);
+            ConsoleRenderer.Inline(" : ", ConsoleColor.DarkGray);
+            ConsoleRenderer.Inline(value, ok ? ConsoleColor.Green : ConsoleColor.Yellow);
+            Console.WriteLine();
+        }
+
+        private static ConsoleColor CategoryColor(UpdateCategory category)
+        {
+            if (category == UpdateCategory.Security) return ConsoleColor.Red;
+            if (category == UpdateCategory.Critical) return ConsoleColor.Yellow;
+            if (category == UpdateCategory.Driver) return ConsoleColor.Magenta;
+            if (category == UpdateCategory.FeatureUpdate) return ConsoleColor.Cyan;
+            if (category == UpdateCategory.Definition) return ConsoleColor.DarkGreen;
+            return ConsoleColor.Blue;
         }
     }
 }

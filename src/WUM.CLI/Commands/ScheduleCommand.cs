@@ -85,13 +85,19 @@ namespace WUM.CLI.Commands
         {
             if (!Enum.TryParse<DayOfWeek>(day, true, out var dow))
             {
-                ConsoleRenderer.Error("  Invalid day: '" + day + "'");
+                ConsoleRenderer.Failure(
+                    "Invalid day: " + day,
+                    "Day must be a weekday name such as Monday, Friday, or Sunday.",
+                    "Example: wum schedule set --day Friday --time 03:00");
                 return;
             }
 
             if (!TimeSpan.TryParseExact(time, @"hh\:mm", null, out var ts))
             {
-                ConsoleRenderer.Error("  Invalid time: '" + time + "' - use HH:mm");
+                ConsoleRenderer.Failure(
+                    "Invalid time: " + time,
+                    "Time must use 24-hour HH:mm format.",
+                    "Example: wum schedule set --day Friday --time 03:00");
                 return;
             }
 
@@ -108,10 +114,10 @@ namespace WUM.CLI.Commands
             await _scheduler.SaveScheduleAsync(schedule);
 
             Console.WriteLine();
-            ConsoleRenderer.Success("  ✓ Schedule saved");
-            ConsoleRenderer.Muted("    Day  : " + dow);
-            ConsoleRenderer.Muted("    Time : " + ts.ToString(@"hh\:mm"));
-            ConsoleRenderer.Muted("    Next : " + schedule.NextRun().ToString("f"));
+            ConsoleRenderer.SuccessResult(
+                "Schedule saved.",
+                "Day " + dow + ", time " + ts.ToString(@"hh\:mm") + ".",
+                "Next run: " + schedule.NextRun().ToString("f"));
             Console.WriteLine();
         }
 
@@ -119,7 +125,9 @@ namespace WUM.CLI.Commands
         {
             await _scheduler.ClearScheduleAsync();
             Console.WriteLine();
-            ConsoleRenderer.Success("  ✓ Schedule cleared");
+            ConsoleRenderer.SuccessResult(
+                "Schedule cleared.",
+                "Automatic scheduled update installation is disabled.");
             Console.WriteLine();
         }
     }

@@ -93,6 +93,15 @@ namespace WUM.CLI.Commands
             return (AllBits.Length - fails, AllBits.Length);
         }
 
+        private enum DiagnosticTone
+        {
+            Pass,
+            Warn,
+            Fail,
+            Info,
+            Muted
+        }
+
         private async Task RunFixAsync(bool force)
         {
             WUM.CLI.Helpers.AdminHelper.RequireAdmin();
@@ -194,13 +203,7 @@ namespace WUM.CLI.Commands
 
                 if (line.StartsWith("==="))
                 {
-                    if (!json)
-                    {
-                        Console.WriteLine();
-                        Console.ForegroundColor = ConsoleColor.DarkCyan;
-                        Console.WriteLine("  " + line);
-                        Console.ResetColor();
-                    }
+                    if (!json) PrintDiagnosticSection(line);
                     continue;
                 }
 
@@ -214,41 +217,7 @@ namespace WUM.CLI.Commands
 
                 if (json) continue;
 
-                Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write("  " + label.PadRight(22) + ": ");
-
-                // Color the value based on content
-                if (value.Contains("OK")          ||
-                    value.Contains("Running")      ||
-                    value.Contains("Reachable")    ||
-                    value.Contains("Created"))
-                {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                }
-                else if (value.Contains("FAILED")     ||
-                         value.Contains("UNREACHABLE") ||
-                         value.Contains("Error")       ||
-                         value.Contains("failed")       ||
-                         value.Contains("MISSING")      ||
-                         value.Contains("(LOW)")        ||
-                         value.Contains("DISABLED"))
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                }
-                else if (value.Contains("REBOOT REQUIRED") ||
-                         value.Contains("NOT registered")   ||
-                         (value.Contains("0") &&
-                          label.Contains("Updates Found")))
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.White;
-                }
-
-                Console.WriteLine(value);
-                Console.ResetColor();
+                PrintDiagnosticRow(label.Trim(), value);
             }
 
             // Inject the shared-cache count so diagnose reports the SAME number
@@ -259,12 +228,7 @@ namespace WUM.CLI.Commands
 
                 if (!json)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.Write("  " + "Updates Found".PadRight(22) + ": ");
-                    Console.ForegroundColor = availableCount == 0
-                        ? ConsoleColor.Yellow : ConsoleColor.White;
-                    Console.WriteLine(availableCount);
-                    Console.ResetColor();
+                    PrintDiagnosticRow("Updates Found", availableCount.ToString());
                 }
             }
 
@@ -442,5 +406,94 @@ namespace WUM.CLI.Commands
             Console.WriteLine();
             return exitCode;
         }
+
+        private static void PrintDiagnosticSection(string raw)
+        {
+            string title = raw.Trim('=').Trim();
+            ConsoleRenderer.SectionHeader(title);
+        }
+
+        private static void PrintDiagnosticRow(string label, string value)
+        {
+            DiagnosticTone tone = GetDiagnosticTone(label, value);
+            ConsoleColor iconColor = ToneColor(tone);
+            ConsoleColor labelColor = tone switch
+            {
+                DiagnosticTone.Fail => ConsoleColor.Red,
+                DiagnosticTone.Warn => ConsoleColor.Yellow,
+                DiagnosticTone.Pass => ConsoleColor.Cyan,
+                DiagnosticTone.Info => ConsoleColor.Cyan,
+                _ => ConsoleColor.DarkGray
+            };
+            ConsoleColor valueColor = tone switch
+            {
+                DiagnosticTone.Fail => ConsoleColor.Red,
+                DiagnosticTone.Warn => ConsoleColor.Yellow,
+                DiagnosticTone.Pass => ConsoleColor.Green,
+                DiagnosticTone.Info => ConsoleColor.White,
+                _ => ConsoleColor.DarkGray
+            };
+
+            ConsoleRenderer.Inline("  " + ToneIcon(tone) + " ", iconColor);
+            ConsoleRenderer.Inline(label.PadRight(22), labelColor);
+            ConsoleRenderer.Inline(" : ", ConsoleColor.DarkGray);
+            ConsoleRenderer.Inline(value, valueColor);
+            Console.WriteLine();
+        }
+
+        private static DiagnosticTone GetDiagnosticTone(string label, string value)
+        {
+            bool Has(string token) =>
+                value.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
+
+            bool CriticalService =
+                label.Equals("WU Service", StringComparison.OrdinalIgnoreCase) ||
+                label.Equals("BITS", StringComparison.OrdinalIgnoreCase) ||
+                label.Equals("Crypto Svc", StringComparison.OrdinalIgnoreCase);
+
+            if (label.Equals("Search Error", StringComparison.OrdinalIgnoreCase) ||
+                Has("FAILED") || Has("UNREACHABLE") || Has("MISSING") ||
+                Has("NOT FOUND") || Has("DISABLED") || Has("(LOW)"))
+                return DiagnosticTone.Fail;
+
+            if (Has("Stopped"))
+                return CriticalService ? DiagnosticTone.Fail : DiagnosticTone.Warn;
+
+            if (Has("REBOOT REQUIRED") || Has("NOT registered") ||
+                Has("Never or unknown"))
+                return DiagnosticTone.Warn;
+
+            if (label.Equals("Updates Found", StringComparison.OrdinalIgnoreCase) &&
+                value.Trim() == "0")
+                return DiagnosticTone.Warn;
+
+            if (Has("OK") || Has("Running") || Has("Reachable") ||
+                Has("Created") || Has("Registered") || value.Trim() == "True" ||
+                value.Trim() == "No")
+                return DiagnosticTone.Pass;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return DiagnosticTone.Muted;
+
+            return DiagnosticTone.Info;
+        }
+
+        private static string ToneIcon(DiagnosticTone tone) => tone switch
+        {
+            DiagnosticTone.Pass => "✓",
+            DiagnosticTone.Warn => "!",
+            DiagnosticTone.Fail => "✗",
+            DiagnosticTone.Info => "•",
+            _ => "·"
+        };
+
+        private static ConsoleColor ToneColor(DiagnosticTone tone) => tone switch
+        {
+            DiagnosticTone.Pass => ConsoleColor.Green,
+            DiagnosticTone.Warn => ConsoleColor.Yellow,
+            DiagnosticTone.Fail => ConsoleColor.Red,
+            DiagnosticTone.Info => ConsoleColor.Blue,
+            _ => ConsoleColor.DarkGray
+        };
     }
 }

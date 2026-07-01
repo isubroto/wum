@@ -109,13 +109,19 @@ namespace WUM.CLI.Commands
             {
                 await _settings.SetValueAsync(key, value);
                 Console.WriteLine();
-                ConsoleRenderer.Success("  ✓ " + key + " = " + value);
+                ConsoleRenderer.SuccessResult(
+                    "Setting saved.",
+                    key + " = " + value,
+                    "Run wum settings show to verify.");
                 Console.WriteLine();
             }
             catch (ArgumentException ex)
             {
                 Console.WriteLine();
-                ConsoleRenderer.Error("  ✗ " + ex.Message);
+                ConsoleRenderer.Failure(
+                    "Could not save setting.",
+                    ex.Message,
+                    "Use one of the valid keys below.");
                 Console.WriteLine();
                 ConsoleRenderer.Hint("  Valid keys:");
                 ConsoleRenderer.Muted("    auto-download     true|false");
@@ -136,12 +142,15 @@ namespace WUM.CLI.Commands
         {
             if (!ConsoleRenderer.Confirm("Reset all settings to defaults?"))
             {
-                ConsoleRenderer.Info("  Cancelled.");
+                ConsoleRenderer.Cancelled("Settings were not changed.");
                 return;
             }
             await _settings.ResetAsync();
             Console.WriteLine();
-            ConsoleRenderer.Success("  ✓ Settings reset to defaults");
+            ConsoleRenderer.SuccessResult(
+                "Settings reset to defaults.",
+                "WUM wrote default settings values.",
+                "Run wum settings show to verify.");
             Console.WriteLine();
         }
     }

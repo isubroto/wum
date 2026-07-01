@@ -39,8 +39,17 @@ namespace WUM.CLI.Commands
 
         private async Task PauseAsync(int days)
         {
+            int requestedDays = days;
             days = Math.Clamp(days, 1, 35);
             var until = DateTime.Now.AddDays(days);
+
+            if (requestedDays != days)
+            {
+                ConsoleRenderer.WarningResult(
+                    "Pause duration adjusted.",
+                    "Windows Update pause supports 1-35 days; requested " + requestedDays + ".",
+                    "Using " + days + " day(s).");
+            }
 
             Console.WriteLine();
             await ConsoleRenderer.ShowSpinnerAsync(
@@ -49,9 +58,10 @@ namespace WUM.CLI.Commands
                     await _pause.PauseAsync(days);
                 });
 
-            ConsoleRenderer.Success("  ✓ Updates paused for " + days + " day(s)");
-            ConsoleRenderer.Muted("    Resumes: " + until.ToString("D"));
-            ConsoleRenderer.Hint("  wum pause resume  -> resume early");
+            ConsoleRenderer.SuccessResult(
+                "Updates paused for " + days + " day(s).",
+                "Resumes: " + until.ToString("D"),
+                "Run wum pause resume to resume early.");
             Console.WriteLine();
         }
 
@@ -63,7 +73,10 @@ namespace WUM.CLI.Commands
                 await _pause.ResumeAsync();
             });
 
-            ConsoleRenderer.Success("  ✓ Windows Updates resumed");
+            ConsoleRenderer.SuccessResult(
+                "Windows Updates resumed.",
+                "Pause flags were cleared.",
+                "Run wum status to confirm.");
             Console.WriteLine();
         }
     }

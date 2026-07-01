@@ -18,7 +18,7 @@
     <SelfContained>true</SelfContained>
 
     <!-- Version: CI overwrites this on release. Keep 4-part numeric. -->
-    <Version>0.4.0.62</Version>
+    <Version>0.3.0.33</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
@@ -42,4 +42,3 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
   </ItemGroup>
 </Project>
-

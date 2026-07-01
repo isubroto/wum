@@ -17,15 +17,14 @@ namespace WUM.CLI.Helpers
         {
             if (!IsRunningAsAdmin())
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n  ✗ Administrator privileges required.\n");
-                Console.ResetColor();
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine(
-                    "  Run from an elevated prompt:\n" +
-                    "  Start-Process wum -Verb RunAs\n"
-                );
-                Console.ResetColor();
+                Console.WriteLine();
+                ConsoleRenderer.Error(
+                    "✗ Administrator privileges required for this command.");
+                ConsoleRenderer.Hint(
+                    "Reason: this command changes Windows Update state.");
+                ConsoleRenderer.Hint(
+                    "Open elevated PowerShell: Start-Process wum -Verb RunAs");
+                Console.WriteLine();
                 Environment.Exit(1);
             }
         }
