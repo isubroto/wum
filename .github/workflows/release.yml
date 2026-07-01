@@ -193,15 +193,15 @@ jobs:
       - name: Install WiX Toolset
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://github.com/wixtoolset/wix/releases/download/v6.0.0/wix-cli-x64.msi -OutFile wix6.msi
-          Start-Process wix6.msi -ArgumentList "/quiet" -Wait
-          & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" extension add WixToolset.Util.wixext/6.0.0
-          Remove-Item wix6.msi
+          Invoke-WebRequest -Uri https://github.com/wixtoolset/wix/releases/download/v7.0.0/wix-cli-x64.msi -OutFile wix7.msi
+          Start-Process wix7.msi -ArgumentList "/quiet" -Wait
+          & "C:\Program Files\WiX Toolset v7.0\bin\wix.exe" extension add WixToolset.Util.wixext/7.0.0
+          Remove-Item wix7.msi
 
       - name: Generate Files.wxs excluding 'publish' folder
         shell: pwsh
         run: |
-          & "C:\Program Files\WiX Toolset v6.0\bin\x64\heat.exe" dir "src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
+          & "C:\Program Files\WiX Toolset v7.0\bin\x64\heat.exe" dir "src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
             -cg AppFiles `
             -dr INSTALLFOLDER `
             -srd -gg `
@@ -226,7 +226,7 @@ jobs:
 
           "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" build Product.wxs Files.wxs `
+          & "C:\Program Files\WiX Toolset v7.0\bin\wix.exe" build Product.wxs Files.wxs `
             -arch x64 `
             -ext WixToolset.Util.wixext `
             -define ProductVersion=$safeVersion `
@@ -430,9 +430,9 @@ jobs:
           "@
           $installerManifest = ($installerManifest -replace '(?m)^ {10}', '').Trim()
 
-          Set-Content -Path "winget/SubrotoSaha.wum.yaml" -Value $versionManifest -Encoding UTF8
-          Set-Content -Path "winget/SubrotoSaha.wum.locale.en-US.yaml" -Value $localeManifest -Encoding UTF8
-          Set-Content -Path "winget/SubrotoSaha.wum.installer.yaml" -Value $installerManifest -Encoding UTF8
+          Set-Content -Path "winget/SubrotoSaha.wum.yaml" -Value $versionManifest -Encoding utf8NoBOM
+          Set-Content -Path "winget/SubrotoSaha.wum.locale.en-US.yaml" -Value $localeManifest -Encoding utf8NoBOM
+          Set-Content -Path "winget/SubrotoSaha.wum.installer.yaml" -Value $installerManifest -Encoding utf8NoBOM
 
           Write-Host ""
           Write-Host "=== SubrotoSaha.wum.yaml ==="
@@ -474,7 +474,66 @@ jobs:
            exit 0
            }
            winget --info
-           winget validate --manifest winget
+
+           $validateLog = Join-Path $env:RUNNER_TEMP "winget-validate.log"
+           Remove-Item -LiteralPath $validateLog -Force -ErrorAction SilentlyContinue
+
+           $escapedValidateLog = $validateLog.Replace('"', '""')
+           & $env:ComSpec /d /s /c "winget validate --manifest winget > ""$escapedValidateLog"" 2>&1"
+           $validateExitCode = $LASTEXITCODE
+
+           $validateOutput = @()
+           if (Test-Path -LiteralPath $validateLog) {
+             $validateOutput = @(Get-Content -Path $validateLog)
+           }
+
+           if ($validateOutput.Count -gt 0) {
+             $validateOutput | ForEach-Object { Write-Host $_ }
+           }
+
+           $captureFailed = (
+             $validateOutput.Count -eq 0 -or
+             (($validateOutput -join "`n") -match 'The system cannot execute the specified program|not recognized as an internal or external command')
+           )
+
+           if ($captureFailed) {
+             Write-Warning "Could not capture winget validate output; running validation without redirection."
+             winget validate --manifest winget
+             $validateExitCode = $LASTEXITCODE
+
+             $manifestValidationWarning = -1978335192 # 0x8A150028
+             if ($validateExitCode -eq 0 -or $validateExitCode -eq $manifestValidationWarning) {
+               if ($validateExitCode -eq $manifestValidationWarning) {
+                 Write-Warning "WinGet manifest validation returned warning-only exit code 0x8A150028; continuing."
+               }
+               exit 0
+             }
+
+             Write-Error "winget validate failed with exit code $validateExitCode."
+             exit $validateExitCode
+           }
+
+           $hasManifestError = Select-String -Path $validateLog -Pattern '^Manifest Error:' -Quiet
+           $hasManifestWarning = Select-String -Path $validateLog -Pattern '^Manifest Warning:' -Quiet
+           $hasWarningSummary = Select-String -Path $validateLog -Pattern 'Manifest validation succeeded with warnings?' -Quiet
+
+           if ($hasManifestError) {
+             Write-Error "WinGet manifest validation failed."
+             if ($validateExitCode -ne 0) { exit $validateExitCode }
+             exit 1
+           }
+
+           if ($validateExitCode -ne 0) {
+             if ($hasManifestWarning -or $hasWarningSummary) {
+               Write-Warning "WinGet manifest validation returned exit code $validateExitCode for warnings only; continuing."
+               exit 0
+             }
+
+             Write-Error "winget validate failed with exit code $validateExitCode."
+             exit $validateExitCode
+           }
+
+           exit 0
 
       - name: Submit to WinGet
         if: true

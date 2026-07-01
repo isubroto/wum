@@ -1,16 +1,11 @@
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="WixToolset.Sdk/7.0.0">
   <PropertyGroup>
     <OutputType>Package</OutputType>
     <OutputName>MyAppInstaller</OutputName>
-    <WixTargetsPath Condition=" '$(WixTargetsPath)' == '' ">
-      $(ProgramFiles)\WiX Toolset v4.0\Wix.targets
-    </WixTargetsPath>
+    <InstallerPlatform>x64</InstallerPlatform>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Product.wxs" />
-    <Compile Include="Files.wxs" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="7.0.0" />
   </ItemGroup>
-
-  <Import Project="$(WixTargetsPath)" />
 </Project>

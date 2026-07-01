@@ -111,9 +111,9 @@ ManifestVersion: 1.12.0
 "@
 $installerManifest = ($installerManifest -replace '(?m)^ {10}', '').Trim()
 
-Set-Content -Path "winget-test/SubrotoSaha.wum.yaml" -Value $versionManifest -Encoding UTF8
-Set-Content -Path "winget-test/SubrotoSaha.wum.locale.en-US.yaml" -Value $localeManifest -Encoding UTF8
-Set-Content -Path "winget-test/SubrotoSaha.wum.installer.yaml" -Value $installerManifest -Encoding UTF8
+Set-Content -Path "winget-test/SubrotoSaha.wum.yaml" -Value $versionManifest -Encoding utf8NoBOM
+Set-Content -Path "winget-test/SubrotoSaha.wum.locale.en-US.yaml" -Value $localeManifest -Encoding utf8NoBOM
+Set-Content -Path "winget-test/SubrotoSaha.wum.installer.yaml" -Value $installerManifest -Encoding utf8NoBOM
 
 Write-Host ""
 Write-Host "=== SubrotoSaha.wum.yaml ==="
