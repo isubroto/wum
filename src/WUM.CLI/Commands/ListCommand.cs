@@ -131,18 +131,20 @@ namespace WUM.CLI.Commands
 
                 if (updates.Count > 0)
                 {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
-                    Console.WriteLine("  [DEBUG] Raw results:");
+                    ConsoleRenderer.DebugLine("Raw results", "showing first 50 chars of each title");
                     foreach (var u in updates)
                     {
-                        Console.WriteLine(
-                            "          " +
-                            u.KBArticle.PadRight(14) +
-                            u.Category.ToString().PadRight(16) +
-                            u.FormattedSize.PadRight(10) +
-                            u.Title.Substring(0, Math.Min(50, u.Title.Length)));
+                        ConsoleRenderer.Inline("          • ", ConsoleColor.Blue);
+                        ConsoleRenderer.Inline(u.KBArticle.PadRight(14), ConsoleColor.White);
+                        ConsoleRenderer.Inline(u.Category.ToString().PadRight(16),
+                            GetCategoryColor(u.Category));
+                        ConsoleRenderer.Inline(u.FormattedSize.PadRight(10),
+                            ConsoleColor.DarkGray);
+                        ConsoleRenderer.Inline(
+                            u.Title.Substring(0, Math.Min(50, u.Title.Length)),
+                            ConsoleColor.Gray);
+                        Console.WriteLine();
                     }
-                    Console.ResetColor();
                     Console.WriteLine();
                 }
             }
@@ -182,18 +184,18 @@ namespace WUM.CLI.Commands
             {
                 if (updates.Count == 0)
                 {
-                    ConsoleRenderer.Success(
-                        "  ✓ No updates found — system may be up to date.");
+                    ConsoleRenderer.SuccessResult(
+                        "No updates found.",
+                        "Windows Update returned zero matching records.",
+                        "Run wum diagnose if you expected updates.");
                     Console.WriteLine();
-                    ConsoleRenderer.Hint(
-                        "wum diagnose  -> run diagnostics if you expect updates");
                 }
                 else
                 {
-                    ConsoleRenderer.Info(
-                        "  No updates match the selected filter.");
-                    ConsoleRenderer.Hint(
-                        "wum list      -> show all without filter");
+                    ConsoleRenderer.Notice(
+                        "No updates match the selected filter.",
+                        "The scan returned updates, but this filter excluded all of them.",
+                        "Run wum list without filters to show everything.");
                 }
                 Console.WriteLine();
                 return;
@@ -303,11 +305,7 @@ namespace WUM.CLI.Commands
         // ── Debug helpers ─────────────────────────────────────────────────
         private static void PrintDebugLine(string label, string value)
         {
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.Write("  [DEBUG] " + label.PadRight(22) + ": ");
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine(value);
-            Console.ResetColor();
+            ConsoleRenderer.DebugLine(label, value);
         }
 
         // ── Field helper ──────────────────────────────────────────────────
@@ -315,11 +313,16 @@ namespace WUM.CLI.Commands
             string label, string? value,
             ConsoleColor color, bool noColor)
         {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.Write("    " + label.PadRight(16) + ": ");
-            if (!noColor) Console.ForegroundColor = color;
-            Console.WriteLine(value ?? "N/A");
-            Console.ResetColor();
+            if (noColor)
+            {
+                Console.WriteLine("    " + label.PadRight(16) + ": " + (value ?? "N/A"));
+                return;
+            }
+
+            ConsoleRenderer.Inline("    " + label.PadRight(16), ConsoleColor.Cyan);
+            ConsoleRenderer.Inline(" : ", ConsoleColor.DarkGray);
+            ConsoleRenderer.Inline(value ?? "N/A", color);
+            Console.WriteLine();
         }
 
         // ── Filter label ──────────────────────────────────────────────────

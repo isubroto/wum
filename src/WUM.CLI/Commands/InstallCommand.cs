@@ -101,7 +101,10 @@ namespace WUM.CLI.Commands
             if (available.Count == 0)
             {
                 Console.WriteLine();
-                ConsoleRenderer.Success("  ✓ System is already up to date.");
+                ConsoleRenderer.SuccessResult(
+                    "System is already up to date.",
+                    "No available updates were returned by Windows Update.",
+                    "Run wum diagnose if you expected updates.");
                 Console.WriteLine();
                 return;
             }
@@ -113,9 +116,10 @@ namespace WUM.CLI.Commands
             if (targets.Count == 0)
             {
                 Console.WriteLine();
-                ConsoleRenderer.Info("  No updates matched the given filter.");
-                ConsoleRenderer.Hint("  wum list        -> see what is available");
-                ConsoleRenderer.Hint("  wum install --all -> install everything");
+                ConsoleRenderer.Notice(
+                    "No updates matched the selected install filter.",
+                    "Available updates exist, but none matched the KB/category flags.",
+                    "Run wum list to inspect candidates, or wum install --all.");
                 Console.WriteLine();
                 return;
             }
@@ -127,10 +131,10 @@ namespace WUM.CLI.Commands
             if (dryRun)
             {
                 Console.WriteLine();
-                ConsoleRenderer.Info(
-                    "  Dry run complete — no changes were made.");
-                ConsoleRenderer.Hint(
-                    "  Remove --dry-run to perform the installation.");
+                ConsoleRenderer.SuccessResult(
+                    "Dry run complete; no changes were made.",
+                    "Install plan above is a preview only.",
+                    "Remove --dry-run to download and install.");
                 Console.WriteLine();
                 return;
             }
@@ -138,7 +142,7 @@ namespace WUM.CLI.Commands
             // ── Confirm ───────────────────────────────────────────────────
             if (!force && !ConsoleRenderer.Confirm("  Proceed with installation?"))
             {
-                ConsoleRenderer.Info("  Cancelled.");
+                ConsoleRenderer.Cancelled("No updates were downloaded or installed.");
                 Console.WriteLine();
                 return;
             }
@@ -160,8 +164,13 @@ namespace WUM.CLI.Commands
                 {
                     ConsoleRenderer.Info("  Scheduling restart in 30 seconds...");
                     ConsoleRenderer.Hint("  wum reboot --cancel  to abort");
-                    await PowerShellHelper.ScheduleRebootAsync(
+                    bool scheduled = await PowerShellHelper.ScheduleRebootAsync(
                         30, "WUM: Completing Windows Update installation");
+                    if (!scheduled)
+                        ConsoleRenderer.Failure(
+                            "Could not schedule restart.",
+                            "Windows shutdown command returned an error.",
+                            "Run wum reboot from an Administrator terminal.");
                 }
             }
             Console.WriteLine();
@@ -190,8 +199,10 @@ namespace WUM.CLI.Commands
                     if (match != null)
                         found.Add(match);
                     else
-                        ConsoleRenderer.Warning(
-                            "  Update " + norm + " not found in available updates.");
+                        ConsoleRenderer.WarningResult(
+                            "Update " + norm + " not found.",
+                            "It may already be installed, hidden, superseded, or not offered by this source.",
+                            "Run wum list --hidden or wum list --installed to verify.");
                 }
                 return found;
             }
@@ -350,7 +361,10 @@ namespace WUM.CLI.Commands
                 if (!downloaded)
                 {
                     string reason = _updates.LastError ?? "unknown cause";
-                    ConsoleRenderer.Error("    ✗ Download failed — " + reason);
+                    ConsoleRenderer.Failure(
+                        "Download failed for " + u.KBArticle + ".",
+                        reason,
+                        "Run wum diagnose; check BITS, WU service, network, and disk space.");
                     result.Downloaded = false;
                     result.Installed  = false;
                     result.Error      = "Download failed: " + reason;
@@ -387,7 +401,10 @@ namespace WUM.CLI.Commands
                 else
                 {
                     string reason = _updates.LastError ?? "unknown cause";
-                    ConsoleRenderer.Error("    ✗ Installation failed — " + reason);
+                    ConsoleRenderer.Failure(
+                        "Installation failed for " + u.KBArticle + ".",
+                        reason,
+                        "Run wum diagnose; reboot if pending, then retry this KB.");
                     result.Error = "Install failed: " + reason;
                 }
 
@@ -453,6 +470,9 @@ namespace WUM.CLI.Commands
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     Console.WriteLine(f.Error ?? "Unknown error");
                     Console.ResetColor();
+                    ConsoleRenderer.Hint(
+                        "Next for " + f.Update.KBArticle +
+                        ": run wum diagnose, then retry this update.");
                 }
                 Console.WriteLine();
                 if (!WUM.CLI.Helpers.AdminHelper.IsRunningAsAdmin())

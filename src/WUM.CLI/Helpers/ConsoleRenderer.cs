@@ -16,37 +16,46 @@ namespace WUM.CLI.Helpers
             int    width = Math.Max(text.Length + 2, 52);
             string line  = new string('═', width);
             WriteColor("╔" + line + "╗", ConsoleColor.DarkCyan);
-            WriteColor("║ " + text.PadRight(width - 1) + "║", ConsoleColor.DarkCyan);
-            WriteColor("╚" + line + "╝", ConsoleColor.DarkCyan);
+            WriteColor("║ ", ConsoleColor.DarkCyan, newLine: false);
+            WriteColor(text, ConsoleColor.White, newLine: false);
+            WriteColor(new string(' ', Math.Max(0, width - text.Length - 1)) + "║",
+                ConsoleColor.DarkCyan);
+            WriteColor("╚" + line + "╝", ConsoleColor.Blue);
         }
 
         public static void SectionHeader(string text)
         {
             Console.WriteLine();
-            WriteColor("  ─── " + text + " ───", ConsoleColor.DarkGray);
+            WriteColor("  ◇ ", ConsoleColor.Magenta, newLine: false);
+            WriteColor(text + " ", ConsoleColor.White, newLine: false);
+            WriteColor(new string('─', Math.Max(8, 42 - text.Length)),
+                ConsoleColor.DarkCyan);
         }
 
         // ── Status / Count Lines ──────────────────────────────────────────
         public static void StatusLine(
             string label, string value, ConsoleColor color)
         {
-            WriteColor("  " + label.PadRight(22) + ": ",
-                ConsoleColor.DarkGray, newLine: false);
+            WriteColor("  • ", ConsoleColor.Blue, newLine: false);
+            WriteColor(label.PadRight(20), ConsoleColor.Cyan, newLine: false);
+            WriteColor(" : ", ConsoleColor.DarkGray, newLine: false);
             WriteColor(value, color);
         }
 
         public static void CountLine(
             string label, int count, ConsoleColor color)
         {
-            WriteColor("  " + label.PadRight(20) + ": ",
-                ConsoleColor.DarkGray, newLine: false);
+            WriteColor("  • ", ConsoleColor.Blue, newLine: false);
+            WriteColor(label.PadRight(18), ConsoleColor.Cyan, newLine: false);
+            WriteColor(" : ", ConsoleColor.DarkGray, newLine: false);
             WriteColor(count.ToString().PadLeft(4), color, newLine: false);
 
             if (count > 0)
             {
                 int    bars = Math.Min(count, 25);
-                string bar  = new string('█', bars);
-                WriteColor("  " + bar, color);
+                string bar  = new string('▰', bars);
+                WriteColor("  ", ConsoleColor.DarkGray, newLine: false);
+                WriteColor(bar, color);
             }
             else
             {
@@ -68,27 +77,72 @@ namespace WUM.CLI.Helpers
             => WriteColor("  " + msg, ConsoleColor.Cyan);
 
         public static void Hint(string msg)
-            => WriteColor("  > " + msg, ConsoleColor.DarkGray);
+        {
+            WriteColor("  › ", ConsoleColor.Blue, newLine: false);
+            WriteColor(msg, ConsoleColor.DarkGray);
+        }
 
         public static void Muted(string msg)
             => WriteColor("  " + msg, ConsoleColor.DarkGray);
 
+        public static void SuccessResult(
+            string title,
+            string? detail = null,
+            string? next = null) =>
+            ResultBlock("✓", title, ConsoleColor.Green, detail, next);
+
+        public static void WarningResult(
+            string title,
+            string? detail = null,
+            string? next = null) =>
+            ResultBlock("!", title, ConsoleColor.Yellow, detail, next);
+
+        public static void Failure(
+            string title,
+            string? reason = null,
+            string? next = null) =>
+            ResultBlock("✗", title, ConsoleColor.Red, reason, next);
+
+        public static void Notice(
+            string title,
+            string? detail = null,
+            string? next = null) =>
+            ResultBlock("•", title, ConsoleColor.Cyan, detail, next);
+
+        public static void Cancelled(string? next = null) =>
+            WarningResult("Cancelled by user.", null, next);
+
+        public static void DebugLine(string label, string value)
+        {
+            WriteColor("  [debug] ", ConsoleColor.Yellow, newLine: false);
+            WriteColor(label.PadRight(22), ConsoleColor.Cyan, newLine: false);
+            WriteColor(" : ", ConsoleColor.DarkGray, newLine: false);
+            WriteColor(value, ConsoleColor.Gray);
+        }
+
+        public static void StepLine(string number, string description)
+        {
+            WriteColor("  [step " + number + "] ", ConsoleColor.Magenta, newLine: false);
+            WriteColor(description, ConsoleColor.Gray);
+        }
+
         // ── Table ─────────────────────────────────────────────────────────
         public static void TableHeader(string text)
-            => WriteColor(text, ConsoleColor.DarkGray);
+            => WriteColor(text, ConsoleColor.Cyan);
 
         public static void Divider(char ch = '─')
         {
             int width = Math.Max(Console.WindowWidth - 1, 60);
-            WriteColor(new string(ch, width), ConsoleColor.DarkGray);
+            WriteColor(new string(ch, width),
+                ch == '·' ? ConsoleColor.DarkGray : ConsoleColor.DarkCyan);
         }
 
         // ── Field ─────────────────────────────────────────────────────────
         public static void Field(
             string label, string? value, ConsoleColor valueColor)
         {
-            WriteColor("  " + label.PadRight(16) + ": ",
-                ConsoleColor.DarkGray, newLine: false);
+            WriteColor("  " + label.PadRight(16), ConsoleColor.Cyan, newLine: false);
+            WriteColor(" : ", ConsoleColor.DarkGray, newLine: false);
             WriteColor(value ?? "N/A", valueColor);
         }
 
@@ -105,7 +159,7 @@ namespace WUM.CLI.Helpers
         {
             Console.WriteLine();
             WriteColor("  " + question + " [y/N]: ",
-                ConsoleColor.White, newLine: false);
+                ConsoleColor.Yellow, newLine: false);
             var answer = Console.ReadLine()?.Trim().ToLowerInvariant();
             return answer is "y" or "yes";
         }
@@ -135,11 +189,12 @@ namespace WUM.CLI.Helpers
                             ? " (" + elapsed + "s)"
                             : string.Empty;
 
-                        Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.Write(
-                            "\r  " + Spinner[frame % Spinner.Length] +
-                            " " + message + timeStr + "          ");
-                        Console.ResetColor();
+                        Console.Write("\r  ");
+                        WriteColor(Spinner[frame % Spinner.Length] + " ",
+                            SpinnerColor(frame), newLine: false);
+                        WriteColor(message, ConsoleColor.White, newLine: false);
+                        WriteColor(timeStr + "          ",
+                            ConsoleColor.DarkGray, newLine: false);
                     }
 
                     frame++;
@@ -183,7 +238,11 @@ namespace WUM.CLI.Helpers
             catch (Exception ex)
             {
                 Console.WriteLine();
-                WriteColor("  ! Error: " + ex.Message, ConsoleColor.Red);
+                Failure(
+                    "Operation failed.",
+                    ex.Message,
+                    "Read the command output above; full logs are under %ProgramData%\\WUM\\logs.");
+                throw;
             }
             finally
             {
@@ -208,6 +267,37 @@ namespace WUM.CLI.Helpers
             if (newLine) Console.WriteLine(text);
             else         Console.Write(text);
             Console.ResetColor();
+        }
+
+        private static ConsoleColor SpinnerColor(int frame) => (frame % 4) switch
+        {
+            0 => ConsoleColor.Cyan,
+            1 => ConsoleColor.Blue,
+            2 => ConsoleColor.Magenta,
+            _ => ConsoleColor.White
+        };
+
+        private static void ResultBlock(
+            string icon,
+            string title,
+            ConsoleColor color,
+            string? detail,
+            string? next)
+        {
+            WriteColor("  " + icon + " ", color, newLine: false);
+            WriteColor(title, color);
+
+            if (!string.IsNullOrWhiteSpace(detail))
+            {
+                WriteColor("    reason : ", ConsoleColor.Yellow, newLine: false);
+                WriteColor(detail, ConsoleColor.DarkGray);
+            }
+
+            if (!string.IsNullOrWhiteSpace(next))
+            {
+                WriteColor("    next   : ", ConsoleColor.Cyan, newLine: false);
+                WriteColor(next, ConsoleColor.DarkGray);
+            }
         }
     }
 }

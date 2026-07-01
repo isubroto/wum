@@ -78,11 +78,11 @@ namespace WUM.CLI.Commands
             if (release is null)
             {
                 Console.WriteLine();
-                ConsoleRenderer.Error(
-                    "Could not reach GitHub or parse the latest release.");
-                ConsoleRenderer.Hint(
-                    "Check your connection or download manually: " +
-                    "https://github.com/" + Owner + "/" + Repo + "/releases/latest");
+                ConsoleRenderer.Failure(
+                    "Could not check latest release.",
+                    "GitHub was unreachable or the release response could not be parsed.",
+                    "Check network/proxy, or open https://github.com/" +
+                    Owner + "/" + Repo + "/releases/latest");
                 Console.WriteLine();
                 return 1;
             }
@@ -112,9 +112,9 @@ namespace WUM.CLI.Commands
 
             if (string.IsNullOrEmpty(release.MsiUrl))
             {
-                ConsoleRenderer.Error(
-                    "Latest release has no MSI asset — cannot auto-install.");
-                ConsoleRenderer.Hint(
+                ConsoleRenderer.Failure(
+                    "Latest release has no MSI asset.",
+                    "Auto-install requires a .msi file attached to the release.",
                     "Download manually: " + release.HtmlUrl);
                 Console.WriteLine();
                 return 1;
@@ -126,7 +126,7 @@ namespace WUM.CLI.Commands
             if (!force && !ConsoleRenderer.Confirm(
                     "  Download and install v" + release.Version + " now?"))
             {
-                ConsoleRenderer.Muted("  Cancelled.");
+                ConsoleRenderer.Cancelled("No MSI was downloaded or installed.");
                 Console.WriteLine();
                 return 0;
             }
@@ -136,22 +136,29 @@ namespace WUM.CLI.Commands
                 Path.GetTempPath(), "wum-" + release.Version + ".msi");
 
             bool downloaded = false;
-            await ConsoleRenderer.ShowSpinnerAsync(
-                "Downloading " + release.MsiName + "...", async () =>
-                {
-                    downloaded = await DownloadFileAsync(release.MsiUrl!, msiPath);
-                }, timeoutSeconds: 300);
+            using (var downloadProgress = new ProgressRenderer("    Downloading "))
+            {
+                downloaded = await DownloadFileAsync(
+                    release.MsiUrl!, msiPath, downloadProgress);
+                downloadProgress.Complete(downloaded);
+            }
 
             if (!downloaded || !File.Exists(msiPath))
             {
                 Console.WriteLine();
-                ConsoleRenderer.Error("Download failed.");
-                ConsoleRenderer.Hint("Download manually: " + release.HtmlUrl);
+                ConsoleRenderer.Failure(
+                    "MSI download failed.",
+                    "The release asset could not be saved to " + msiPath + ".",
+                    "Check network/proxy and disk space, or download manually: " +
+                    release.HtmlUrl);
                 Console.WriteLine();
                 return 1;
             }
 
-            ConsoleRenderer.Success("✓ Downloaded to " + msiPath);
+            ConsoleRenderer.SuccessResult(
+                "Downloaded MSI.",
+                msiPath,
+                "Installer will launch next.");
             Console.WriteLine();
 
             // ── Run installer ────────────────────────────────────────────
@@ -164,17 +171,20 @@ namespace WUM.CLI.Commands
 
             if (rc == 0 || rc == 3010)
             {
-                ConsoleRenderer.Success(
-                    "✓ Update to v" + release.Version + " installed.");
-                if (rc == 3010)
-                    ConsoleRenderer.Hint("A reboot is required to finish.");
-                ConsoleRenderer.Hint("Run 'wum --info' to confirm the new version.");
+                ConsoleRenderer.SuccessResult(
+                    "Update to v" + release.Version + " installed.",
+                    rc == 3010
+                        ? "A reboot is required to finish installation."
+                        : "Installer completed successfully.",
+                    "Run wum --info to confirm the new version.");
                 Console.WriteLine();
                 return 0;
             }
 
-            ConsoleRenderer.Error("Installer exited with code " + rc + ".");
-            ConsoleRenderer.Hint("Install manually: " + msiPath);
+            ConsoleRenderer.Failure(
+                "Installer failed.",
+                "msiexec exited with code " + rc + ".",
+                "Install manually from " + msiPath + " or check Windows Installer logs.");
             Console.WriteLine();
             return 1;
         }
@@ -226,21 +236,55 @@ namespace WUM.CLI.Commands
             }
         }
 
-        private static async Task<bool> DownloadFileAsync(string url, string dest)
+        private static async Task<bool> DownloadFileAsync(
+            string url,
+            string dest,
+            ProgressRenderer progress)
         {
             try
             {
+                progress.Update(0);
+                if (File.Exists(dest)) File.Delete(dest);
+
                 using var resp = await Http.GetAsync(
                     url, HttpCompletionOption.ResponseHeadersRead);
                 if (!resp.IsSuccessStatusCode) return false;
 
                 await using var src = await resp.Content.ReadAsStreamAsync();
                 await using var fs  = File.Create(dest);
-                await src.CopyToAsync(fs);
+
+                long? totalBytes = resp.Content.Headers.ContentLength;
+                long  readBytes  = 0;
+                var   buffer     = new byte[81920];
+                double unknownSizePercent = 0;
+
+                while (true)
+                {
+                    int read = await src.ReadAsync(buffer, 0, buffer.Length);
+                    if (read == 0) break;
+
+                    await fs.WriteAsync(buffer, 0, read);
+                    readBytes += read;
+
+                    if (totalBytes is > 0)
+                    {
+                        progress.Update(readBytes * 100.0 / totalBytes.Value);
+                    }
+                    else
+                    {
+                        unknownSizePercent = Math.Min(
+                            95, unknownSizePercent + Math.Max(0.5, read / 1048576.0));
+                        progress.Update(unknownSizePercent);
+                    }
+                }
+
+                progress.Update(100);
                 return true;
             }
             catch
             {
+                try { if (File.Exists(dest)) File.Delete(dest); }
+                catch { }
                 return false;
             }
         }
@@ -264,7 +308,10 @@ namespace WUM.CLI.Commands
             }
             catch (Exception ex)
             {
-                ConsoleRenderer.Error("Failed to start msiexec: " + ex.Message);
+                ConsoleRenderer.Failure(
+                    "Failed to start msiexec.",
+                    ex.Message,
+                    "Run this command from an Administrator terminal and retry.");
                 return -1;
             }
         }

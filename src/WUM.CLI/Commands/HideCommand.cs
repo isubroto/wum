@@ -61,8 +61,13 @@ namespace WUM.CLI.Commands
                 "Hiding " + id + "...", async () =>
                 {
                     bool ok = await _updates.HideUpdateAsync(id);
-                    if (ok) ConsoleRenderer.Success("  ✓ " + id + " is now hidden");
-                    else    ConsoleRenderer.Error("  ✗ Could not hide " + id);
+                    if (ok)
+                        ConsoleRenderer.SuccessResult(id + " is now hidden.");
+                    else
+                        ConsoleRenderer.Failure(
+                            "Could not hide " + id + ".",
+                            "Update ID may be wrong, already installed, or not available in the current scan.",
+                            "Run wum list -v to copy the exact update ID.");
                 });
             Console.WriteLine();
         }
@@ -74,8 +79,13 @@ namespace WUM.CLI.Commands
                 "Unhiding " + id + "...", async () =>
                 {
                     bool ok = await _updates.UnhideUpdateAsync(id);
-                    if (ok) ConsoleRenderer.Success("  ✓ " + id + " is now visible");
-                    else    ConsoleRenderer.Error("  ✗ Could not unhide " + id);
+                    if (ok)
+                        ConsoleRenderer.SuccessResult(id + " is now visible.");
+                    else
+                        ConsoleRenderer.Failure(
+                            "Could not unhide " + id + ".",
+                            "Update ID may be wrong or the update is no longer hidden.",
+                            "Run wum hide list to see hidden updates.");
                 });
             Console.WriteLine();
         }
@@ -96,6 +106,16 @@ namespace WUM.CLI.Commands
             ConsoleRenderer.Header(
                 "  Hidden Updates  (" + hidden.Count + " found)");
             Console.WriteLine();
+
+            if (hidden.Count == 0)
+            {
+                ConsoleRenderer.Notice(
+                    "No hidden updates found.",
+                    "The hidden-update scan completed successfully.",
+                    "Run wum list --hidden to include hidden items in the full list.");
+                Console.WriteLine();
+                return;
+            }
 
             TableRenderer.RenderUpdates(hidden);
         }

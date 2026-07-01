@@ -22,6 +22,16 @@ namespace WUM.CLI.Tests
             result.Output.Should().Contain("╭");
             result.Output.Should().Contain("╰");
             result.Output.Should().Contain("Take care");
+
+            string[] lines = result.Output.Split(
+                Environment.NewLine,
+                StringSplitOptions.None);
+            string topBorder = lines.First(line => line.StartsWith("╭"));
+            string contentLine = lines.First(line => line.StartsWith("│"));
+            string bottomBorder = lines.First(line => line.StartsWith("╰"));
+            topBorder.Length.Should().Be(contentLine.Length);
+            bottomBorder.Length.Should().Be(contentLine.Length);
+            topBorder.IndexOf('╮').Should().Be(contentLine.LastIndexOf('│'));
             result.Invocations.Should().BeEmpty();
         }
 
@@ -138,6 +148,20 @@ namespace WUM.CLI.Tests
         }
 
         [Fact]
+        public async Task RunAsync_ExplainsDiagnoseFailureExitCode()
+        {
+            var result = await RunShellAsync(
+                _ => Task.FromResult(4),
+                "/diagnose",
+                "/exit");
+
+            result.Output.Should().Contain("failed (exit 4)");
+            result.Output.Should().Contain(
+                "Windows Update service, BITS, or Crypto service");
+            result.Output.Should().Contain("/diagnose --fix");
+        }
+
+        [Fact]
         public void GetCommandSuggestions_WithSlash_ListsAllCommands()
         {
             var commands = InteractiveShell.GetCommandSuggestions("/")
@@ -212,7 +236,12 @@ namespace WUM.CLI.Tests
                 .Select(s => s.Command)
                 .Should().Contain(new[] { "--check", "--force" });
         }
-        private static async Task<ShellRunResult> RunShellAsync(params string[] lines)
+        private static Task<ShellRunResult> RunShellAsync(params string[] lines) =>
+            RunShellAsync(_ => Task.FromResult(0), lines);
+
+        private static async Task<ShellRunResult> RunShellAsync(
+            Func<string[], Task<int>> invokeAsync,
+            params string[] lines)
         {
             string inputText = string.Join(Environment.NewLine, lines) +
                                Environment.NewLine;
@@ -227,7 +256,7 @@ namespace WUM.CLI.Tests
                 args =>
                 {
                     invocations.Add(args);
-                    return Task.FromResult(0);
+                    return invokeAsync(args);
                 },
                 input,
                 output,

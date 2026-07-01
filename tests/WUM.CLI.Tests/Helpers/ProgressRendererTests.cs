@@ -20,8 +20,13 @@ namespace WUM.CLI.Tests.Helpers
             output.Should().Contain("Downloading");
             output.Should().Contain(" 26%");
             output.Should().Contain("━");
+            output.Should().Contain("●");
             output.Should().Contain("─");
+            output.Should().Contain("00:");
             output.Should().NotContain("[");
+            output.Should().NotContain("╭");
+            output.Should().NotContain("╮");
+            output.Should().NotContain("|");
             output.Should().NotContain("░");
         }
 

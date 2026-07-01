@@ -137,15 +137,15 @@ namespace WUM.Core.Helpers
             });
         }
 
-        public static async Task ScheduleRebootAsync(int secondsDelay, string msg)
+        public static async Task<bool> ScheduleRebootAsync(int secondsDelay, string msg)
         {
-            await RunCommandAsync(
+            return await RunCommandAsync(
                 "shutdown /r /t " + secondsDelay + " /c \"" + msg + "\"");
         }
 
-        public static async Task CancelRebootAsync()
+        public static async Task<bool> CancelRebootAsync()
         {
-            await RunCommandAsync("shutdown /a");
+            return await RunCommandAsync("shutdown /a");
         }
     }
 }

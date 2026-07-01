@@ -590,23 +590,23 @@ namespace WUM.CLI.Interactive
             }
 
             string command = GetCommandWord(line);
-            if (IsHelpCommand(command)) { PrintResponseHeader(line); PrintHelp(line); PrintResponseFooter(0); return LineResult.Continue(0); }
-            if (command.Equals("/commands", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); PrintCommandPalette(); PrintResponseFooter(0); return LineResult.Continue(0); }
-            if (command.Equals("/keys", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); PrintKeyHelp(); PrintResponseFooter(0); return LineResult.Continue(0); }
+            if (IsHelpCommand(command)) { PrintResponseHeader(line); PrintHelp(line); PrintResponseFooter(0, command); return LineResult.Continue(0); }
+            if (command.Equals("/commands", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); PrintCommandPalette(); PrintResponseFooter(0, command); return LineResult.Continue(0); }
+            if (command.Equals("/keys", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); PrintKeyHelp(); PrintResponseFooter(0, command); return LineResult.Continue(0); }
             if (command.Equals("/clear", StringComparison.OrdinalIgnoreCase)) { _clearTerminal(); PrintWelcome(); return LineResult.Continue(0); }
-            if (command.Equals("/version", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); int code = await _invokeAsync(new[] { "--version" }); PrintResponseFooter(code); return LineResult.Continue(code); }
-            if (command.Equals("/info", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); _printDeveloperInfo(); PrintResponseFooter(0); return LineResult.Continue(0); }
+            if (command.Equals("/version", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); int code = await _invokeAsync(new[] { "--version" }); PrintResponseFooter(code, command); return LineResult.Continue(code); }
+            if (command.Equals("/info", StringComparison.OrdinalIgnoreCase)) { PrintResponseHeader(line); _printDeveloperInfo(); PrintResponseFooter(0, command); return LineResult.Continue(0); }
 
-            if (!KnownCommandSet.Contains(command)) { PrintResponseHeader(line); PrintUnknownCommand(command); PrintResponseFooter(1); return LineResult.Continue(1); }
+            if (!KnownCommandSet.Contains(command)) { PrintResponseHeader(line); PrintUnknownCommand(command); PrintResponseFooter(1, command); return LineResult.Continue(1); }
 
             string commandLine = line.Substring(1).TrimStart();
             string[] args;
             try { args = CommandLineTokenizer.Tokenize(commandLine); }
-            catch (FormatException ex) { PrintResponseHeader(line); _output.WriteLine(ex.Message); PrintResponseFooter(1); return LineResult.Continue(1); }
+            catch (FormatException ex) { PrintResponseHeader(line); _output.WriteLine(ex.Message); PrintResponseFooter(1, command); return LineResult.Continue(1); }
 
             PrintResponseHeader(line);
             int exitCode = await _invokeAsync(args);
-            PrintResponseFooter(exitCode);
+            PrintResponseFooter(exitCode, command);
             return LineResult.Continue(exitCode);
         }
 
@@ -635,7 +635,7 @@ namespace WUM.CLI.Interactive
             string versionText = $"WUM v{GetDisplayVersion()}";
             WriteStyled("╭─ ", Ansi.Rule);
             WriteStyled(versionText, Ansi.Accent + Ansi.Bold);
-            int topRem = width - 2 - 3 - versionText.Length;
+            int topRem = width - 4 - versionText.Length;
             if (topRem > 0) WriteStyled(new string('─', topRem), Ansi.Rule);
             WriteStyledLine("╮", Ansi.Rule);
 
@@ -1022,18 +1022,121 @@ namespace WUM.CLI.Interactive
             WriteStyledLine(" " + new string('─', fill), Ansi.Rule);
         }
 
-        private void PrintResponseFooter(int exitCode)
+        private void PrintResponseFooter(int exitCode, string? command = null)
         {
             if (exitCode == 0)
             {
                 WriteStyled("✓ ", Ansi.Green + Ansi.Bold);
                 WriteStyledLine("done", Ansi.Text);
+                return;
             }
-            else
+
+            if (IsUpdateAvailableExit(command, exitCode))
             {
-                WriteStyled("✗ ", Ansi.Red + Ansi.Bold);
-                WriteStyledLine($"failed (exit {exitCode})", Ansi.Text);
+                WriteStyled("! ", Ansi.Yellow + Ansi.Bold);
+                WriteStyledLine("update available (exit 2)", Ansi.Text);
+                WriteStyled("  next: ", Ansi.Teal);
+                WriteStyledLine("run /update to download and install it.", Ansi.Muted);
+                return;
             }
+
+            WriteStyled("✗ ", Ansi.Red + Ansi.Bold);
+            WriteStyled("failed ", Ansi.Red + Ansi.Bold);
+            WriteStyledLine($"(exit {exitCode})", Ansi.Muted);
+
+            foreach (var line in ExplainExit(command, exitCode))
+            {
+                WriteStyled("  " + line.Prefix + ": ", line.Color);
+                WriteStyledLine(line.Text, Ansi.Muted);
+            }
+        }
+
+        private static bool IsUpdateAvailableExit(string? command, int exitCode) =>
+            exitCode == 2 &&
+            (command?.Equals("/update", StringComparison.OrdinalIgnoreCase) == true ||
+             command?.Equals("/upgrade", StringComparison.OrdinalIgnoreCase) == true);
+
+        private static List<(string Prefix, string Text, string Color)> ExplainExit(
+            string? command,
+            int exitCode)
+        {
+            if (command?.Equals("/diagnose", StringComparison.OrdinalIgnoreCase) == true)
+                return ExplainDiagnoseExit(exitCode);
+
+            string reason = GetCommandFailureReason(command);
+            string next = GetCommandFailureNext(command);
+
+            return new List<(string, string, string)>
+            {
+                ("reason", reason, Ansi.Yellow),
+                ("next", next, Ansi.Teal)
+            };
+        }
+
+        private static string GetCommandFailureReason(string? command)
+        {
+            if (command is null)
+                return "command returned a non-zero exit code.";
+
+            return command.ToLowerInvariant() switch
+            {
+                "/install" => "one or more update download/install operations failed.",
+                "/uninstall" => "Windows could not remove the requested update.",
+                "/hide" => "Windows could not change hidden state for the requested update.",
+                "/reboot" => "Windows rejected the restart scheduling/cancel command.",
+                "/settings" => "the setting key or value was invalid, or registry write failed.",
+                "/schedule" => "the schedule value was invalid, or schedule save failed.",
+                "/pause" => "Windows Update pause/resume registry operation failed.",
+                "/update" or "/upgrade" => "release check, MSI download, or installer launch failed.",
+                "/list" => "Windows Update scan/list operation failed.",
+                "/search" => "Windows Update search operation failed.",
+                "/history" => "Windows Update history read failed.",
+                "/status" => "status check failed before completion.",
+                _ => "command returned a non-zero exit code."
+            };
+        }
+
+        private static string GetCommandFailureNext(string? command)
+        {
+            if (command is null)
+                return @"read the message above; full logs: C:\ProgramData\WUM\logs\";
+
+            return command.ToLowerInvariant() switch
+            {
+                "/install" => @"read the failed KB reason above; run /diagnose; full logs: C:\ProgramData\WUM\logs\",
+                "/uninstall" => "verify the KB with /list --installed or /history --kb <KB>, then retry as Administrator.",
+                "/hide" => "copy the exact update ID from /list -v or inspect /hide list.",
+                "/reboot" => "run from an Administrator terminal, or check whether a shutdown timer exists.",
+                "/settings" => "run /settings show, then use a valid key/value from the help text.",
+                "/schedule" => "use weekday names and HH:mm time, for example /schedule set --day Friday --time 03:00.",
+                "/pause" => "run from an Administrator terminal and keep days between 1 and 35.",
+                "/update" or "/upgrade" => "check network/proxy, then retry /update or install the MSI manually from GitHub releases.",
+                "/list" or "/search" or "/status" or "/history" => @"run /diagnose; full logs: C:\ProgramData\WUM\logs\",
+                _ => @"read the message above; full logs: C:\ProgramData\WUM\logs\"
+            };
+        }
+
+        private static List<(string Prefix, string Text, string Color)> ExplainDiagnoseExit(
+            int exitCode)
+        {
+            var lines = new List<(string, string, string)>();
+
+            if ((exitCode & 1) != 0)
+                lines.Add(("reason", "Windows Update network endpoints unreachable on TCP 443.", Ansi.Yellow));
+            if ((exitCode & 2) != 0)
+                lines.Add(("reason", "Windows Update COM session/searcher failed.", Ansi.Yellow));
+            if ((exitCode & 4) != 0)
+                lines.Add(("reason", "Windows Update service, BITS, or Crypto service is stopped/disabled.", Ansi.Yellow));
+            if ((exitCode & 8) != 0)
+                lines.Add(("reason", "Windows Update search failed.", Ansi.Yellow));
+            if ((exitCode & 16) != 0)
+                lines.Add(("reason", "terminal is not running as Administrator.", Ansi.Yellow));
+
+            if (lines.Count == 0)
+                lines.Add(("reason", "diagnose reported an unknown non-zero result.", Ansi.Yellow));
+
+            lines.Add(("next", "read the hints above; use /diagnose --fix only after reviewing what it resets.", Ansi.Teal));
+            return lines;
         }
 
         private void WriteSection(string text) => WriteStyledLine(text + ":", Ansi.Yellow + Ansi.Bold);

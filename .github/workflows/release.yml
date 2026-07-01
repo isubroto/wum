@@ -336,13 +336,13 @@ jobs:
           # ------------------------------
           $versionManifest = @"
           # Created with wum Release Workflow
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
           DefaultLocale: en-US
           ManifestType: version
-          ManifestVersion: 1.6.0
+          ManifestVersion: 1.12.0
           "@
           $versionManifest = ($versionManifest -replace '(?m)^ {10}', '').Trim()
 
@@ -351,7 +351,7 @@ jobs:
           # ------------------------------
           $localeManifest = @"
           # Created with wum Release Workflow
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
@@ -383,7 +383,7 @@ jobs:
             For detailed changelog, visit: $repoUrl/releases/tag/v$version
           ReleaseNotesUrl: $repoUrl/releases/tag/v$version
           ManifestType: defaultLocale
-          ManifestVersion: 1.6.0
+          ManifestVersion: 1.12.0
           "@
           $localeManifest = ($localeManifest -replace '(?m)^ {10}', '').Trim()
 
@@ -393,7 +393,7 @@ jobs:
           # ------------------------------
           $installerManifest = @"
           # Created with wum Release Workflow
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
@@ -426,7 +426,7 @@ jobs:
                 Silent: /qn /norestart
                 SilentWithProgress: /qb! /norestart
           ManifestType: installer
-          ManifestVersion: 1.6.0
+          ManifestVersion: 1.12.0
           "@
           $installerManifest = ($installerManifest -replace '(?m)^ {10}', '').Trim()
 

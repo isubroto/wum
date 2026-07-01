@@ -47,7 +47,10 @@ namespace WUM.CLI.Commands
 
             if (!needed)
             {
-                ConsoleRenderer.Info("  No reboot is currently required.");
+                ConsoleRenderer.Notice(
+                    "No reboot is currently required.",
+                    "Windows Update does not report a pending restart.",
+                    force ? "Because --force was supplied, WUM will still schedule one." : null);
                 if (!force)
                 {
                     Console.WriteLine();
@@ -63,7 +66,7 @@ namespace WUM.CLI.Commands
 
             if (!force && !ConsoleRenderer.Confirm("  Restart in " + delay + " seconds?"))
             {
-                ConsoleRenderer.Info("  Cancelled.");
+                ConsoleRenderer.Cancelled("No restart was scheduled.");
                 Console.WriteLine();
                 return;
             }
@@ -72,8 +75,18 @@ namespace WUM.CLI.Commands
             ConsoleRenderer.Hint("  Run 'wum reboot --cancel' to abort.");
             Console.WriteLine();
 
-            await PowerShellHelper.ScheduleRebootAsync(delay,
+            bool scheduled = await PowerShellHelper.ScheduleRebootAsync(delay,
                 "WUM: Completing Windows Update installation");
+            if (scheduled)
+                ConsoleRenderer.SuccessResult(
+                    "Restart scheduled.",
+                    "Windows accepted the shutdown command.",
+                    "Run wum reboot --cancel to abort before the timer expires.");
+            else
+                ConsoleRenderer.Failure(
+                    "Could not schedule restart.",
+                    "Windows shutdown command returned an error.",
+                    "Run from an Administrator terminal or inspect Event Viewer/System logs.");
         }
 
         private async Task CancelAsync()
@@ -82,9 +95,17 @@ namespace WUM.CLI.Commands
             await ConsoleRenderer.ShowSpinnerAsync(
                 "Cancelling scheduled reboot...", async () =>
                 {
-                    await PowerShellHelper.CancelRebootAsync();
+                    bool ok = await PowerShellHelper.CancelRebootAsync();
+                    if (ok)
+                        ConsoleRenderer.SuccessResult(
+                            "Scheduled reboot cancelled.",
+                            "Windows accepted shutdown /a.");
+                    else
+                        ConsoleRenderer.Failure(
+                            "Could not cancel scheduled reboot.",
+                            "There may be no pending shutdown, or Windows rejected shutdown /a.",
+                            "Check whether a restart timer is actually active.");
                 });
-            ConsoleRenderer.Success("  ✓ Scheduled reboot cancelled");
             Console.WriteLine();
         }
     }

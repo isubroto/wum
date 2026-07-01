@@ -73,6 +73,32 @@ namespace WUM.CLI.Commands
             {
                 results = results.Where(u => u.Category == cat).ToList();
             }
+            else if (!string.IsNullOrEmpty(category))
+            {
+                if (json)
+                {
+                    Console.WriteLine(JsonSerializer.Serialize(new
+                    {
+                        error = "Invalid category",
+                        category,
+                        valid = new[]
+                        {
+                            "Security", "Critical", "Optional",
+                            "Driver", "Definition", "FeatureUpdate"
+                        }
+                    }, new JsonSerializerOptions { WriteIndented = true }));
+                }
+                else
+                {
+                    Console.WriteLine();
+                    ConsoleRenderer.Failure(
+                        "Invalid category: " + category,
+                        "Supported categories are Security, Critical, Optional, Driver, Definition, FeatureUpdate.",
+                        "Run wum list to see categories currently present.");
+                    Console.WriteLine();
+                }
+                return;
+            }
 
             if (json)
             {
@@ -89,7 +115,10 @@ namespace WUM.CLI.Commands
 
             if (results.Count == 0)
             {
-                ConsoleRenderer.Muted("  No updates matched \"" + term + "\".");
+                ConsoleRenderer.Notice(
+                    "No updates matched \"" + term + "\".",
+                    "The scan completed, but title, KB, and description did not match.",
+                    "Try a KB number, fewer words, or run wum list.");
                 Console.WriteLine();
                 return;
             }

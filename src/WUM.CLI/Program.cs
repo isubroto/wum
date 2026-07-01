@@ -45,10 +45,11 @@ namespace WUM.CLI
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n  Failed to initialize services: " +
-                                  ex.Message);
-                Console.ResetColor();
+                Console.WriteLine();
+                ConsoleRenderer.Failure(
+                    "Failed to initialize services.",
+                    ex.Message,
+                    "Check logs under %ProgramData%\\WUM\\logs and rerun the command.");
                 await Log.CloseAndFlushAsync();
                 return 1;
             }
@@ -158,7 +159,10 @@ namespace WUM.CLI
                 {
                     Log.Error(ex, "Unhandled exception");
                     Console.WriteLine();
-                    ConsoleRenderer.Error("Error: " + ex.Message);
+                    ConsoleRenderer.Failure(
+                        "Command failed unexpectedly.",
+                        ex.Message,
+                        "Check the command output above and full logs under %ProgramData%\\WUM\\logs.");
                     Console.WriteLine();
                     ctx.ExitCode = 1;
                 })

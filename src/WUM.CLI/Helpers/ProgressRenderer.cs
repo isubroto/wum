@@ -1,21 +1,25 @@
 // src/WUM.CLI/Helpers/ProgressRenderer.cs
 using System;
+using System.Diagnostics;
 
 namespace WUM.CLI.Helpers
 {
     public class ProgressRenderer : IDisposable
     {
+        private const int LabelWidth = 13;
+
         private readonly string _label;
         private readonly int    _barWidth;
+        private readonly Stopwatch _clock = Stopwatch.StartNew();
         private int             _lastPercent = -1;
         private int             _lastRenderLength;
         private int             _frame;
         private bool            _disposed;
 
-        public ProgressRenderer(string label, int barWidth = 30)
+        public ProgressRenderer(string label, int barWidth = 34)
         {
             _label    = label.Trim();
-            _barWidth = Math.Max(10, barWidth);
+            _barWidth = Math.Max(12, barWidth);
             TrySetCursorVisible(false);
         }
 
@@ -41,10 +45,11 @@ namespace WUM.CLI.Helpers
             int filled = (int)Math.Floor(percent / 100.0 * width);
             bool showHead = percent > 0 && percent < 100 && filled < width;
 
-            string filledBar = new('━', Math.Clamp(filled, 0, width));
-            string head = showHead ? "╸" : string.Empty;
+            string head = showHead ? "●" : string.Empty;
             int emptyCount = width - filled - head.Length;
             string emptyBar = new('─', Math.Max(0, emptyCount));
+            string label = _label.PadRight(LabelWidth);
+            string elapsed = " " + FormatElapsed();
 
             string icon = completed
                 ? success ? "✓" : "✗"
@@ -57,18 +62,22 @@ namespace WUM.CLI.Helpers
             Console.Write("    ");
             WriteColor(icon + " ", completed
                 ? success ? ConsoleColor.Green : ConsoleColor.Red
-                : ConsoleColor.Cyan);
-            WriteColor(_label.PadRight(11), ConsoleColor.Gray);
-            WriteColor(filledBar, ConsoleColor.Cyan);
-            WriteColor(head, ConsoleColor.White);
+                : SpinnerColor());
+            WriteColor(label, completed
+                ? success ? ConsoleColor.Green : ConsoleColor.Red
+                : ConsoleColor.White);
+            WriteFilledBar(Math.Clamp(filled, 0, width), completed, success);
+            WriteColor(head, PercentColor(percent, completed, success));
             WriteColor(emptyBar, ConsoleColor.DarkGray);
-            Console.Write(" ");
-            WriteColor($"{percent,3}%", ConsoleColor.White);
+            Console.Write("  ");
+            WriteColor($"{percent,3}%", PercentColor(percent, completed, success));
+            WriteColor(elapsed, ConsoleColor.DarkGray);
             WriteColor(suffix, completed
                 ? success ? ConsoleColor.Green : ConsoleColor.Red
                 : ConsoleColor.Gray);
 
-            int renderLength = 4 + 2 + 11 + width + 1 + 4 + suffix.Length;
+            int renderLength = 4 + 2 + label.Length + width + 2 + 4 +
+                elapsed.Length + suffix.Length;
             if (_lastRenderLength > renderLength)
                 Console.Write(new string(' ', _lastRenderLength - renderLength));
 
@@ -84,14 +93,71 @@ namespace WUM.CLI.Helpers
             return frame;
         }
 
+        private void WriteFilledBar(int count, bool completed, bool success)
+        {
+            if (count <= 0) return;
+
+            if (completed)
+            {
+                WriteColor(new string('━', count),
+                    success ? ConsoleColor.Green : ConsoleColor.Red);
+                return;
+            }
+
+            int first = Math.Max(1, count / 3);
+            int second = Math.Max(first, count * 2 / 3);
+
+            for (int i = 0; i < count; i++)
+            {
+                ConsoleColor color = i < first
+                    ? ConsoleColor.Cyan
+                    : i < second
+                        ? ConsoleColor.Blue
+                        : ConsoleColor.Magenta;
+                WriteColor("━", color);
+            }
+        }
+
+        private ConsoleColor SpinnerColor() => (_frame % 4) switch
+        {
+            0 => ConsoleColor.Cyan,
+            1 => ConsoleColor.Blue,
+            2 => ConsoleColor.Magenta,
+            _ => ConsoleColor.White
+        };
+
+        private static ConsoleColor PercentColor(
+            int percent,
+            bool completed,
+            bool success)
+        {
+            if (completed) return success ? ConsoleColor.Green : ConsoleColor.Red;
+            if (percent >= 90) return ConsoleColor.Green;
+            if (percent >= 60) return ConsoleColor.Cyan;
+            if (percent >= 30) return ConsoleColor.Yellow;
+            return ConsoleColor.White;
+        }
+
+        private string FormatElapsed()
+        {
+            var elapsed = _clock.Elapsed;
+            if (elapsed.TotalHours >= 1)
+                return ((int)elapsed.TotalHours).ToString("0") +
+                    "h" + elapsed.Minutes.ToString("00") + "m";
+
+            return elapsed.Minutes.ToString("00") +
+                ":" + elapsed.Seconds.ToString("00");
+        }
+
         private int GetBarWidth()
         {
             try
             {
                 if (!Console.IsOutputRedirected)
                 {
-                    int available = Console.WindowWidth - 4 - 2 - 11 - 1 - 4 - 2;
-                    return Math.Clamp(Math.Min(_barWidth, available), 10, _barWidth);
+                    int available = Console.WindowWidth - 4 - 2 - LabelWidth -
+                        2 - 4 - 6 - 8;
+                    return Math.Clamp(Math.Min(_barWidth, available), 12, _barWidth);
                 }
             }
             catch
