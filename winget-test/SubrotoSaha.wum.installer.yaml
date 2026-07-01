@@ -1,5 +1,5 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 # Created with wum Release Workflow
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
 PackageIdentifier: SubrotoSaha.wum
 PackageVersion: 0.3.0.58
@@ -32,4 +32,4 @@ Installers:
       Silent: /qn /norestart
       SilentWithProgress: /qb! /norestart
 ManifestType: installer
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0

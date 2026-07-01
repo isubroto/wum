@@ -1,5 +1,5 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 # Created with wum Release Workflow
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
 PackageIdentifier: SubrotoSaha.wum
 PackageVersion: 0.3.0.58
@@ -31,4 +31,4 @@ ReleaseNotes: |
   For detailed changelog, visit: https://github.com/SubrotoSaha/wum/releases/tag/v0.3.0.58
 ReleaseNotesUrl: https://github.com/SubrotoSaha/wum/releases/tag/v0.3.0.58
 ManifestType: defaultLocale
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0

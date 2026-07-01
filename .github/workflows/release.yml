@@ -195,6 +195,7 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://github.com/wixtoolset/wix/releases/download/v6.0.0/wix-cli-x64.msi -OutFile wix6.msi
           Start-Process wix6.msi -ArgumentList "/quiet" -Wait
+          & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" extension add WixToolset.Util.wixext/6.0.0
           Remove-Item wix6.msi
 
       - name: Generate Files.wxs excluding 'publish' folder
@@ -227,6 +228,7 @@ jobs:
 
           & "C:\Program Files\WiX Toolset v6.0\bin\wix.exe" build Product.wxs Files.wxs `
             -arch x64 `
+            -ext WixToolset.Util.wixext `
             -define ProductVersion=$safeVersion `
             -define SourceDir="..\src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
             -out "../publish/wum-$safeVersion.msi"
@@ -332,11 +334,10 @@ jobs:
 
           # ------------------------------
           # Version Manifest
-          # FIX #3: Escape $schema with backtick
           # ------------------------------
           $versionManifest = @"
-          # Created with wum Release Workflow
           # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
+          # Created with wum Release Workflow
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
@@ -350,8 +351,8 @@ jobs:
           # Default Locale Manifest
           # ------------------------------
           $localeManifest = @"
-          # Created with wum Release Workflow
           # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+          # Created with wum Release Workflow
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
@@ -389,11 +390,10 @@ jobs:
 
           # ------------------------------
           # Installer Manifest
-          # FIX #1: Changed successRebootRequired to rebootRequiredToFinish
           # ------------------------------
           $installerManifest = @"
-          # Created with wum Release Workflow
           # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+          # Created with wum Release Workflow
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
