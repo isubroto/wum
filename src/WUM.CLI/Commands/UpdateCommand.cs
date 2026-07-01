@@ -167,24 +167,17 @@ namespace WUM.CLI.Commands
                 "  wum will close while the upgrade completes.");
             Console.WriteLine();
 
-            int rc = RunMsi(msiPath);
-
-            if (rc == 0 || rc == 3010)
+            if (LaunchMsi(msiPath))
             {
                 ConsoleRenderer.SuccessResult(
-                    "Update to v" + release.Version + " installed.",
-                    rc == 3010
-                        ? "A reboot is required to finish installation."
-                        : "Installer completed successfully.",
-                    "Run wum --info to confirm the new version.");
+                    "Installer launched.",
+                    "This wum process will exit now so the MSI can replace it.",
+                    "Follow the installer progress window; run wum --info after it finishes.");
                 Console.WriteLine();
+                Environment.Exit(0);
                 return 0;
             }
 
-            ConsoleRenderer.Failure(
-                "Installer failed.",
-                "msiexec exited with code " + rc + ".",
-                "Install manually from " + msiPath + " or check Windows Installer logs.");
             Console.WriteLine();
             return 1;
         }
@@ -290,9 +283,9 @@ namespace WUM.CLI.Commands
         }
 
         // ── msiexec ──────────────────────────────────────────────────────
-        // /qb = basic UI (shows progress, no prompts). /norestart so we can
-        // report the 3010 reboot-required code instead of an abrupt restart.
-        private static int RunMsi(string msiPath)
+        // /qb = basic UI (shows progress). We do not wait because this process
+        // is the executable being replaced; keeping it alive triggers FilesInUse.
+        private static bool LaunchMsi(string msiPath)
         {
             try
             {
@@ -302,9 +295,7 @@ namespace WUM.CLI.Commands
                     UseShellExecute = false
                 };
                 using var p = Process.Start(psi);
-                if (p is null) return -1;
-                p.WaitForExit();
-                return p.ExitCode;
+                return p is not null;
             }
             catch (Exception ex)
             {
@@ -312,7 +303,7 @@ namespace WUM.CLI.Commands
                     "Failed to start msiexec.",
                     ex.Message,
                     "Run this command from an Administrator terminal and retry.");
-                return -1;
+                return false;
             }
         }
 

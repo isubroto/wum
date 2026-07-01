@@ -16,14 +16,14 @@ New-Item -ItemType Directory -Force -Path "winget-test" | Out-Null
 # FIX #3: Escape $schema with backtick
 # ------------------------------
 $versionManifest = @"
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
 # Created with wum Release Workflow
-# yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
 
 PackageIdentifier: SubrotoSaha.wum
 PackageVersion: $version
 DefaultLocale: en-US
 ManifestType: version
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0
 "@
 $versionManifest = ($versionManifest -replace '(?m)^ {10}', '').Trim()
 
@@ -31,8 +31,8 @@ $versionManifest = ($versionManifest -replace '(?m)^ {10}', '').Trim()
 # Default Locale Manifest
 # ------------------------------
 $localeManifest = @"
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
 # Created with wum Release Workflow
-# yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
 PackageIdentifier: SubrotoSaha.wum
 PackageVersion: $version
@@ -64,7 +64,7 @@ ReleaseNotes: |
   For detailed changelog, visit: $repoUrl/releases/tag/v$version
 ReleaseNotesUrl: $repoUrl/releases/tag/v$version
 ManifestType: defaultLocale
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0
 "@
 $localeManifest = ($localeManifest -replace '(?m)^ {10}', '').Trim()
 
@@ -73,8 +73,8 @@ $localeManifest = ($localeManifest -replace '(?m)^ {10}', '').Trim()
 # FIX #1: Changed successRebootRequired to rebootRequiredToFinish
 # ------------------------------
 $installerManifest = @"
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 # Created with wum Release Workflow
-# yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
 PackageIdentifier: SubrotoSaha.wum
 PackageVersion: $version
@@ -107,7 +107,7 @@ Installers:
       Silent: /qn /norestart
       SilentWithProgress: /qb! /norestart
 ManifestType: installer
-ManifestVersion: 1.6.0
+ManifestVersion: 1.12.0
 "@
 $installerManifest = ($installerManifest -replace '(?m)^ {10}', '').Trim()
 

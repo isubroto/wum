@@ -13,20 +13,20 @@ New-Item -ItemType Directory -Force -Path "winget-test" | Out-Null
 # NOTE: here-strings below MUST keep exactly 10 leading spaces to mirror the
 # workflow run: block indentation, so the (?m)^ {10} dedent applies.
           $versionManifest = @"
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
           # Created with wum Release Workflow
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
           DefaultLocale: en-US
           ManifestType: version
-          ManifestVersion: 1.6.0
+          ManifestVersion: 1.12.0
           "@
           $versionManifest = ($versionManifest -replace '(?m)^ {10}', '').Trim()
 
           $installerManifest = @"
+          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
           # Created with wum Release Workflow
-          # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
           PackageIdentifier: SubrotoSaha.wum
           PackageVersion: $version
@@ -55,7 +55,7 @@ New-Item -ItemType Directory -Force -Path "winget-test" | Out-Null
                 Silent: /qn /norestart
                 SilentWithProgress: /qb! /norestart
           ManifestType: installer
-          ManifestVersion: 1.6.0
+          ManifestVersion: 1.12.0
           "@
           $installerManifest = ($installerManifest -replace '(?m)^ {10}', '').Trim()
 

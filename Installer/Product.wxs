@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
   <Package Name="WUM"
            Manufacturer="Subroto Saha"
@@ -10,6 +11,16 @@
 
     <!-- Upgrade handling -->
     <MajorUpgrade DowngradeErrorMessage="A newer version of WUM is already installed." />
+    <util:CloseApplication Id="CloseRunningWum"
+                           Target="wum.exe"
+                           Description="WUM is running and will close so the update can continue."
+                           CloseMessage="yes"
+                           ElevatedCloseMessage="yes"
+                           EndSessionMessage="yes"
+                           ElevatedEndSessionMessage="yes"
+                           Timeout="2"
+                           TerminateProcess="1"
+                           RebootPrompt="no" />
 
     <!-- Directories -->
     <StandardDirectory Id="ProgramFiles64Folder">
