@@ -81,6 +81,7 @@ PackageVersion: $version
 Platform:
   - Windows.Desktop
 MinimumOSVersion: 10.0.0.0
+InstallerType: wix
 InstallModes:
   - interactive
   - silent
@@ -97,7 +98,6 @@ ExpectedReturnCodes:
 UpgradeBehavior: install
 Installers:
   - Architecture: x64
-    InstallerType: wix
     Scope: machine
     InstallerUrl: $msiUrl
     InstallerSha256: $hash
