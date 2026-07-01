@@ -61,5 +61,6 @@ Both modes call the same command handlers. Interactive mode adds slash prefixes,
 | `settings` | [Settings](command-settings.md) |
 | `reboot` | [Reboot](command-reboot.md) |
 | `diagnose` | [Diagnose](command-diagnose.md) |
+| `update`, `upgrade` | [Update / Upgrade](command-update.md) |
 
 Next: [Command Reference →](commands.md)

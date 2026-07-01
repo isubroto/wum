@@ -17,11 +17,11 @@ namespace WUM.CLI.Tests
             var result = await RunShellAsync("/exit");
 
             result.ExitCode.Should().Be(0);
-            result.Output.Should().Contain("WUM interactive mode");
+            result.Output.Should().Contain("Welcome back!");
             result.Output.Should().Contain("›");
             result.Output.Should().Contain("╭");
             result.Output.Should().Contain("╰");
-            result.Output.Should().Contain("Goodbye.");
+            result.Output.Should().Contain("Take care");
             result.Invocations.Should().BeEmpty();
         }
 
@@ -41,6 +41,15 @@ namespace WUM.CLI.Tests
 
             result.Invocations.Should().ContainSingle()
                 .Which.Should().Equal("list", "--installed");
+        }
+
+        [Fact]
+        public async Task RunAsync_MapsSlashUpdateAliasToParserArgs()
+        {
+            var result = await RunShellAsync("/upgrade --check", "/exit");
+
+            result.Invocations.Should().ContainSingle()
+                .Which.Should().Equal("upgrade", "--check");
         }
 
         [Fact]
@@ -78,10 +87,10 @@ namespace WUM.CLI.Tests
                 "/info",
                 "/quit");
 
-            result.Output.Should().Contain("Usage:");
+            result.Output.Should().Contain("How it works:");
             result.Output.Should().Contain("Command palette");
             result.Output.Should().Contain("Keyboard shortcuts");
-            result.Output.Should().Contain("/settings set active-hours 9-18");
+            result.Output.Should().Contain("Type /help <command> for command-specific options and examples.");
             result.ClearCalled.Should().BeTrue();
             result.InfoCalled.Should().BeTrue();
             result.Invocations.Should().ContainSingle()
@@ -94,7 +103,7 @@ namespace WUM.CLI.Tests
             var result = await RunShellAsync("exit");
 
             result.ExitCode.Should().Be(0);
-            result.Output.Should().Contain("Goodbye.");
+            result.Output.Should().Contain("Take care");
             result.Invocations.Should().BeEmpty();
         }
 
@@ -103,8 +112,8 @@ namespace WUM.CLI.Tests
         {
             var result = await RunShellAsync("list --installed", "/exit");
 
-            result.Output.Should().Contain("Commands in interactive mode start with /.");
-            result.Output.Should().Contain("Try /list or type /help.");
+            result.Output.Should().Contain("Commands here start with /.");
+            result.Output.Should().Contain("Try /list or type /help to see everything.");
             result.Invocations.Should().BeEmpty();
         }
 
@@ -113,9 +122,9 @@ namespace WUM.CLI.Tests
         {
             var result = await RunShellAsync("/lst", "/exit");
 
-            result.Output.Should().Contain("Unknown command: /lst");
+            result.Output.Should().Contain("\"/lst\" isn't a WUM command.");
             result.Output.Should().Contain("Did you mean /list?");
-            result.Output.Should().Contain("Type /help to see available commands.");
+            result.Output.Should().Contain("Type /commands to browse, or /help for a quick tour.");
             result.Invocations.Should().BeEmpty();
         }
 
@@ -134,7 +143,16 @@ namespace WUM.CLI.Tests
             var commands = InteractiveShell.GetCommandSuggestions("/")
                 .Select(s => s.Command);
 
-            commands.Should().Contain(new[] { "/status", "/list", "/install" });
+            commands.Should().Contain(new[] { "/status", "/list", "/install", "/update", "/upgrade" });
+            commands.Should().HaveCountGreaterThan(10);
+        }
+
+        [Fact]
+        public void GetCommandSuggestions_WithUpdatePrefix_MatchesUpdate()
+        {
+            InteractiveShell.GetCommandSuggestions("/up")
+                .Select(s => s.Command)
+                .Should().Contain("/update");
         }
 
         [Fact]
@@ -185,6 +203,14 @@ namespace WUM.CLI.Tests
 
             InteractiveShell.GetGhostCompletion("/list --j")
                 .Should().Be("son");
+        }
+
+        [Fact]
+        public void GetCommandSuggestions_ForUpdateListsOptions()
+        {
+            InteractiveShell.GetCommandSuggestions("/update ")
+                .Select(s => s.Command)
+                .Should().Contain(new[] { "--check", "--force" });
         }
         private static async Task<ShellRunResult> RunShellAsync(params string[] lines)
         {

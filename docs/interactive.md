@@ -46,6 +46,7 @@ Interactive mode uses the same command handlers as one-shot CLI commands. A slas
 | `/list --security --refresh` | `wum list --security --refresh` |
 | `/install KB5034441 --dry-run` | `wum install KB5034441 --dry-run` |
 | `/diagnose --fix` | `wum diagnose --fix` |
+| `/update --check` | `wum update --check` |
 
 Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show the same elevation guidance as the one-shot CLI.
 
@@ -72,7 +73,7 @@ Use `/commands` in the shell to browse these groups.
 |---|---|
 | Look around | `/status`, `/list`, `/search`, `/history` |
 | Take action | `/install`, `/uninstall`, `/hide` |
-| Stay in control | `/pause`, `/schedule`, `/settings`, `/reboot`, `/diagnose` |
+| Stay in control | `/pause`, `/schedule`, `/settings`, `/reboot`, `/diagnose`, `/update` |
 | This session | `/commands`, `/help`, `/keys`, `/clear`, `/version`, `/info`, `/exit` |
 
 See [Interactive Command Reference](interactive-commands.md) for the full slash command matrix and per-command interactive pages.
@@ -82,7 +83,7 @@ See [Interactive Command Reference](interactive-commands.md) for the full slash 
 | Page | Detail |
 |---|---|
 | [Command Reference](interactive-commands.md) | Slash command matrix and command groups |
-| [`/status`](interactive-command-status.md) through [`/diagnose`](interactive-command-diagnose.md) | One page per slash command |
+| [`/status`](interactive-command-status.md) through [`/update`](interactive-command-update.md) | One page per slash command |
 | [Session Commands](interactive-session.md) | `/commands`, `/help`, `/keys`, `/clear`, `/version`, `/info`, `/exit` |
 | [Shortcuts](interactive-shortcuts.md) | Keyboard shortcuts, completion, and history |
 

@@ -60,6 +60,7 @@ Most read commands share these:
 | [`settings`](command-settings.md) | View / change WU settings | **Yes** (set/reset) |
 | [`reboot`](command-reboot.md) | Schedule / cancel a restart | **Yes** |
 | [`diagnose`](command-diagnose.md) | Health check + optional component reset | **Yes** (`--fix`) |
+| [`update`, `upgrade`](command-update.md) | Check latest releases and self-update from the latest MSI | **Yes** (install), No (`--check`) |
 
 ---
 
@@ -89,6 +90,7 @@ Most read commands share these:
 | `wum settings reset` | none | none |
 | `wum reboot` | none | `--delay <seconds>`, `--force`/`-f`, `--cancel` |
 | `wum diagnose` | none | `--refresh`, `--json`, `--fix`, `--force`/`-f` |
+| `wum update` / `wum upgrade` | none | `--check`/`-c`, `--force`/`-f`, `--yes`/`-y` |
 
 Interactive mode supports the same command arguments and options with a slash prefix, for example `/list --security` or `/install KB5034441 --dry-run`. The full slash-command matrix and session-only helpers are documented in [Interactive Command Reference](interactive-commands.md).
 
@@ -110,6 +112,7 @@ Interactive mode supports the same command arguments and options with a slash pr
 | [`settings`](command-settings.md) | All setting keys, accepted values, reset behavior |
 | [`reboot`](command-reboot.md) | Delay, force, cancel, shutdown command behavior |
 | [`diagnose`](command-diagnose.md) | Checks, JSON, exit bitmask, `--fix` reset steps |
+| [`update` / `upgrade`](command-update.md) | Latest release check, MSI download, self-update |
 
 ---
 
@@ -585,5 +588,35 @@ wum diagnose --fix --force     # Reset without confirmation
 `--fix` stops services, renames `SoftwareDistribution` + `catroot2` to `.bak`, reregisters WU DLLs, resets WinSock/WinHTTP proxy, restarts services, and triggers re-detection. **Pending downloads are discarded; a reboot is advised.**
 
 The exit code is a **bitmask** for scripting. See [Diagnostics](diagnostics.md) for the full check list, the bitmask values, the health score, and how `Search Error` HRESULTs are decoded.
+
+---
+
+## `wum update` / `wum upgrade`
+
+Check the latest GitHub release and install the newest WUM MSI. `upgrade` is an alias for `update`.
+
+**Synopsis**
+
+```
+wum update [--check|-c] [--force|-f|--yes|-y]
+wum upgrade [--check|-c] [--force|-f|--yes|-y]
+```
+
+**Options**
+
+| Option | Description |
+|---|---|
+| `--check`, `-c` | Check for a newer release without installing. Exits `2` when an update is available |
+| `--force`, `-f`, `--yes`, `-y` | Skip confirmation and install the downloaded MSI |
+
+**Examples**
+
+```bash
+wum update --check             # Check only
+wum update                     # Prompt before installing
+wum upgrade --force            # Install latest MSI without prompting
+```
+
+The command compares the current assembly version with `https://github.com/isubroto/wum/releases/latest`, downloads the first `.msi` asset from the newest release, and launches `msiexec /i <msi> /qb /norestart`. Installing requires an elevated terminal.
 
 Next: [Architecture →](architecture.md)
