@@ -201,15 +201,7 @@ jobs:
 
       - name: Generate Files.wxs excluding 'publish' folder
         shell: pwsh
-        run: |
-          & "C:\Program Files\WiX Toolset v7.0\bin\x64\heat.exe" dir "src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
-            -cg AppFiles `
-            -dr INSTALLFOLDER `
-            -srd -gg `
-            -sreg -scom `
-            -var var.SourceDir `
-            -out Installer\Files.wxs `
-            -t Installer\TransformExcludePublish.xsl
+        run: .\scripts\Generate-WixFiles.ps1 -SourceDir "src/WUM.CLI/bin/Release/net10.0-windows/win-x64" -OutputPath "Installer\Files.wxs"
 
       - name: Show Files.wxs
         shell: pwsh
