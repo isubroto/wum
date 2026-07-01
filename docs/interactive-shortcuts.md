@@ -3,7 +3,7 @@ title: Shortcuts
 layout: default
 parent: Interactive Mode
 grand_parent: Use WUM
-nav_order: 15
+nav_order: 16
 description: "Interactive mode keyboard shortcuts, completion, and history behavior."
 ---
 

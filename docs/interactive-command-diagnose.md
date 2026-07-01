@@ -52,4 +52,4 @@ wum diagnose --fix [--force|-f]
 
 More backend detail: [`wum diagnose`](command-diagnose.md)
 
-Next: [Session Commands](interactive-session.md)
+Next: [`/update` / `/upgrade`](interactive-command-update.md)

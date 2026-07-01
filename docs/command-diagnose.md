@@ -56,4 +56,4 @@ wum diagnose --fix
 wum diagnose --fix --force
 ```
 
-Next: [Diagnostics](diagnostics.md)
+Next: [`update` / `upgrade`](command-update.md)

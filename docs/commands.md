@@ -60,7 +60,7 @@ Most read commands share these:
 | [`settings`](command-settings.md) | View / change WU settings | **Yes** (set/reset) |
 | [`reboot`](command-reboot.md) | Schedule / cancel a restart | **Yes** |
 | [`diagnose`](command-diagnose.md) | Health check + optional component reset | **Yes** (`--fix`) |
-| `update`, `upgrade` | Check latest releases and self-update from the latest MSI | **Yes** (install), No (`--check`) |
+| [`update`, `upgrade`](command-update.md) | Check latest releases and self-update from the latest MSI | **Yes** (install), No (`--check`) |
 
 ---
 
@@ -112,7 +112,7 @@ Interactive mode supports the same command arguments and options with a slash pr
 | [`settings`](command-settings.md) | All setting keys, accepted values, reset behavior |
 | [`reboot`](command-reboot.md) | Delay, force, cancel, shutdown command behavior |
 | [`diagnose`](command-diagnose.md) | Checks, JSON, exit bitmask, `--fix` reset steps |
-| `update` / `upgrade` | Latest release check, MSI download, self-update |
+| [`update` / `upgrade`](command-update.md) | Latest release check, MSI download, self-update |
 
 ---
 

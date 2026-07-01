@@ -3,7 +3,7 @@ title: "Session Commands"
 layout: default
 parent: Interactive Mode
 grand_parent: Use WUM
-nav_order: 14
+nav_order: 15
 description: "Interactive-only commands for help, command palette, clear, version, info, and exit."
 ---
 
