@@ -195,6 +195,7 @@ jobs:
         run: |
           Invoke-WebRequest -Uri https://github.com/wixtoolset/wix/releases/download/v7.0.0/wix-cli-x64.msi -OutFile wix7.msi
           Start-Process wix7.msi -ArgumentList "/quiet" -Wait
+          & "C:\Program Files\WiX Toolset v7.0\bin\wix.exe" eula accept wix7
           & "C:\Program Files\WiX Toolset v7.0\bin\wix.exe" extension add WixToolset.Util.wixext/7.0.0
           Remove-Item wix7.msi
 
@@ -226,7 +227,9 @@ jobs:
 
           "SAFE_VERSION=$safeVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          & "C:\Program Files\WiX Toolset v7.0\bin\wix.exe" build Product.wxs Files.wxs `
+          & "C:\Program Files\WiX Toolset v7.0\bin\wix.exe" build `
+            -acceptEula wix7 `
+            Product.wxs Files.wxs `
             -arch x64 `
             -ext WixToolset.Util.wixext `
             -define ProductVersion=$safeVersion `
