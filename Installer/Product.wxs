@@ -46,7 +46,7 @@
 
     <!-- Feature -->
     <Feature Id="ProductFeature" Title="WUM" Level="1">
-      <!-- AppFiles from heat.exe includes wum.exe and all dependency files -->
+      <!-- AppFiles includes wum.exe and all dependency files -->
       <ComponentGroupRef Id="AppFiles" />
       <ComponentRef Id="PathEnv" />
     </Feature>
