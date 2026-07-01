@@ -229,7 +229,7 @@ jobs:
             -arch x64 `
             -define ProductVersion=$safeVersion `
             -define SourceDir="..\src/WUM.CLI/bin/Release/net10.0-windows/win-x64" `
-            -out "../publish/WUM-$safeVersion.msi"
+            -out "../publish/wum-$safeVersion.msi"
 
       - name: Upload Release Artifacts
         uses: softprops/action-gh-release@v2
@@ -343,7 +343,8 @@ jobs:
           DefaultLocale: en-US
           ManifestType: version
           ManifestVersion: 1.6.0
-          "@.Trim()
+          "@
+          $versionManifest = ($versionManifest -replace '(?m)^ {10}', '').Trim()
 
           # ------------------------------
           # Default Locale Manifest
@@ -383,7 +384,8 @@ jobs:
           ReleaseNotesUrl: $repoUrl/releases/tag/v$version
           ManifestType: defaultLocale
           ManifestVersion: 1.6.0
-          "@.Trim()
+          "@
+          $localeManifest = ($localeManifest -replace '(?m)^ {10}', '').Trim()
 
           # ------------------------------
           # Installer Manifest
@@ -402,7 +404,6 @@ jobs:
             - interactive
             - silent
             - silentWithProgress
-          InstallerType: msi
           ExpectedReturnCodes:
             - InstallerReturnCode: 1602
               ReturnResponse: cancelledByUser
@@ -415,6 +416,7 @@ jobs:
           UpgradeBehavior: install
           Installers:
             - Architecture: x64
+              InstallerType: wix
               Scope: machine
               InstallerUrl: $msiUrl
               InstallerSha256: $hash
@@ -425,11 +427,25 @@ jobs:
                 SilentWithProgress: /qb! /norestart
           ManifestType: installer
           ManifestVersion: 1.6.0
-          "@.Trim()
+          "@
+          $installerManifest = ($installerManifest -replace '(?m)^ {10}', '').Trim()
 
           Set-Content -Path "winget/SubrotoSaha.wum.yaml" -Value $versionManifest -Encoding UTF8
           Set-Content -Path "winget/SubrotoSaha.wum.locale.en-US.yaml" -Value $localeManifest -Encoding UTF8
           Set-Content -Path "winget/SubrotoSaha.wum.installer.yaml" -Value $installerManifest -Encoding UTF8
+
+          Write-Host ""
+          Write-Host "=== SubrotoSaha.wum.yaml ==="
+          Get-Content "winget/SubrotoSaha.wum.yaml"
+
+          Write-Host ""
+          Write-Host "=== SubrotoSaha.wum.locale.en-US.yaml ==="
+          Get-Content "winget/SubrotoSaha.wum.locale.en-US.yaml"
+
+          Write-Host ""
+          Write-Host "=== SubrotoSaha.wum.installer.yaml ==="
+          Get-Content "winget/SubrotoSaha.wum.installer.yaml"
+          Write-Host ""
 
           Write-Host "✅ WinGet manifests created"
           Write-Host "MSI URL:     $msiUrl"

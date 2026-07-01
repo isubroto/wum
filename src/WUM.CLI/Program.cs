@@ -144,6 +144,7 @@ namespace WUM.CLI
             root.AddCommand(new SettingsCommand(services).Build());
             root.AddCommand(new RebootCommand(services).Build());
             root.AddCommand(new DiagnoseCommand(services).Build());
+            root.AddCommand(new UpdateCommand(services).Build());
 
             return root;
         }

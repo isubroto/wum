@@ -43,6 +43,8 @@ namespace WUM.CLI.Interactive
             new CommandSuggestion("/settings", "/settings show|set|reset",       "View or change WUM preferences"),
             new CommandSuggestion("/reboot",   "/reboot [options]",              "Schedule, force, or cancel a reboot"),
             new CommandSuggestion("/diagnose", "/diagnose [options]",            "Run Windows Update diagnostics"),
+            new CommandSuggestion("/update",   "/update [--check|--force]",      "Check GitHub releases and self-update"),
+            new CommandSuggestion("/upgrade",  "/upgrade [--check|--force]",     "Alias for /update"),
             new CommandSuggestion("/commands", "/commands", "Browse all commands grouped by task"),
             new CommandSuggestion("/help",     "/help [command]", "Show help — add a command for specifics"),
             new CommandSuggestion("/keys",     "/keys", "See keyboard shortcuts"),
@@ -59,7 +61,7 @@ namespace WUM.CLI.Interactive
         {
             new CommandGroup("Look around",  "👀", new[] { "/status", "/list", "/search", "/history" }),
             new CommandGroup("Take action",  "⚡", new[] { "/install", "/uninstall", "/hide" }),
-            new CommandGroup("Stay in control","🛡️", new[] { "/pause", "/schedule", "/settings", "/reboot", "/diagnose" }),
+            new CommandGroup("Stay in control","🛡️", new[] { "/pause", "/schedule", "/settings", "/reboot", "/diagnose", "/update" }),
             new CommandGroup("This session", "💬", new[] { "/commands", "/help", "/keys", "/clear", "/version", "/info", "/exit" })
         };
 
@@ -189,6 +191,22 @@ namespace WUM.CLI.Interactive
                     Opt("--json", "--json", "Output as JSON"),
                     Opt("--fix", "--fix", "Attempt to fix issues automatically"),
                     Opt(new[] { "--force", "-f" }, "--force, -f", "Force fix actions")
+                },
+                Array.Empty<SubcommandSpec>()),
+
+            new CommandSpec("update", "/update [options]",
+                "Check the latest GitHub release and install the MSI upgrade.",
+                new[] {
+                    Opt(new[] { "--check", "-c" }, "--check, -c", "Only check for a newer release"),
+                    Opt(new[] { "--force", "-f", "--yes", "-y" }, "--force, -f, --yes, -y", "Skip the confirmation prompt")
+                },
+                Array.Empty<SubcommandSpec>()),
+
+            new CommandSpec("upgrade", "/upgrade [options]",
+                "Alias for /update.",
+                new[] {
+                    Opt(new[] { "--check", "-c" }, "--check, -c", "Only check for a newer release"),
+                    Opt(new[] { "--force", "-f", "--yes", "-y" }, "--force, -f, --yes, -y", "Skip the confirmation prompt")
                 },
                 Array.Empty<SubcommandSpec>())
         };
@@ -449,6 +467,7 @@ namespace WUM.CLI.Interactive
 
                 string ghostText = GetGhostCompletion(buffer.ToString(), cursor, suggestions, selectedIndex);
 
+                int visibleSuggestionCount = Math.Min(suggestions.Count, MaxVisibleSuggestions);
                 int rowsNeeded = GetEditorRowsForSuggestions(suggestions.Count);
                 int shift = ReserveVisibleRows(editorTop, rowsNeeded);
                 editorTop -= shift;
@@ -470,15 +489,24 @@ namespace WUM.CLI.Interactive
                 if (suggestions.Count > 0 && width >= 40)
                 {
                     string title = GetSuggestionPanelTitle(suggestions);
-                    string bottomHint = "Tab ↹ complete · Enter ↵ run · ↑↓ navigate";
+                    int firstVisible = GetSuggestionWindowStart(selectedIndex, suggestions.Count);
+                    int lastVisibleExclusive = Math.Min(suggestions.Count, firstVisible + visibleSuggestionCount);
+                    string rangeText = suggestions.Count > MaxVisibleSuggestions
+                        ? $" {firstVisible + 1}-{lastVisibleExclusive}/{suggestions.Count}"
+                        : string.Empty;
+                    string titleText = title + rangeText;
+                    string bottomHint = suggestions.Count > MaxVisibleSuggestions
+                        ? $"↑↓ scroll · {selectedIndex + 1}/{suggestions.Count} · Tab ↹ complete · Enter ↵ run"
+                        : "Tab ↹ complete · Enter ↵ run · ↑↓ navigate";
 
                     SafeSetCursorPosition(0, boxTop);
                     Console.Write("\u001b[2K");
-                    Console.Write($"{Ansi.Rule}╭─ {Ansi.Reset}{Ansi.Muted}{title}{Ansi.Reset}{Ansi.Rule} " + new string('─', Math.Max(1, width - title.Length - 5)) + "╮" + Ansi.Reset);
+                    Console.Write($"{Ansi.Rule}╭─ {Ansi.Reset}{Ansi.Muted}{titleText}{Ansi.Reset}{Ansi.Rule} " + new string('─', Math.Max(1, width - titleText.Length - 5)) + "╮" + Ansi.Reset);
 
-                    for (int i = 0; i < suggestions.Count; i++)
+                    for (int row = 0; row < visibleSuggestionCount; row++)
                     {
-                        SafeSetCursorPosition(0, boxTop + 1 + i);
+                        int i = firstVisible + row;
+                        SafeSetCursorPosition(0, boxTop + 1 + row);
                         Console.Write("\u001b[2K");
                         var s = suggestions[i];
                         string prefix = i == selectedIndex ? "▸ " : "  ";
@@ -494,11 +522,11 @@ namespace WUM.CLI.Interactive
                         Console.Write($"{Ansi.Rule}│{Ansi.Reset}");
                     }
 
-                    SafeSetCursorPosition(0, boxTop + 1 + suggestions.Count);
+                    SafeSetCursorPosition(0, boxTop + 1 + visibleSuggestionCount);
                     Console.Write("\u001b[2K");
                     Console.Write($"{Ansi.Rule}╰─ {Ansi.Reset}{Ansi.Muted}{bottomHint}{Ansi.Reset}{Ansi.Rule} " + new string('─', Math.Max(1, width - bottomHint.Length - 5)) + "╯" + Ansi.Reset);
 
-                    currentHeight += suggestions.Count + 2;
+                    currentHeight += visibleSuggestionCount + 2;
                 }
 
                 int statusTop = editorTop + currentHeight;
@@ -829,7 +857,7 @@ namespace WUM.CLI.Interactive
             {
                 var suggestions = BuildSubcommandSuggestions(spec, currentToken, replaceStart, cursor - replaceStart).ToList();
                 if (isNewToken && spec.Options.Length > 0) suggestions.AddRange(BuildOptionSuggestions(spec.Options, string.Empty, cursor, 0));
-                return suggestions.Take(MaxVisibleSuggestions).ToArray();
+                return suggestions.ToArray();
             }
 
             if (isNewToken)
@@ -864,7 +892,7 @@ namespace WUM.CLI.Interactive
         private static IReadOnlyList<CommandSuggestion> BuildCommandSuggestions(string prefix, int replaceStart, int replaceLength) =>
             CommandCatalog.Where(c => c.Command.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 .Select(c => new CommandSuggestion(c.Command, c.Usage, c.Description, c.Command, replaceStart, replaceLength, IsSessionCommand(c.Command) ? SuggestionKind.Session : SuggestionKind.Command))
-                .Take(MaxVisibleSuggestions).ToArray();
+                .ToArray();
 
         private static IEnumerable<CommandSuggestion> BuildSubcommandSuggestions(CommandSpec spec, string prefix, int replaceStart, int replaceLength) =>
             spec.Subcommands.Where(s => s.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -880,7 +908,7 @@ namespace WUM.CLI.Interactive
                     if (!string.IsNullOrEmpty(prefix) && !name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
                     suggestions.Add(new CommandSuggestion(name, option.Usage, option.Description, name, replaceStart, replaceLength, SuggestionKind.Option));
                 }
-            return suggestions.GroupBy(s => s.Command, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).Take(MaxVisibleSuggestions).ToArray();
+            return suggestions.GroupBy(s => s.Command, StringComparer.OrdinalIgnoreCase).Select(g => g.First()).ToArray();
         }
 
         private static string? FindKnownSubcommand(CommandSpec spec, IEnumerable<string> tokens)
@@ -1062,7 +1090,17 @@ namespace WUM.CLI.Interactive
         private static int GetSafeCursorTop() { try { return ClampCursorTop(Console.CursorTop); } catch { return 0; } }
         private static int ClampCursorTop(int top) => Math.Clamp(top, 0, GetBufferHeightSafely() - 1);
         private static int GetBufferHeightSafely() { try { return Math.Max(1, Console.BufferHeight); } catch { return 1; } }
-        private static int GetEditorRowsForSuggestions(int suggestionCount) => 1 + (suggestionCount > 0 ? suggestionCount + 2 : 0) + 2;
+        private static int GetEditorRowsForSuggestions(int suggestionCount) => 1 + (suggestionCount > 0 ? Math.Min(suggestionCount, MaxVisibleSuggestions) + 2 : 0) + 2;
+
+        private static int GetSuggestionWindowStart(int selectedIndex, int suggestionCount)
+        {
+            if (suggestionCount <= MaxVisibleSuggestions) return 0;
+
+            int halfWindow = MaxVisibleSuggestions / 2;
+            int start = selectedIndex - halfWindow;
+            int maxStart = suggestionCount - MaxVisibleSuggestions;
+            return Math.Clamp(start, 0, maxStart);
+        }
 
         private static void SafeSetCursorPosition(int left, int top)
         {

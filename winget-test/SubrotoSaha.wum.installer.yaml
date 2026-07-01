@@ -1,0 +1,35 @@
+# Created with wum Release Workflow
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: SubrotoSaha.wum
+PackageVersion: 0.3.0.58
+Platform:
+  - Windows.Desktop
+MinimumOSVersion: 10.0.0.0
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+ExpectedReturnCodes:
+  - InstallerReturnCode: 1602
+    ReturnResponse: cancelledByUser
+  - InstallerReturnCode: 1618
+    ReturnResponse: installInProgress
+  - InstallerReturnCode: 1638
+    ReturnResponse: alreadyInstalled
+  - InstallerReturnCode: 3010
+    ReturnResponse: rebootRequiredToFinish
+UpgradeBehavior: install
+Installers:
+  - Architecture: x64
+    InstallerType: wix
+    Scope: machine
+    InstallerUrl: https://github.com/SubrotoSaha/wum/releases/download/v0.3.0.58/wum-0.3.0.58.msi
+    InstallerSha256: ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789
+    ProductCode: '{12345678-1234-1234-1234-123456789012}'
+    ElevationRequirement: elevationRequired
+    InstallerSwitches:
+      Silent: /qn /norestart
+      SilentWithProgress: /qb! /norestart
+ManifestType: installer
+ManifestVersion: 1.6.0

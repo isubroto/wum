@@ -33,7 +33,7 @@ All normal command arguments and options work in interactive mode. The prompt ad
 |---|---|
 | Look around | `/status`, `/list`, `/search`, `/history` |
 | Take action | `/install`, `/uninstall`, `/hide` |
-| Stay in control | `/pause`, `/schedule`, `/settings`, `/reboot`, `/diagnose` |
+| Stay in control | `/pause`, `/schedule`, `/settings`, `/reboot`, `/diagnose`, `/update` |
 | This session | [`/commands`, `/help`, `/keys`, `/clear`, `/version`, `/info`, `/exit`](interactive-session.md) |
 
 ## Slash command matrix
@@ -61,6 +61,7 @@ All normal command arguments and options work in interactive mode. The prompt ad
 | `/settings reset` | none | none | [`/settings`](interactive-command-settings.md) | [`wum settings`](command-settings.md) |
 | `/reboot` | none | `--delay <seconds>`, `--force`/`-f`, `--cancel` | [`/reboot`](interactive-command-reboot.md) | [`wum reboot`](command-reboot.md) |
 | `/diagnose` | none | `--refresh`, `--json`, `--fix`, `--force`/`-f` | [`/diagnose`](interactive-command-diagnose.md) | [`wum diagnose`](command-diagnose.md) |
+| `/update`, `/upgrade` | none | `--check`/`-c`, `--force`/`-f`, `--yes`/`-y` | this page | `wum update` / `wum upgrade` |
 
 ## Detailed interactive pages
 
@@ -78,6 +79,7 @@ All normal command arguments and options work in interactive mode. The prompt ad
 | [`/settings`](interactive-command-settings.md) | Show/set/reset WU settings |
 | [`/reboot`](interactive-command-reboot.md) | Delay, force, cancel restart |
 | [`/diagnose`](interactive-command-diagnose.md) | Health check, JSON, fix |
+| `/update` / `/upgrade` | GitHub release check and MSI self-update |
 | [Session Commands](interactive-session.md) | `/commands`, `/help`, `/keys`, `/clear`, `/version`, `/info`, `/exit` |
 
 ## Completion behavior

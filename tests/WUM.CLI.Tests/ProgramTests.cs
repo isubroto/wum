@@ -35,9 +35,9 @@ namespace WUM.CLI.Tests
                 "/exit" + Environment.NewLine);
 
             result.ExitCode.Should().Be(0);
-            result.Output.Should().Contain("WUM interactive mode");
+            result.Output.Should().Contain("Welcome back!");
             result.Output.Should().Contain("›");
-            result.Output.Should().Contain("Goodbye.");
+            result.Output.Should().Contain("Take care");
         }
 
         [Fact]
@@ -83,6 +83,8 @@ namespace WUM.CLI.Tests
             yield return new object[] { new[] { "settings", "reset" } };
             yield return new object[] { new[] { "reboot" } };
             yield return new object[] { new[] { "diagnose" } };
+            yield return new object[] { new[] { "update", "--check" } };
+            yield return new object[] { new[] { "upgrade", "--check" } };
             yield return new object[] { new[] { "--help" } };
         }
 
