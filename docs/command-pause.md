@@ -18,13 +18,6 @@ wum pause [--days <N>]
 wum pause resume
 ```
 
-## Interactive form
-
-```text
-/pause [--days <N>]
-/pause resume
-```
-
 ## Options
 
 | Option | Default | Detail |

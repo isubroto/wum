@@ -49,7 +49,7 @@ namespace WUM.CLI
                 ConsoleRenderer.Failure(
                     "Failed to initialize services.",
                     ex.Message,
-                    "Check logs under %ProgramData%\\WUM\\logs and rerun the command.");
+                    "Check %LocalAppData%\\WUM\\logs or %ProgramData%\\WUM\\logs, then retry.");
                 await Log.CloseAndFlushAsync();
                 return 1;
             }
@@ -88,13 +88,22 @@ namespace WUM.CLI
         // ── Logger setup ──────────────────────────────────────────────────
         private static void ConfigureLogging()
         {
-            string logDir = Path.Combine(
+            string commonLogDir = Path.Combine(
                 Environment.GetFolderPath(
                     Environment.SpecialFolder.CommonApplicationData),
                 "WUM", "logs");
+            string localLogDir = Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.LocalApplicationData),
+                "WUM", "logs");
 
-            try { Directory.CreateDirectory(logDir); }
-            catch { /* ignore if cannot create */ }
+            // Do not let a standard-user read-only command collide with a
+            // ProgramData daily log created by an elevated process. Elevated
+            // sessions log machine-wide; standard sessions log per user.
+            string logDir = WUM.CLI.Helpers.AdminHelper.IsRunningAsAdmin()
+                ? commonLogDir
+                : localLogDir;
+            Directory.CreateDirectory(logDir);
 
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -127,7 +136,14 @@ namespace WUM.CLI
             var root = new RootCommand(
                 "wum - Windows Update Manager CLI\n" +
                 "Manage Windows Updates from the command line.\n" +
-                "Requires Administrator privileges.");
+                "Commands that modify Windows Update require Administrator privileges.\n\n" +
+                "Examples:\n" +
+                "  wum status --refresh\n" +
+                "  wum list\n" +
+                "  wum install --all\n" +
+                "  wum install KB5034441\n" +
+                "  wum history\n" +
+                "  wum reboot");
 
             // Global flag, handled in Main before the pipeline runs.
             root.AddGlobalOption(new Option<bool>("--info", "Show developer / build information"));
@@ -162,7 +178,7 @@ namespace WUM.CLI
                     ConsoleRenderer.Failure(
                         "Command failed unexpectedly.",
                         ex.Message,
-                        "Check the command output above and full logs under %ProgramData%\\WUM\\logs.");
+                        "Check %LocalAppData%\\WUM\\logs (standard) or %ProgramData%\\WUM\\logs (elevated).");
                     Console.WriteLine();
                     ctx.ExitCode = 1;
                 })
@@ -204,28 +220,29 @@ namespace WUM.CLI
             ConsoleRenderer.Header("  WUM - Windows Update Manager CLI");
 
             ConsoleRenderer.SectionHeader("Application");
-            WriteInfoLine("Version",    version,                          ConsoleColor.Green,  "●");
-            WriteInfoLine("Commit",     commit,                           ConsoleColor.Yellow, "❯");
-            WriteInfoLine("Build Date", buildDate,                        ConsoleColor.White,  "⏱");
-            WriteInfoLine("Author",     "Subroto Saha",                   ConsoleColor.White,  "✎");
-            WriteInfoLine("License",    "MIT",                            ConsoleColor.White,  "§");
-            WriteInfoLine("Repository", "https://github.com/isubroto/wum",ConsoleColor.Cyan,   "⎇");
+            WriteInfoLine("Version",        version,                          ConsoleColor.Green,  "●");
+            WriteInfoLine("Commit",         commit,                           ConsoleColor.Yellow, "❯");
+            WriteInfoLine("Build Date",     buildDate,                        ConsoleColor.White,  "⏱");
+            WriteInfoLine("Author",         "Subroto Saha",                   ConsoleColor.White,  "✎");
+            WriteInfoLine("License",        "MIT",                            ConsoleColor.White,  "§");
+            WriteInfoLine("Repository",     "https://github.com/isubroto/wum",ConsoleColor.Cyan,   "⎇");
+            WriteInfoLine("Documentation",  "https://isubroto.github.io/wum/", ConsoleColor.Cyan, "▤");
 
             ConsoleRenderer.SectionHeader("Runtime");
-            WriteInfoLine("Framework",  RuntimeInformation.FrameworkDescription, ConsoleColor.White, "⚙");
-            WriteInfoLine("CLR",        Environment.Version.ToString(),          ConsoleColor.White, "⚙");
-            WriteInfoLine("Process",    (Environment.Is64BitProcess ? "64-bit" : "32-bit")
+            WriteInfoLine("Framework",      RuntimeInformation.FrameworkDescription, ConsoleColor.White, "⚙");
+            WriteInfoLine("CLR",            Environment.Version.ToString(),          ConsoleColor.White, "⚙");
+            WriteInfoLine("Process",        (Environment.Is64BitProcess ? "64-bit" : "32-bit")
                                         + " (" + RuntimeInformation.ProcessArchitecture + ")",
                                         ConsoleColor.White, "▣");
 
             ConsoleRenderer.SectionHeader("System");
-            WriteInfoLine("OS",         RuntimeInformation.OSDescription,          ConsoleColor.White, "🖥");
-            WriteInfoLine("OS Arch",    RuntimeInformation.OSArchitecture.ToString()
+            WriteInfoLine("OS",             RuntimeInformation.OSDescription,          ConsoleColor.White, "🖥");
+            WriteInfoLine("OS Arch",        RuntimeInformation.OSArchitecture.ToString()
                                         + (Environment.Is64BitOperatingSystem ? " (64-bit)" : " (32-bit)"),
                                         ConsoleColor.White, "▣");
-            WriteInfoLine("Machine",    Environment.MachineName,                   ConsoleColor.White, "⌂");
-            WriteInfoLine("User",       Environment.UserName,                      ConsoleColor.White, "☺");
-            WriteInfoLine("CPU Cores",  Environment.ProcessorCount.ToString(),     ConsoleColor.White, "⊞");
+            WriteInfoLine("Machine",        Environment.MachineName,                   ConsoleColor.White, "⌂");
+            WriteInfoLine("User",           Environment.UserName,                      ConsoleColor.White, "☺");
+            WriteInfoLine("CPU Cores",      Environment.ProcessorCount.ToString(),     ConsoleColor.White, "⊞");
             Console.WriteLine();
         }
 
@@ -233,7 +250,7 @@ namespace WUM.CLI
             string label, string value, ConsoleColor valueColor, string icon = "•")
         {
             ConsoleRenderer.Inline("  " + icon + " ", ConsoleColor.DarkCyan);
-            ConsoleRenderer.Inline(label.PadRight(12), ConsoleColor.DarkGray);
+            ConsoleRenderer.Inline(label.PadRight(16), ConsoleColor.DarkGray);
             Console.ForegroundColor = valueColor;
             Console.WriteLine(value);
             Console.ResetColor();

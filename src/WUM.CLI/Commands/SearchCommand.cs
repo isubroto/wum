@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using WUM.CLI.Helpers;
@@ -56,11 +57,13 @@ namespace WUM.CLI.Commands
             List<WindowsUpdate> all = new();
 
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Searching for \"" + term + "\"...", async () =>
+                "Searching for \"" + term + "\"...", async token =>
                 {
                     all = await _updates.GetAvailableUpdatesAsync(
-                        includeHidden: true, useMicrosoftUpdate: mu);
-                });
+                        includeHidden: true,
+                        useMicrosoftUpdate: mu,
+                        ct: token);
+                }, timeoutSeconds: 330);
 
             var results = all.Where(u =>
                 u.Title.Contains(term, StringComparison.OrdinalIgnoreCase)       ||
@@ -94,7 +97,8 @@ namespace WUM.CLI.Commands
                     ConsoleRenderer.Failure(
                         "Invalid category: " + category,
                         "Supported categories are Security, Critical, Optional, Driver, Definition, FeatureUpdate.",
-                        "Run wum list to see categories currently present.");
+                        "Run " + CommandPresentation.FormatCommand("list") +
+                        " to see categories currently present.");
                     Console.WriteLine();
                 }
                 return;
@@ -104,7 +108,11 @@ namespace WUM.CLI.Commands
             {
                 Console.WriteLine(JsonSerializer.Serialize(
                     results,
-                    new JsonSerializerOptions { WriteIndented = true }));
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        Converters = { new JsonStringEnumConverter() }
+                    }));
                 return;
             }
 
@@ -118,7 +126,8 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.Notice(
                     "No updates matched \"" + term + "\".",
                     "The scan completed, but title, KB, and description did not match.",
-                    "Try a KB number, fewer words, or run wum list.");
+                    "Try a KB number, fewer words, or run " +
+                    CommandPresentation.FormatCommand("list") + ".");
                 Console.WriteLine();
                 return;
             }

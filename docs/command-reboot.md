@@ -17,12 +17,6 @@ Schedules or cancels a Windows restart after updates.
 wum reboot [--delay <seconds>] [--force|-f] [--cancel]
 ```
 
-## Interactive form
-
-```text
-/reboot [--delay <seconds>] [--force|-f] [--cancel]
-```
-
 ## Options
 
 | Option | Default | Detail |
@@ -33,7 +27,9 @@ wum reboot [--delay <seconds>] [--force|-f] [--cancel]
 
 ## Behavior
 
-`reboot` requires Administrator. Without `--force`, WUM checks whether a reboot is required and exits if not. Scheduling uses `shutdown /r /t <delay> /c "<message>"`.
+When Windows Update reports a pending restart, `reboot` requires Administrator. WUM calls WUA `Commit(0)` immediately before `shutdown /r /t <delay>` so staged feature updates finalize. A machine-wide mutex serializes WUM processes. A `Started` marker is persisted before Commit and a `Committed` marker after success; cancelling, retrying, or recovering from an interrupted process never risks a second unsupported commit in the same boot. Commit failure aborts restart scheduling.
+
+Without `--force`, WUM exits when no update restart is required. `--force` can still schedule a normal restart. `--cancel` only runs `shutdown /a` and never commits an update.
 
 ## Examples
 

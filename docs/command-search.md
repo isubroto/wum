@@ -17,12 +17,6 @@ Searches available updates by KB number, title, or description. Search includes 
 wum search <term> [--category <name>] [--json] [--microsoft-update|--mu]
 ```
 
-## Interactive form
-
-```text
-/search <term> [--category <name>] [--json] [--microsoft-update|--mu]
-```
-
 ## Arguments
 
 | Argument | Required | Detail |

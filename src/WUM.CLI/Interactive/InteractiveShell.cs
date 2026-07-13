@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using WUM.CLI.Helpers;
 
 namespace WUM.CLI.Interactive
 {
@@ -86,9 +87,9 @@ namespace WUM.CLI.Interactive
                     Opt("--optional", "--optional", "Only optional updates"),
                     Opt("--drivers", "--drivers", "Only driver updates"),
                     Opt("--definition", "--definition", "Only definition updates"),
-                    Opt("--hidden", "--hidden", "Only hidden updates"),
+                    Opt("--hidden", "--hidden", "Include hidden updates"),
                     Opt("--installed", "--installed", "Only installed updates"),
-                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Use Microsoft Update instead of Windows Update"),
+                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Also query Microsoft Update for other Microsoft products"),
                     Opt("--json", "--json", "Output as JSON"),
                     Opt("--no-color", "--no-color", "Disable colored output"),
                     Opt(new[] { "--verbose", "-v" }, "--verbose, -v", "Show extra detail"),
@@ -101,7 +102,7 @@ namespace WUM.CLI.Interactive
                 new[] {
                     Opt("--category", "--category <name>", "Filter by category", true),
                     Opt("--json", "--json", "Output as JSON"),
-                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Use Microsoft Update instead of Windows Update")
+                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Also query Microsoft Update for other Microsoft products")
                 },
                 Array.Empty<SubcommandSpec>()),
 
@@ -113,16 +114,16 @@ namespace WUM.CLI.Interactive
                     Opt("--all", "--all", "Install every available update"),
                     Opt("--definition", "--definition", "Only definition updates"),
                     Opt("--dry-run", "--dry-run", "Preview without changing anything"),
-                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force installation"),
-                    Opt("--no-reboot", "--no-reboot", "Do not automatically reboot if required"),
-                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Use Microsoft Update instead of Windows Update")
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Skip the installation confirmation prompt"),
+                    Opt("--no-reboot", "--no-reboot", "Do not prompt for restart after installation"),
+                    Opt(new[] { "--microsoft-update", "--mu" }, "--microsoft-update, --mu", "Also query Microsoft Update for other Microsoft products")
                 },
                 Array.Empty<SubcommandSpec>()),
 
             new CommandSpec("uninstall", "/uninstall <KB>",
                 "Remove an installed update.",
                 new[] {
-                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force uninstallation")
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Skip the uninstall confirmation prompt")
                 },
                 Array.Empty<SubcommandSpec>()),
 
@@ -179,7 +180,7 @@ namespace WUM.CLI.Interactive
                 "Schedule, force, or cancel a reboot.",
                 new[] {
                     Opt("--delay", "--delay <seconds>", "Delay before reboot", true),
-                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force reboot"),
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Restart even if not required; skip confirmation"),
                     Opt("--cancel", "--cancel", "Cancel a pending reboot")
                 },
                 Array.Empty<SubcommandSpec>()),
@@ -190,7 +191,7 @@ namespace WUM.CLI.Interactive
                     Opt("--refresh", "--refresh", "Force a fresh update scan first"),
                     Opt("--json", "--json", "Output as JSON"),
                     Opt("--fix", "--fix", "Attempt to fix issues automatically"),
-                    Opt(new[] { "--force", "-f" }, "--force, -f", "Force fix actions")
+                    Opt(new[] { "--force", "-f" }, "--force, -f", "Skip the reset confirmation prompt")
                 },
                 Array.Empty<SubcommandSpec>()),
 
@@ -224,15 +225,32 @@ namespace WUM.CLI.Interactive
         private readonly Action _printDeveloperInfo;
         private readonly bool _useAnsi;
         private readonly bool _useKeyEditor;
+        private readonly Func<string[], IReadOnlyList<string>>? _getParseErrors;
         private readonly List<string> _history = new();
         
         private int _lastRenderedHeight;
         private bool _firstInterrupt = true;
 
         public InteractiveShell(Parser parser, Action printDeveloperInfo)
-            : this(args => parser.InvokeAsync(args), Console.In, Console.Out, ClearConsoleSafely, printDeveloperInfo, !Console.IsOutputRedirected, CanUseKeyEditor()) { }
+            : this(
+                args => parser.InvokeAsync(args),
+                Console.In,
+                Console.Out,
+                ClearConsoleSafely,
+                printDeveloperInfo,
+                !Console.IsOutputRedirected,
+                CanUseKeyEditor(),
+                args => parser.Parse(args).Errors.Select(error => error.Message).ToArray()) { }
 
-        public InteractiveShell(Func<string[], Task<int>> invokeAsync, TextReader input, TextWriter output, Action clearTerminal, Action printDeveloperInfo, bool useAnsi = false, bool useKeyEditor = false)
+        public InteractiveShell(
+            Func<string[], Task<int>> invokeAsync,
+            TextReader input,
+            TextWriter output,
+            Action clearTerminal,
+            Action printDeveloperInfo,
+            bool useAnsi = false,
+            bool useKeyEditor = false,
+            Func<string[], IReadOnlyList<string>>? getParseErrors = null)
         {
             _invokeAsync = invokeAsync ?? throw new ArgumentNullException(nameof(invokeAsync));
             _input = input ?? throw new ArgumentNullException(nameof(input));
@@ -241,6 +259,7 @@ namespace WUM.CLI.Interactive
             _printDeveloperInfo = printDeveloperInfo ?? throw new ArgumentNullException(nameof(printDeveloperInfo));
             _useAnsi = useAnsi;
             _useKeyEditor = useKeyEditor;
+            _getParseErrors = getParseErrors;
             if (_useKeyEditor) LoadHistory();
         }
 
@@ -604,8 +623,28 @@ namespace WUM.CLI.Interactive
             try { args = CommandLineTokenizer.Tokenize(commandLine); }
             catch (FormatException ex) { PrintResponseHeader(line); _output.WriteLine(ex.Message); PrintResponseFooter(1, command); return LineResult.Continue(1); }
 
+            if (args.Skip(1).Any(IsCliHelpOption))
+            {
+                PrintResponseHeader(line);
+                PrintCommandSpecificHelp(command.TrimStart('/'));
+                PrintResponseFooter(0, command);
+                return LineResult.Continue(0);
+            }
+
+            IReadOnlyList<string> parseErrors = _getParseErrors?.Invoke(args)
+                ?? Array.Empty<string>();
+            if (parseErrors.Count > 0)
+            {
+                PrintResponseHeader(line);
+                PrintParseErrors(command, parseErrors);
+                PrintResponseFooter(1, command);
+                return LineResult.Continue(1);
+            }
+
             PrintResponseHeader(line);
-            int exitCode = await _invokeAsync(args);
+            int exitCode;
+            using (CommandPresentation.BeginInteractive())
+                exitCode = await _invokeAsync(args);
             PrintResponseFooter(exitCode, command);
             return LineResult.Continue(exitCode);
         }
@@ -819,6 +858,19 @@ namespace WUM.CLI.Interactive
             _output.Write("       Type ");
             WriteStyled("/commands", Ansi.Purple + Ansi.Bold);
             _output.WriteLine(" to browse, or /help for a quick tour.");
+        }
+
+        private void PrintParseErrors(
+            string command,
+            IReadOnlyList<string> errors)
+        {
+            WriteStyledLine("That interactive command could not be parsed.", Ansi.Warn);
+            foreach (string error in errors)
+                _output.WriteLine("  " + error);
+
+            _output.Write("  Try ");
+            WriteStyled("/help " + command.TrimStart('/'), Ansi.Purple + Ansi.Bold);
+            _output.WriteLine(" to see supported interactive arguments and options.");
         }
 
         internal static IReadOnlyList<CommandSuggestion> GetCommandSuggestions(string input) => GetCommandSuggestions(input, input.Length);
@@ -1313,6 +1365,11 @@ namespace WUM.CLI.Interactive
         }
 
         private static bool IsHelpCommand(string command) => command.Equals("/help", StringComparison.OrdinalIgnoreCase) || command.Equals("/?", StringComparison.OrdinalIgnoreCase);
+        private static bool IsCliHelpOption(string value) =>
+            value.Equals("--help", StringComparison.OrdinalIgnoreCase) ||
+            value.Equals("-h", StringComparison.OrdinalIgnoreCase) ||
+            value.Equals("-?", StringComparison.OrdinalIgnoreCase) ||
+            value.Equals("/?", StringComparison.OrdinalIgnoreCase);
         private static bool IsExitCommand(string line) => line.Equals("/exit", StringComparison.OrdinalIgnoreCase) || line.Equals("/quit", StringComparison.OrdinalIgnoreCase) || line.Equals("exit", StringComparison.OrdinalIgnoreCase) || line.Equals("quit", StringComparison.OrdinalIgnoreCase);
         private static string GetCommandWord(string line) { int end = line.IndexOfAny(new[] { ' ', '\t' }); return end < 0 ? line : line.Substring(0, end); }
         private static string GetHelpTopic(string line) { if (string.IsNullOrWhiteSpace(line)) return string.Empty; string[] parts; try { parts = CommandLineTokenizer.Tokenize(line); } catch { return string.Empty; } if (parts.Length < 2) return string.Empty; return parts[1].TrimStart('/'); }

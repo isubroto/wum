@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using WUM.CLI.Helpers;
@@ -50,7 +51,7 @@ namespace WUM.CLI.Commands
                 new[] { "--verbose", "-v" },
                 "Show full details per update");
             var refreshOpt   = new Option<bool>(
-                "--refresh",   "Force a fresh update scan instead of the shared cache");
+                "--refresh",   "Request a user-initiated Windows Update scan first");
 
             cmd.AddOption(securityOpt);
             cmd.AddOption(criticalOpt);
@@ -114,15 +115,16 @@ namespace WUM.CLI.Commands
                         ? "Yes" : "No — some results may be missing");
             }
 
-            await ConsoleRenderer.ShowSpinnerAsync(spinMsg, async () =>
+            await ConsoleRenderer.ShowSpinnerAsync(spinMsg, async token =>
             {
                 updates = installed
-                    ? await _updates.GetInstalledUpdatesAsync()
+                    ? await _updates.GetInstalledUpdatesAsync(token)
                     : await _updates.GetAvailableUpdatesAsync(
                         includeHidden: hidden,
                         useMicrosoftUpdate: mu,
-                        forceRefresh: refresh);
-            }, timeoutSeconds: 90);
+                        forceRefresh: refresh,
+                        ct: token);
+            }, timeoutSeconds: refresh ? 630 : 330);
 
             // ── Verbose: show raw fetch info ──────────────────────────────
             if (verbose)
@@ -161,7 +163,11 @@ namespace WUM.CLI.Commands
             {
                 Console.WriteLine(JsonSerializer.Serialize(
                     filtered,
-                    new JsonSerializerOptions { WriteIndented = true }));
+                    new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        Converters = { new JsonStringEnumConverter() }
+                    }));
                 return;
             }
 
@@ -187,7 +193,8 @@ namespace WUM.CLI.Commands
                     ConsoleRenderer.SuccessResult(
                         "No updates found.",
                         "Windows Update returned zero matching records.",
-                        "Run wum diagnose if you expected updates.");
+                        "Run " + CommandPresentation.FormatCommand("diagnose") +
+                        " if you expected updates.");
                     Console.WriteLine();
                 }
                 else
@@ -195,7 +202,8 @@ namespace WUM.CLI.Commands
                     ConsoleRenderer.Notice(
                         "No updates match the selected filter.",
                         "The scan returned updates, but this filter excluded all of them.",
-                        "Run wum list without filters to show everything.");
+                        "Run " + CommandPresentation.FormatCommand("list") +
+                        " without filters to show everything.");
                 }
                 Console.WriteLine();
                 return;
@@ -250,6 +258,13 @@ namespace WUM.CLI.Commands
                 Console.ResetColor();
 
                 // Fields
+                Field("Update ID",     string.IsNullOrWhiteSpace(u.Id)
+                    ? "N/A"
+                    : u.Id + (u.RevisionNumber > 0
+                        ? " r" + u.RevisionNumber
+                        : string.Empty), ConsoleColor.DarkGray, noColor);
+                Field("Source",        string.IsNullOrWhiteSpace(u.Source)
+                    ? "N/A" : u.Source, ConsoleColor.DarkCyan, noColor);
                 Field("KB Article",    u.KBArticle,             ConsoleColor.White,    noColor);
                 Field("Category",      u.Category.ToString(),    catColor,              noColor);
                 Field("Severity",      u.Severity,               ConsoleColor.Yellow,   noColor);
@@ -263,6 +278,28 @@ namespace WUM.CLI.Commands
                     ? "Yes" : "No",           ConsoleColor.Gray,             noColor);
                 Field("Hidden",        u.IsHidden
                     ? "Yes" : "No",           ConsoleColor.Gray,             noColor);
+
+                if (!string.IsNullOrWhiteSpace(u.CurrentAction))
+                    Field("Current Action",
+                        u.CurrentAction + " (" +
+                        (u.OrchestratorProgress * 100).ToString("0.##") + "%)",
+                        ConsoleColor.Cyan, noColor);
+
+                if (!string.IsNullOrWhiteSpace(u.AttentionRequiredReason) &&
+                    !u.AttentionRequiredReason.Equals(
+                        "None", StringComparison.OrdinalIgnoreCase))
+                    Field("Attention",
+                        u.AttentionRequiredReason,
+                        ConsoleColor.Yellow, noColor);
+
+                if (u.OrchestratorActionSucceeded == false)
+                {
+                    string result = "0x" + unchecked(
+                        (uint)u.OrchestratorResultHResult).ToString("X8");
+                    if (!string.IsNullOrWhiteSpace(u.OrchestratorResultError))
+                        result += " — " + u.OrchestratorResultError;
+                    Field("Action Error", result, ConsoleColor.Red, noColor);
+                }
 
                 if (!string.IsNullOrEmpty(u.Description))
                 {
@@ -295,10 +332,18 @@ namespace WUM.CLI.Commands
                     "  Updates needing reboot: " + needReboot);
 
             Console.WriteLine();
-            ConsoleRenderer.Hint("wum install --all         -> install everything");
-            ConsoleRenderer.Hint("wum install --security    -> install security only");
-            ConsoleRenderer.Hint("wum install <KB number>   -> install specific update");
-            ConsoleRenderer.Hint("wum list -v               -> show full details");
+            ConsoleRenderer.Hint(
+                CommandPresentation.FormatCommand("install --all") +
+                " -> install everything");
+            ConsoleRenderer.Hint(
+                CommandPresentation.FormatCommand("install --security") +
+                " -> install security only");
+            ConsoleRenderer.Hint(
+                CommandPresentation.FormatCommand("install <KB number>") +
+                " -> install specific update");
+            ConsoleRenderer.Hint(
+                CommandPresentation.FormatCommand("list -v") +
+                " -> show full details");
             Console.WriteLine();
         }
 
@@ -354,11 +399,17 @@ namespace WUM.CLI.Commands
 
         private static ConsoleColor GetStatusColor(UpdateStatus st)
         {
-            if (st == UpdateStatus.Installed)     return ConsoleColor.Green;
-            if (st == UpdateStatus.Downloaded)    return ConsoleColor.Cyan;
-            if (st == UpdateStatus.Failed)        return ConsoleColor.Red;
-            if (st == UpdateStatus.PendingReboot) return ConsoleColor.Yellow;
-            if (st == UpdateStatus.Hidden)        return ConsoleColor.DarkGray;
+            if (st == UpdateStatus.Installed)       return ConsoleColor.Green;
+            if (st == UpdateStatus.Downloading ||
+                st == UpdateStatus.Downloaded ||
+                st == UpdateStatus.PendingInstallation ||
+                st == UpdateStatus.Installing)      return ConsoleColor.Cyan;
+            if (st == UpdateStatus.Failed)          return ConsoleColor.Red;
+            if (st == UpdateStatus.PendingReboot ||
+                st == UpdateStatus.RestartRequired) return ConsoleColor.Yellow;
+            if (st == UpdateStatus.Hidden ||
+                st == UpdateStatus.SupersededOrNotApplicable)
+                                                    return ConsoleColor.DarkGray;
             return ConsoleColor.Gray;
         }
 

@@ -3,7 +3,7 @@ title: Architecture
 layout: default
 parent: Internals
 nav_order: 1
-description: "How WUM is structured: engine, services, models, helpers, DI, cache, logging."
+description: "How WUM is structured: engine, services, models, helpers, DI, live Windows Update state, logging."
 ---
 
 # Architecture
@@ -31,20 +31,20 @@ wum.slnx
 
 ## How it works (the engine)
 
-`UpdateService` is the core engine. It does **not** use a WUA managed wrapper — instead it generates PowerShell scripts that drive the **WUA COM API** (`Microsoft.Update.Session`), runs them via `PowerShellHelper`, and parses the JSON they emit (`ConvertTo-Json`) into C# models with `System.Text.Json`.
+`UpdateService` is the core engine. It generates PowerShell scripts that query the Settings-backed **Windows Update Manager** API and the **WUA COM API** (`Microsoft.Update.Session`), runs them via `PowerShellHelper`, and parses their JSON into C# models with `System.Text.Json`.
 
 ```
 Command (CLI)
    │  resolves IUpdateService from DI
    ▼
 UpdateService.GetAvailableUpdatesAsync(...)
-   │  1. check scan cache (unless forceRefresh)
-   │  2. build PS script (criteria, optional Microsoft Update service)
-   │  3. PowerShellHelper.RunScriptAsync(script)
-   │  4. parse JSON → List<WindowsUpdate>
-   │  5. write scan cache
+   │  1. optionally request a user-initiated OS refresh
+   │  2. query WindowsUpdateManager applicability/action state
+   │  3. return active state immediately, or enrich via online WUA
+   │  4. merge exact identities and live status
+   │  5. parse JSON → List<WindowsUpdate>
    ▼
-powershell.exe → Microsoft.Update.Session (WUA COM)
+powershell.exe → Windows.Management.Update + Microsoft.Update.Session
 ```
 
 Registry-backed operations (pause, schedule, settings) skip PowerShell and use `RegistryHelper` for direct `HKLM` access. Reboot/uninstall shell out to `shutdown.exe` / `wusa.exe`.
@@ -61,7 +61,7 @@ Registry-backed operations (pause, schedule, settings) skip PowerShell and use `
 
 | Type | Key members |
 |---|---|
-| `WindowsUpdate` | `Id`, `Title`, `Description`, `KBArticle`, `Category`, `Status`, `IsMandatory`, `IsHidden`, `RequiresReboot`, `SizeInBytes`, `SupportUrl`, `Severity`; computed `IsSecurityUpdate` (Security **or** Critical) and `FormattedSize` |
+| `WindowsUpdate` | WUA identity/revision/source metadata; title, KB, type, categories, and status; installed/downloaded/hidden/browse-only/beta/reboot/applicability flags; computed `IsSecurityUpdate` (Security **or** Critical) and `FormattedSize` |
 | `UpdateHistory` | `Title`, `KBArticle`, `InstalledDate`, `Success`, `ResultCode`, `ErrorMessage`, `Operation` |
 | `UpdateSettings` | Auto-update flags, `ActiveHoursStart/End`, notification flags, `PauseOnMeteredConnection`, `MaxBandwidthPercent`, `DeferFeatureUpdatesDays`, `DeferQualityUpdatesDays` |
 | `UpdateSchedule` | `Enabled`, `Day`, `Time`, `AutoInstall`, `AutoReboot`, `InstallAll`; methods `IsWithinSchedule(now)`, `NextRun()` |
@@ -71,19 +71,23 @@ Registry-backed operations (pause, schedule, settings) skip PowerShell and use `
 
 ```csharp
 enum UpdateStatus   { NotStarted, Downloading, Downloaded, Installing,
-                      Installed, Failed, PendingReboot, Hidden }
+                      Installed, Failed, PendingReboot, Hidden, Available,
+                      PendingInstallation, RestartRequired,
+                      SupersededOrNotApplicable }
 
 enum UpdateCategory { Security, Critical, Optional, Driver, FeatureUpdate,
                       CumulativeUpdate, Definition, ServicePack, Unknown }
 ```
 
-Category is derived from the WUA category name by `ParseCategory` (substring match: `security`, `critical`, `driver`, `feature`, `cumulative`, `definition`, `service pack`; else `Optional`).
+Live orchestrator and WUA results map current action/progress, action result, attention reason, `IsInstalled`, `IsHidden`, `IsDownloaded`, and actual reboot state to the user-facing status. Downloaded updates become `PendingInstallation`; installed, superseded, and no-longer-applicable updates are not shown as available.
+
+Category is derived from all WUA category names plus update type and title. This recognizes drivers, Insider Preview and feature upgrades, cumulative updates, security intelligence/Defender definitions, security/critical updates, and service packs; remaining applicable items are optional.
 
 ### Services (`Services/`)
 
 | Interface | Implementation | Responsibility |
 |---|---|---|
-| `IUpdateService` | `UpdateService` | Search / download / install / uninstall / hide / history / diagnose / reset — the engine. Owns the scan cache and `LastError` |
+| `IUpdateService` | `UpdateService` | Search / download / install / uninstall / hide / history / diagnose / reset — the engine. Owns live orchestrator/WUA queries and `LastError` |
 | `IPauseService` | `PauseService` | Pause/resume via WU pause registry values |
 | `ISchedulerService` | `SchedulerService` | Persist/read/clear the weekly schedule |
 | `ISettingsService` | `SettingsService` | Map setting keys → `UpdateSettings`, save/reset |
@@ -97,7 +101,7 @@ Task<List<WindowsUpdate>> GetAvailableUpdatesAsync(
     bool forceRefresh = false, CancellationToken ct = default);
 Task<List<WindowsUpdate>> GetInstalledUpdatesAsync(CancellationToken ct = default);
 Task<List<UpdateHistory>> GetUpdateHistoryAsync(int count = 50);
-string? LastError { get; }                 // set by Download/Install on failure
+string? LastError { get; }                 // set by update mutations on failure
 Task<bool> DownloadUpdateAsync(string updateId, IProgress<double>? p = null, CancellationToken ct = default);
 Task<bool> InstallUpdateAsync(string updateId, IProgress<double>? p = null, CancellationToken ct = default);
 Task<bool> UninstallUpdateAsync(string kbArticle);
@@ -106,6 +110,8 @@ Task<bool> UnhideUpdateAsync(string updateId);
 Task<UpdateSettings> GetSettingsAsync();
 Task SaveSettingsAsync(UpdateSettings settings);
 bool IsRebootRequired();
+Task<bool> CommitAndScheduleRebootAsync(
+    int secondsDelay, string message, CancellationToken ct = default);
 Task<string> GetServiceStatusAsync();
 Task<string> DiagnoseAsync();
 Task<string> ResetComponentsAsync();       // destructive
@@ -166,20 +172,17 @@ Commands are constructed with this provider and resolve dependencies via `sp.Get
 
 ---
 
-## Scan cache
+## Live Windows Update scans
 
-To make `status`, `list`, and `diagnose` **agree on the update count**, available-update scans are cached. WUA online results drift between calls (e.g. Defender definitions republish hourly), so without a cache the three commands could each show a different number.
+Available-update results are not persisted or shared between commands. Each `status`, `list`, `search`, install planning, and diagnostics query asks the operating system for current applicability and action state.
 
-| Property | Value |
-|---|---|
-| **Location** | `%ProgramData%\WUM\cache\available-h{0/1}-m{0/1}.json` |
-| **Key** | `h` = include-hidden, `m` = Microsoft Update — so variants never collide |
-| **TTL** | 5 minutes (`CacheTtl`) |
-| **Envelope** | `{ TimestampUtc, Updates[] }` |
-| **Bypass** | `forceRefresh: true` (CLI `--refresh`) — re-scans and rewrites the cache |
-| **Invalidation** | The whole cache dir is deleted after any state-changing op: install, uninstall, hide, unhide, component reset |
+The default search uses Windows' effective update source and policy configuration. That keeps managed WSUS devices on their configured source and lets Windows Update offer applicable Insider Preview builds, feature updates, cumulative updates, drivers, security intelligence, and optional updates. `--microsoft-update` / `--mu` explicitly adds the Microsoft Update service for other Microsoft products where supported.
 
-Best-effort: any IO/JSON error is treated as a cache miss and a live scan runs. Read path: `ReadCache`; write path: `WriteCache`; nuke: `InvalidateCache`.
+On Windows builds exposing `Windows.Management.Update`, WUM queries `WindowsUpdateManager.GetApplicableUpdates()` before WUA. This is the live orchestrator state used by Settings: current download/install/finalization action, progress, restart attention, and action failure/HRESULT. Active or attention-required results return immediately instead of blocking behind a WUA search. Quiet default-visible results allow up to 30 seconds for WUA catalog enrichment, then fall back to the complete orchestrator view (including an authoritative empty result). Matching is GUID-first because the orchestrator's `:revision` suffix is not WUA's revision number.
+
+`--hidden` and `--microsoft-update` / `--mu` request data outside the default orchestrator view, so those expanded queries require a complete online WUA result and never substitute an incomplete fallback. If `Windows.Management.Update` is unavailable, ordinary scans also use WUA.
+
+`forceRefresh: true` (the `--refresh` option where exposed) does not bypass an application cache. On builds exposing `Windows.Management.Update`, it calls `WindowsUpdateManager.StartScan(true)` and waits for the user-initiated orchestrator scan before querying current state. If that newer API is unavailable, WUM logs the fallback and still performs an uncached online WUA search. Installation performs an exact-identity online verification, then the install command runs a full live query so superseded and newly applicable offers are refreshed. Pending feature updates are finalized with `IUpdateInstaller4.Commit(0)` immediately before WUM schedules a reboot. A machine-wide mutex plus durable `Started`/`Committed` boot-session states prevent concurrent or interrupted commands from issuing a second unsupported commit.
 
 ---
 
@@ -189,6 +192,7 @@ Structured logging via **Serilog**, daily rolling file:
 
 ```
 %ProgramData%\WUM\logs\wum-YYYY-MM-DD.log
+%LocalAppData%\WUM\logs\wum-YYYY-MM-DD.log  # standard-user sessions
 ```
 
 - Minimum level: `Debug`

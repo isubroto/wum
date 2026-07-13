@@ -135,8 +135,8 @@ root.AddCommand(new FooCommand(services).Build());
 ```
 
 3. If it **modifies the system**, call `WUM.CLI.Helpers.AdminHelper.RequireAdmin();` first.
-4. If it **reads available updates**, go through `IUpdateService.GetAvailableUpdatesAsync(...)` so it uses the shared scan cache; add a `--refresh` option that passes `forceRefresh: true`.
-5. If it **changes state** (install/hide/etc.), make sure the underlying service invalidates the cache (the engine already does for its mutations).
+4. If it **reads available updates**, go through `IUpdateService.GetAvailableUpdatesAsync(...)` so it reads live orchestrator state and WUA metadata using the operating system's effective source and policy. If user-initiated refresh is useful, add a `--refresh` option that passes `forceRefresh: true`.
+5. If it **changes state** (install/hide/etc.), re-query the update service after the operation before presenting available-update state.
 6. Use `ConsoleRenderer` for output and `--json` for a machine-readable path.
 
 ## Conventions

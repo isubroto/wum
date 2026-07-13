@@ -17,12 +17,6 @@ Removes an installed update by KB number.
 /uninstall <kb-article> [--force|-f]
 ```
 
-CLI equivalent:
-
-```powershell
-wum uninstall <kb-article> [--force|-f]
-```
-
 ## Arguments
 
 | Argument | Required | Detail |
@@ -39,7 +33,7 @@ wum uninstall <kb-article> [--force|-f]
 
 `/uninstall` requires Administrator.
 
-It normalizes the KB number and uses the same uninstall path as CLI mode.
+It normalizes the KB number, runs the uninstall, and reports whether Windows requires a restart.
 
 ## Examples
 
@@ -48,6 +42,6 @@ It normalizes the KB number and uses the same uninstall path as CLI mode.
 /uninstall 5034441 --force
 ```
 
-More backend detail: [`wum uninstall`](command-uninstall.md)
+Implementation detail: [uninstall behavior](command-uninstall.md)
 
 Next: [`/hide`](interactive-command-hide.md)

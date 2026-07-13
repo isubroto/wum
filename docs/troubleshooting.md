@@ -38,15 +38,17 @@ It prints targeted hints for whatever actually failed. This page expands each co
 |---|---|---|
 | **Managed by WSUS / policy** | `wum diagnose` → `Update Source : WSUS (...)` | Updates come from the org server, not Microsoft Update. Expected on managed PCs — not a fault |
 | **Microsoft Update service not registered** | `wum diagnose` → `Microsoft Upd : NOT registered` | Driver / MS-product updates are hidden from the default scan. Use `--mu`: `wum list --mu` |
-| **Stale cache** | Ran a scan < 5 min ago | Force a fresh scan: `wum list --refresh` (or `status --refresh`) |
+| **Windows has not completed a new detection cycle** | Insider channel or update policy was changed recently | Run `wum list --refresh` to request a user-initiated Windows Update refresh, then query current OS state |
 | **Not elevated** | `wum diagnose` → `Running Admin : False` | Some results need admin. Re-run in an Administrator terminal |
 | **Genuinely up to date** | `Updates Found : 0` and no other hint | Nothing to do |
 
 ```console
-wum list --refresh        # bypass the 5-minute scan cache
+wum list --refresh        # request an OS refresh, then query current updates
 wum list --mu             # include Microsoft Update (drivers + MS products)
 wum diagnose              # see Update Source + Microsoft Upd lines
 ```
+
+On builds that expose `Windows.Management.Update`, `--refresh` uses the Settings-equivalent user-initiated orchestrator scan. Older builds automatically fall back to a fresh online WUA query; the fallback reason is written to the diagnostic log.
 
 ---
 
@@ -99,6 +101,8 @@ WUM surfaces the underlying reason from `IUpdateService.LastError`, decoding the
 
 WUM checks **update-specific** reboot markers only (WU / CBS / UpdateExe). It deliberately ignores `PendingFileRenameOperations` (set by routine installers), so a "Yes" here means a real update reboot is pending. See [Configuration → Reboot detection](configuration.md#reboot-detection).
 
+Use `wum reboot` after a WUM feature-update installation. It performs WUA's required one-time commit immediately before restart; a normal external restart cannot be prepared by WUM.
+
 ---
 
 ## Pause / settings / schedule changes "don't stick"
@@ -132,6 +136,7 @@ Every run logs to:
 
 ```
 %ProgramData%\WUM\logs\wum-YYYY-MM-DD.log
+%LocalAppData%\WUM\logs\wum-YYYY-MM-DD.log  # standard-user session
 ```
 
 Debug-level, 7-day retention. When a command fails unexpectedly, the log has the full PowerShell stderr and exception. The colorized report footer points here too.

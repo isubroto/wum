@@ -53,30 +53,32 @@ namespace WUM.CLI.Commands
 
             Console.WriteLine();
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Pausing updates for " + days + " day(s)...", async () =>
+                "Pausing updates for " + days + " day(s)...", async token =>
                 {
-                    await _pause.PauseAsync(days);
+                    await _pause.PauseAsync(days, token);
                 });
 
             ConsoleRenderer.SuccessResult(
                 "Updates paused for " + days + " day(s).",
                 "Resumes: " + until.ToString("D"),
-                "Run wum pause resume to resume early.");
+                "Run " + CommandPresentation.FormatCommand("pause resume") +
+                " to resume early.");
             Console.WriteLine();
         }
 
         private async Task ResumeAsync()
         {
             Console.WriteLine();
-            await ConsoleRenderer.ShowSpinnerAsync("Resuming updates...", async () =>
+            await ConsoleRenderer.ShowSpinnerAsync("Resuming updates...", async token =>
             {
-                await _pause.ResumeAsync();
+                await _pause.ResumeAsync(token);
             });
 
             ConsoleRenderer.SuccessResult(
                 "Windows Updates resumed.",
                 "Pause flags were cleared.",
-                "Run wum status to confirm.");
+                "Run " + CommandPresentation.FormatCommand("status") +
+                " to confirm.");
             Console.WriteLine();
         }
     }

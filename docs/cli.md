@@ -19,15 +19,6 @@ wum install KB5034441 --dry-run
 
 Use CLI mode when you want repeatable commands, scripts, JSON output, CI checks, or a direct terminal workflow. Each command exits after it finishes.
 
-## CLI vs interactive
-
-| Mode | Best for | Command shape |
-|---|---|---|
-| CLI mode | Scripts, automation, one-off terminal commands, JSON output | `wum list --security` |
-| Interactive mode | Exploring commands, using completion, repeating update tasks in one session | `/list --security` |
-
-Both modes call the same command handlers. Interactive mode adds slash prefixes, history, completion, and session commands.
-
 ## CLI docs
 
 <div class="card-grid">

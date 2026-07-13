@@ -132,7 +132,7 @@ namespace WUM.CLI.Helpers
 
         public static void Divider(char ch = '─')
         {
-            int width = Math.Max(Console.WindowWidth - 1, 60);
+            int width = GetSafeConsoleWidth();
             WriteColor(new string(ch, width),
                 ch == '·' ? ConsoleColor.DarkGray : ConsoleColor.DarkCyan);
         }
@@ -165,24 +165,46 @@ namespace WUM.CLI.Helpers
         }
 
         // ── Spinner ───────────────────────────────────────────────────────
-        public static async Task ShowSpinnerAsync(
+        public static Task ShowSpinnerAsync(
             string message,
             Func<Task> action,
+            bool silent = false)
+            => ShowSpinnerCoreAsync(
+                message, _ => action(), timeoutSeconds: null, silent);
+
+        public static Task ShowSpinnerAsync(
+            string message,
+            Func<CancellationToken, Task> action,
             int timeoutSeconds = 60,
             bool silent = false)
+            => ShowSpinnerCoreAsync(
+                message, action, timeoutSeconds, silent);
+
+        private static async Task ShowSpinnerCoreAsync(
+            string message,
+            Func<CancellationToken, Task> action,
+            int? timeoutSeconds,
+            bool silent)
         {
+            ArgumentNullException.ThrowIfNull(action);
+            if (timeoutSeconds < 0)
+                throw new ArgumentOutOfRangeException(nameof(timeoutSeconds));
+
             const int frameMs = 60;
-            var cts   = new CancellationTokenSource();
+            using var spinnerCts = new CancellationTokenSource();
+            using var actionCts  = new CancellationTokenSource();
+            using var timeoutCts = new CancellationTokenSource();
             int frame = 0;
+            bool renderSpinner = !silent && !Console.IsOutputRedirected;
 
-            if (!silent) Console.CursorVisible = false;
+            if (renderSpinner) Console.CursorVisible = false;
 
-            // Spinner task — refreshes every 8ms (suppressed when silent)
+            // Spinner task (suppressed when silent or output is redirected).
             var spinTask = Task.Run(async () =>
             {
-                while (!cts.IsCancellationRequested)
+                while (!spinnerCts.IsCancellationRequested)
                 {
-                    if (!silent)
+                    if (renderSpinner)
                     {
                         int elapsed = frame * frameMs / 1000;
                         string timeStr = elapsed > 3
@@ -199,41 +221,44 @@ namespace WUM.CLI.Helpers
 
                     frame++;
 
-                    try { await Task.Delay(frameMs, cts.Token); }
+                    try { await Task.Delay(frameMs, spinnerCts.Token); }
                     catch (TaskCanceledException) { break; }
                 }
             });
 
             try
             {
-                using var timeoutCts = new CancellationTokenSource(
-                    TimeSpan.FromSeconds(timeoutSeconds));
-
-                var actionTask  = action();
-                var delayTask   = Task.Delay(
-                    TimeSpan.FromSeconds(timeoutSeconds),
-                    timeoutCts.Token);
-
-                // Wait for whichever finishes first
-                var winner = await Task.WhenAny(actionTask, delayTask);
-
-                if (winner != actionTask)
+                var actionTask = action(actionCts.Token);
+                if (timeoutSeconds.HasValue)
                 {
-                    // Timed out — show warning but do not crash
-                    if (!silent)
+                    var delayTask = Task.Delay(
+                        TimeSpan.FromSeconds(timeoutSeconds.Value),
+                        timeoutCts.Token);
+
+                    // Wait for whichever finishes first.
+                    var winner = await Task.WhenAny(actionTask, delayTask);
+                    if (winner != actionTask)
                     {
-                        Console.WriteLine();
-                        WriteColor(
-                            "  ! Operation timed out after " +
-                            timeoutSeconds + "s — this may need admin rights.",
-                            ConsoleColor.Yellow);
+                        // Stop cancellation-aware work (notably WUA
+                        // PowerShell), then observe it before returning. No
+                        // timed-out operation is left running behind caller.
+                        await actionCts.CancelAsync();
+                        try { await actionTask; }
+                        catch (OperationCanceledException)
+                            when (actionCts.IsCancellationRequested) { }
+                        catch { /* timeout remains the primary error */ }
+
+                        throw new TimeoutException(
+                            "Operation timed out after " +
+                            timeoutSeconds.Value + " seconds. Windows Update " +
+                            "did not finish the request.");
                     }
+
+                    await timeoutCts.CancelAsync();
                 }
-                else
-                {
-                    // Completed — propagate any exception
-                    await actionTask;
-                }
+
+                // Completed — propagate any exception.
+                await actionTask;
             }
             catch (Exception ex)
             {
@@ -241,15 +266,15 @@ namespace WUM.CLI.Helpers
                 Failure(
                     "Operation failed.",
                     ex.Message,
-                    "Read the command output above; full logs are under %ProgramData%\\WUM\\logs.");
+                    "Logs: %LocalAppData%\\WUM\\logs (standard) or %ProgramData%\\WUM\\logs (elevated).");
                 throw;
             }
             finally
             {
-                await cts.CancelAsync();
+                await spinnerCts.CancelAsync();
                 try { await spinTask; } catch { /* ignored */ }
 
-                if (!silent)
+                if (renderSpinner)
                 {
                     int width = Math.Max(Console.WindowWidth - 1, 60);
                     Console.Write("\r" + new string(' ', width) + "\r");
@@ -267,6 +292,20 @@ namespace WUM.CLI.Helpers
             if (newLine) Console.WriteLine(text);
             else         Console.Write(text);
             Console.ResetColor();
+        }
+
+        private static int GetSafeConsoleWidth()
+        {
+            try
+            {
+                return Console.IsOutputRedirected
+                    ? 78
+                    : Math.Max(Console.WindowWidth - 1, 60);
+            }
+            catch
+            {
+                return 78;
+            }
         }
 
         private static ConsoleColor SpinnerColor(int frame) => (frame % 4) switch

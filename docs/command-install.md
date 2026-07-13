@@ -18,13 +18,6 @@ wum install [<kb-articles>...] [--security] [--critical] [--all] [--definition]
             [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu]
 ```
 
-## Interactive form
-
-```text
-/install [<kb-articles>...] [--security] [--critical] [--all] [--definition]
-         [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu]
-```
-
 ## Arguments
 
 | Argument | Required | Detail |
@@ -59,11 +52,14 @@ wum install [<kb-articles>...] [--security] [--critical] [--all] [--definition]
 
 ## Flow
 
-`install` requires Administrator.
+Downloading or installing updates requires Administrator. `--dry-run` is
+read-only and does not require elevation.
 
-Flow: scan -> resolve targets -> show plan -> confirm unless `--force` -> download/install with progress -> summary -> optional reboot prompt.
+Flow: scan -> resolve targets -> show plan -> confirm unless `--force` -> download/install with progress -> full live status refresh -> state-aware summary -> optional reboot prompt.
 
-Any successful install invalidates the scan cache so future `status`, `list`, and `diagnose` calls see fresh state.
+After installation completes, WUM queries Windows Update again so the next view reflects installed, failed, pending-restart, superseded, and no-longer-applicable state. The summary keeps no-longer-applicable and restart-required items separate from genuine failures.
+
+When restart is required, use the WUM restart prompt or `wum reboot`. WUM calls WUA `Commit(0)` once for the current boot immediately before `shutdown /r`; this is required to finalize pending feature updates. `--no-reboot` suppresses only the prompt and prints this guidance.
 
 ## Examples
 

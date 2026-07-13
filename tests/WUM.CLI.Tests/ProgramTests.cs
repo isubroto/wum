@@ -60,6 +60,20 @@ namespace WUM.CLI.Tests
             result.Output.Trim().Should().NotBeEmpty();
         }
 
+        [Fact]
+        public async Task CliHelp_ContainsOnlySupportedCliSyntax()
+        {
+            var result = await RunProgramAsync(new[] { "--help" }, "");
+
+            result.ExitCode.Should().Be(0);
+            result.Output.Should().Contain("wum status --refresh");
+            result.Output.Should().Contain("wum install KB5034441");
+            result.Output.Should().NotContain("/status");
+            result.Output.Should().NotContain("wum scan");
+            result.Output.Should().NotContain("restart-status");
+            result.Output.Should().NotContain("install --id");
+        }
+
         public static IEnumerable<object[]> ValidCommandLines()
         {
             yield return new object[] { new[] { "status" } };

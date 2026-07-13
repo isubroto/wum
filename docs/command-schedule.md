@@ -20,15 +20,6 @@ wum schedule set [--day <DayOfWeek>] [--time <HH:mm>] [--auto-install] [--auto-r
 wum schedule clear
 ```
 
-## Interactive form
-
-```text
-/schedule
-/schedule show
-/schedule set [--day <DayOfWeek>] [--time <HH:mm>] [--auto-install] [--auto-reboot] [--all]
-/schedule clear
-```
-
 ## Subcommands
 
 | Subcommand | Admin | Detail |

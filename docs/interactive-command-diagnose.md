@@ -18,13 +18,6 @@ Runs Windows Update health checks from interactive mode.
 /diagnose --fix [--force|-f]
 ```
 
-CLI equivalent:
-
-```powershell
-wum diagnose [--refresh] [--json]
-wum diagnose --fix [--force|-f]
-```
-
 ## Options
 
 | Option | Detail |
@@ -38,7 +31,7 @@ wum diagnose --fix [--force|-f]
 
 `/diagnose` health check is read-only unless `--fix` is used.
 
-`/diagnose --fix` is destructive: stops WU services, renames WU stores, resets network/proxy pieces, restarts services, then invalidates cache.
+`/diagnose --fix` is destructive: stops WU services, renames WU stores, resets network/proxy pieces, restarts services, then requests a new WUA scan.
 
 ## Examples
 
@@ -50,6 +43,6 @@ wum diagnose --fix [--force|-f]
 /diagnose --fix --force
 ```
 
-More backend detail: [`wum diagnose`](command-diagnose.md)
+Implementation detail: [diagnose behavior](command-diagnose.md)
 
 Next: [`/update` / `/upgrade`](interactive-command-update.md)

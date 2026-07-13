@@ -16,7 +16,7 @@ description: "Exact registry keys and on-disk paths each WUM command reads and w
 
 [← Docs index](index.md)
 
-WUM stores configuration in the Windows registry (the same locations Windows itself uses) and on disk for logs/cache. This page documents the exact keys and values each command writes, so you know precisely what changes on your system.
+WUM stores configuration in the Windows registry (the same locations Windows itself uses) and writes rolling logs on disk. This page documents the exact keys and values each command writes, so you know precisely what changes on your system.
 
 All registry access is through `RegistryHelper`, which opens the **64-bit view** of `HKEY_LOCAL_MACHINE` (`HKLM`). Writing therefore requires Administrator.
 
@@ -123,7 +123,7 @@ wum schedule clear
 
 ## Reboot detection
 
-`IsRebootRequired()` checks **update-specific** markers only (kept in sync with the `diagnose` D1 check) — `PendingFileRenameOperations` is deliberately **excluded** (noisy, set by routine installers):
+`IsRebootRequired()` first asks `Microsoft.Update.SystemInfo.RebootRequired`, then falls back to **update-specific** registry markers. `PendingFileRenameOperations` is deliberately **excluded** (noisy, set by routine installers):
 
 | Registry key (presence = reboot) |
 |---|
@@ -132,15 +132,19 @@ wum schedule clear
 
 `diagnose` additionally reports `…\RebootRequired\UpdateExeVolatile` as an `UpdateExe` reason. Used by `wum status`, `wum reboot`, and `wum install`'s post-install prompt.
 
+`wum reboot` serializes commit/restart operations with a machine-wide mutex and writes `HKLM\SOFTWARE\WUM\Runtime\UpdateCommitBootSession`. The value records `Started|<boot>` before the non-repeatable WUA call and `Committed|<boot>` after success. It is not scan data and is ignored after restart. A retry after cancellation or interruption schedules the required reboot without risking a second unsupported `Commit(0)`.
+
 ---
 
 ## On-disk locations
 
 | Path | Written by | Notes |
 |---|---|---|
-| `%ProgramData%\WUM\logs\wum-YYYY-MM-DD.log` | Serilog | Daily roll, 7-day retention |
-| `%ProgramData%\WUM\cache\available-h{0/1}-m{0/1}.json` | `UpdateService` | Scan cache, 5-min TTL — see [Architecture → Scan cache](architecture.md#scan-cache) |
+| `%ProgramData%\WUM\logs\wum-YYYY-MM-DD.log` | Serilog | Elevated-session daily roll, 7-day retention |
+| `%LocalAppData%\WUM\logs\wum-YYYY-MM-DD.log` | Serilog | Standard-user daily roll, 7-day retention |
 
-`%ProgramData%` resolves via `Environment.SpecialFolder.CommonApplicationData` (normally `C:\ProgramData`).
+`%ProgramData%` resolves via `Environment.SpecialFolder.CommonApplicationData` (normally `C:\ProgramData`). Standard-user commands use `%LocalAppData%`, avoiding permission conflicts with logs created by elevated operations.
+
+Available-update results are not written to disk; each scan queries current WUA state.
 
 Next: [Diagnostics →](diagnostics.md)

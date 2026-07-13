@@ -88,7 +88,8 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.Failure(
                     "Invalid day: " + day,
                     "Day must be a weekday name such as Monday, Friday, or Sunday.",
-                    "Example: wum schedule set --day Friday --time 03:00");
+                    "Example: " + CommandPresentation.FormatCommand(
+                        "schedule set --day Friday --time 03:00"));
                 return;
             }
 
@@ -97,7 +98,8 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.Failure(
                     "Invalid time: " + time,
                     "Time must use 24-hour HH:mm format.",
-                    "Example: wum schedule set --day Friday --time 03:00");
+                    "Example: " + CommandPresentation.FormatCommand(
+                        "schedule set --day Friday --time 03:00"));
                 return;
             }
 

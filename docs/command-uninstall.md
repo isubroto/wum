@@ -17,12 +17,6 @@ Removes an installed update by KB number using `wusa.exe /uninstall`.
 wum uninstall <kb-article> [--force|-f]
 ```
 
-## Interactive form
-
-```text
-/uninstall <kb-article> [--force|-f]
-```
-
 ## Arguments
 
 | Argument | Required | Detail |

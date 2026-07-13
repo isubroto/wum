@@ -17,7 +17,7 @@ The docs site is built from [`docs/`](docs/) with Jekyll ([just-the-docs](https:
 
 | Area | Capabilities |
 |---|---|
-| **Discovery** | List available, installed, and hidden updates with rich filtering by category |
+| **Discovery** | Query current WUA state using Windows' effective update source and policy, including applicable Insider, feature, cumulative, driver, definition, and optional updates |
 | **Installation** | Download & install updates by KB number, category, or all at once with progress bars |
 | **Uninstall** | Remove installed updates by KB article number |
 | **Pause / Resume** | Pause Windows Updates for 1–35 days via registry, resume early |
@@ -86,15 +86,20 @@ wum --help          # Show help
 
 Show a dashboard with WU service state, reboot status, pause info, and available update counts by category.
 
+Each status check queries current operating-system state. On supported Windows builds, WUM reads `WindowsUpdateManager.GetApplicableUpdates()` first—the same orchestrator state used by Settings—and reports live action/progress immediately. WUA enriches quiet results and is the fallback on older builds. `--refresh` first requests the same user-initiated scan as Settings.
+
 ```
 wum status              # Colorized dashboard
 wum status --json       # Machine-readable JSON
 wum status -v           # Verbose debug output (step-by-step)
+wum status --refresh    # Request an OS refresh, then query current status
 ```
 
 ### `wum list`
 
 List available (or installed) updates with category filtering.
+
+Available-update lists are live operating-system results, not persisted scan data. The default view uses the Windows Update orchestrator plus WUA metadata when available; both honor Windows' effective source and policy. `--mu` additionally queries Microsoft Update for other Microsoft products.
 
 ```
 wum list                  # All available updates (table)
@@ -107,6 +112,7 @@ wum list --hidden         # Include hidden updates
 wum list --json           # JSON output
 wum list -v               # Full detail per update
 wum list --no-color       # Disable ANSI colors
+wum list --refresh        # Request an OS refresh, then query current updates
 ```
 
 ### `wum search`
@@ -287,6 +293,7 @@ Structured logging via **Serilog** with daily rolling file output:
 
 ```
 %ProgramData%\WUM\logs\wum-YYYY-MM-DD.log
+%LocalAppData%\WUM\logs\wum-YYYY-MM-DD.log  # standard-user sessions
 ```
 
 Retains 7 days of logs automatically.

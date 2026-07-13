@@ -1,5 +1,6 @@
 // src/WUM.Core/Services/PauseService.cs
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using WUM.Core.Helpers;
 using WUM.Core.Models;
@@ -18,7 +19,9 @@ namespace WUM.Core.Services
             _registry = registry;
         }
 
-        public async Task PauseAsync(int days)
+        public async Task PauseAsync(
+            int days,
+            CancellationToken ct = default)
         {
             await Task.Run(() =>
             {
@@ -40,10 +43,10 @@ namespace WUM.Core.Services
                 _registry.SetValue(RegPath,
                     "PauseUpdatesExpiryTime",
                     until.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-            });
+            }, ct);
         }
 
-        public async Task ResumeAsync()
+        public async Task ResumeAsync(CancellationToken ct = default)
         {
             await Task.Run(() =>
             {
@@ -52,10 +55,11 @@ namespace WUM.Core.Services
                 _registry.DeleteValue(RegPath, "PauseQualityUpdatesStartTime");
                 _registry.DeleteValue(RegPath, "PauseQualityUpdatesEndTime");
                 _registry.DeleteValue(RegPath, "PauseUpdatesExpiryTime");
-            });
+            }, ct);
         }
 
-        public async Task<PauseInfo> GetPauseInfoAsync()
+        public async Task<PauseInfo> GetPauseInfoAsync(
+            CancellationToken ct = default)
         {
             return await Task.Run(() =>
             {
@@ -83,7 +87,7 @@ namespace WUM.Core.Services
                         ? null
                         : start.ToLocalTime()
                 };
-            });
+            }, ct);
         }
     }
 }

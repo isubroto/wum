@@ -33,7 +33,7 @@ namespace WUM.CLI.Commands
             var jsonOpt  = new Option<bool>(
                 "--json",  "Output diagnostics as JSON and set an exit code");
             var refreshOpt = new Option<bool>(
-                "--refresh", "Force a fresh update scan instead of the shared cache");
+                "--refresh", "Request a user-initiated Windows Update scan first");
 
             cmd.AddOption(fixOpt);
             cmd.AddOption(forceOpt);
@@ -46,7 +46,7 @@ namespace WUM.CLI.Commands
                 bool force   = ctx.ParseResult.GetValueForOption(forceOpt);
                 bool json    = ctx.ParseResult.GetValueForOption(jsonOpt);
                 bool refresh = ctx.ParseResult.GetValueForOption(refreshOpt);
-                if (doFix) await RunFixAsync(force);
+                if (doFix) ctx.ExitCode = await RunFixAsync(force);
                 else       ctx.ExitCode = await RunAsync(json, refresh);
             });
             return cmd;
@@ -102,10 +102,8 @@ namespace WUM.CLI.Commands
             Muted
         }
 
-        private async Task RunFixAsync(bool force)
+        private async Task<int> RunFixAsync(bool force)
         {
-            WUM.CLI.Helpers.AdminHelper.RequireAdmin();
-
             Console.WriteLine();
             ConsoleRenderer.Header("  WUM — Reset Windows Update Components");
             Console.WriteLine();
@@ -121,14 +119,16 @@ namespace WUM.CLI.Commands
             {
                 ConsoleRenderer.Muted("  Cancelled.");
                 Console.WriteLine();
-                return;
+                return 0;
             }
+
+            if (!WUM.CLI.Helpers.AdminHelper.RequireAdmin()) return 1;
 
             string output = "";
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Resetting Windows Update components...", async () =>
+                "Resetting Windows Update components...", async token =>
                 {
-                    output = await _updates.ResetComponentsAsync();
+                    output = await _updates.ResetComponentsAsync(token);
                 }, timeoutSeconds: 180);
 
             Console.WriteLine();
@@ -141,8 +141,11 @@ namespace WUM.CLI.Commands
                 else                              ConsoleRenderer.Muted("  " + line);
             }
             Console.WriteLine();
-            ConsoleRenderer.Hint("Reboot, then run 'wum diagnose' to re-check.");
+            ConsoleRenderer.Hint(
+                "Reboot, then run '" +
+                CommandPresentation.FormatCommand("diagnose") + "' to re-check.");
             Console.WriteLine();
+            return 0;
         }
 
         private async Task<int> RunAsync(bool json, bool refresh = false)
@@ -161,21 +164,22 @@ namespace WUM.CLI.Commands
             int    availableCount = -1;
 
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Running diagnostic checks...", async () =>
+                "Running diagnostic checks...", async token =>
                 {
-                    output = await _updates.DiagnoseAsync();
+                    output = await _updates.DiagnoseAsync(token);
                 }, timeoutSeconds: 90, silent: json);
 
-            // Shared scan so status/list/diagnose agree on the count. --refresh
-            // forces a re-scan + rewrites the cache, so a later status/list that
-            // reads the same cache shows the identical number.
+            // Always query live. --refresh first requests the same
+            // user-initiated detection cycle used by Windows Settings when the
+            // current OS exposes Windows.Management.Update.
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Counting available updates...", async () =>
+                "Counting available updates...", async token =>
                 {
                     var ups = await _updates.GetAvailableUpdatesAsync(
-                        forceRefresh: refresh);
+                        forceRefresh: refresh,
+                        ct: token);
                     availableCount = ups.Count;
-                }, timeoutSeconds: 90, silent: json);
+                }, timeoutSeconds: refresh ? 630 : 330, silent: json);
 
             if (string.IsNullOrWhiteSpace(output))
             {
@@ -220,8 +224,7 @@ namespace WUM.CLI.Commands
                 PrintDiagnosticRow(label.Trim(), value);
             }
 
-            // Inject the shared-cache count so diagnose reports the SAME number
-            // as status/list (all three read one cached online scan).
+            // Inject the count returned by this diagnosis's live online scan.
             if (availableCount >= 0)
             {
                 results["Updates Found"] = availableCount.ToString();
@@ -340,7 +343,8 @@ namespace WUM.CLI.Commands
             if (Has("Pending Reboot", "REBOOT REQUIRED"))
             {
                 ConsoleRenderer.Hint(
-                    "Reboot pending       -> restart to finalize updates; run 'wum reboot'");
+                    "Reboot pending       -> restart to finalize updates; run '" +
+                    CommandPresentation.FormatCommand("reboot") + "'");
                 hints++;
             }
 
@@ -356,7 +360,9 @@ namespace WUM.CLI.Commands
             if (Has("WU Datastore", "MISSING"))
             {
                 ConsoleRenderer.Hint(
-                    "Datastore missing    -> run 'wum diagnose --fix' to rebuild SoftwareDistribution");
+                    "Datastore missing    -> run '" +
+                    CommandPresentation.FormatCommand("diagnose --fix") +
+                    "' to rebuild SoftwareDistribution");
                 hints++;
             }
 

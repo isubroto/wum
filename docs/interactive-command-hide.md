@@ -19,14 +19,6 @@ Hides, unhides, or lists hidden Windows Updates.
 /hide list
 ```
 
-CLI equivalent:
-
-```powershell
-wum hide add <update-id>
-wum hide remove <update-id>
-wum hide list
-```
-
 ## Subcommands
 
 | Subcommand | Argument | Admin | Detail |
@@ -47,6 +39,6 @@ Use `/list --json` or `/search <kb> --json` to find update `Id` values.
 /hide list
 ```
 
-More backend detail: [`wum hide`](command-hide.md)
+Implementation detail: [hide behavior](command-hide.md)
 
 Next: [`/history`](interactive-command-history.md)

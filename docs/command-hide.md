@@ -19,14 +19,6 @@ wum hide remove <update-id>
 wum hide list
 ```
 
-## Interactive form
-
-```text
-/hide add <update-id>
-/hide remove <update-id>
-/hide list
-```
-
 ## Subcommands
 
 | Subcommand | Argument | Admin | Detail |

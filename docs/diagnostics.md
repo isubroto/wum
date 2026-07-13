@@ -63,7 +63,7 @@ The diagnostic PowerShell script emits `label: value` lines in two blocks.
 
 ### Updates Found
 
-After the script, `diagnose` performs the **shared scan** (`GetAvailableUpdatesAsync`, honoring `--refresh`) and injects `Updates Found: N`. Because it reads/writes the same cache, `status` and `list` report the identical number within the 5-minute TTL.
+After the script, `diagnose` performs a live `GetAvailableUpdatesAsync` query and injects `Updates Found: N`. Every invocation reads current WUA state. With `--refresh`, WUM first requests an explicit user-initiated Windows Update refresh.
 
 ---
 
@@ -168,6 +168,6 @@ The colorized report ends with **targeted hints only for checks that actually fa
 6. Restart the services
 7. Trigger detection (`wuauclt /detectnow`, `UsoClient StartScan`)
 
-**Pending downloads are discarded; a reboot is advised.** Confirm prompt unless `--force`. The scan cache is invalidated afterward. Re-run `wum diagnose` after rebooting to re-check.
+**Pending downloads are discarded; a reboot is advised.** Confirm prompt unless `--force`. WUM requests re-detection afterward. Re-run `wum diagnose` after rebooting to re-check current state.
 
 Next: [Troubleshooting →](troubleshooting.md)

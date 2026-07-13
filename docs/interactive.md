@@ -38,17 +38,7 @@ wum
   <figcaption>After a command, WUM suggests supported options and aliases.</figcaption>
 </figure>
 
-Interactive mode uses the same command handlers as one-shot CLI commands. A slash command maps directly to the normal command name:
-
-| Interactive | One-shot equivalent |
-|---|---|
-| `/status` | `wum status` |
-| `/list --security --refresh` | `wum list --security --refresh` |
-| `/install KB5034441 --dry-run` | `wum install KB5034441 --dry-run` |
-| `/diagnose --fix` | `wum diagnose --fix` |
-| `/update --check` | `wum update --check` |
-
-Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show the same elevation guidance as the one-shot CLI.
+Enter slash-prefixed commands directly at the prompt. Read-only commands run as a standard user. Commands that modify Windows Update still require Administrator rights and show elevation guidance in the interactive session.
 
 For every slash command, argument, option, and subcommand, see [Interactive Command Reference](interactive-commands.md). Each slash command also has its own Interactive Mode page in the left nav.
 
@@ -143,7 +133,7 @@ WUM keeps the newest 200 entries and skips duplicate consecutive commands.
 
 ## Quoting and arguments
 
-Interactive mode preserves quoted arguments and passes them to the same parser used by one-shot commands:
+Interactive mode preserves quoted arguments and passes them to the command parser:
 
 ```powershell
 /search "security update"
@@ -164,7 +154,7 @@ Single quotes, double quotes, and backslash escapes inside quotes are supported.
 /install KB5034441 --no-reboot
 /schedule show
 /settings show
-/diagnose --verbose
+/diagnose --json
 ```
 
 Next: [Command Reference →](interactive-commands.md) · [Session Commands →](interactive-session.md) · [Shortcuts →](interactive-shortcuts.md)

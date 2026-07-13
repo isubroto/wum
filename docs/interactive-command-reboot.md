@@ -17,25 +17,19 @@ Schedules or cancels restart from interactive mode.
 /reboot [--delay <seconds>] [--force|-f] [--cancel]
 ```
 
-CLI equivalent:
-
-```powershell
-wum reboot [--delay <seconds>] [--force|-f] [--cancel]
-```
-
 ## Options
 
 | Option | Detail |
 |---|---|
 | `--delay <seconds>` | Seconds before restart. |
-| `--force`, `-f` | Force applications to close. |
+| `--force`, `-f` | Restart even when no restart is required and skip confirmation. |
 | `--cancel` | Cancel pending scheduled restart. |
 
 ## Behavior
 
 `/reboot` requires Administrator.
 
-It uses the same restart scheduling and cancellation behavior as CLI mode.
+For a pending update restart, `/reboot` finalizes staged WUA updates once for the current boot and then schedules the restart. `/reboot --cancel` only aborts the countdown; retry protection prevents a second commit in the same boot.
 
 ## Examples
 
@@ -46,6 +40,6 @@ It uses the same restart scheduling and cancellation behavior as CLI mode.
 /reboot --cancel
 ```
 
-More backend detail: [`wum reboot`](command-reboot.md)
+Implementation detail: [reboot behavior](command-reboot.md)
 
 Next: [`/diagnose`](interactive-command-diagnose.md)

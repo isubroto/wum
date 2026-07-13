@@ -17,12 +17,6 @@ Searches available updates by KB number, title, or description.
 /search <term> [--category <name>] [--json] [--microsoft-update|--mu]
 ```
 
-CLI equivalent:
-
-```powershell
-wum search <term> [--category <name>] [--json] [--microsoft-update|--mu]
-```
-
 ## Arguments
 
 | Argument | Required | Detail |
@@ -58,6 +52,6 @@ It includes hidden updates, so a hidden matching update can still be found.
 /search driver --mu --json
 ```
 
-More backend detail: [`wum search`](command-search.md)
+Implementation detail: [search behavior](command-search.md)
 
 Next: [`/install`](interactive-command-install.md)

@@ -37,7 +37,7 @@ WUM is built on **.NET 10** and drives the **Windows Update Agent (WUA) COM API*
 | [Installation](installation.md) | Build from source, publish a single-file `wum.exe`, MSI / WinGet install, requirements |
 | [CLI Mode](cli.md) | One-shot commands, arguments, options, diagnostics, and troubleshooting |
 | [Interactive Mode](interactive.md) | Smart shell, slash command subpages, completion, history, keyboard shortcuts, and session tools |
-| [Architecture](architecture.md) | Project layout, services, models, helpers, DI, the scan cache, logging |
+| [Architecture](architecture.md) | Project layout, services, models, helpers, DI, live Windows Update state, logging |
 | [Configuration](configuration.md) | Settings keys, schedule, pause, and the exact registry paths each one writes |
 | [Development](development.md) | Building, testing, the publish pipeline, and how to add a new command |
 
@@ -102,11 +102,11 @@ See the [Command Reference](commands.md) for the exact requirement per command.
 Command (CLI)  ──resolves──▶  IUpdateService (DI singleton)
                                    │
                                    ▼
-                 1. scan cache (5-min TTL, unless --refresh)
-                 2. generate PowerShell script (WUA criteria)
-                 3. powershell.exe ─▶ Microsoft.Update.Session (WUA COM)
-                 4. parse ConvertTo-Json output ─▶ List<WindowsUpdate>
-                 5. write scan cache
+                 1. optionally request user-initiated refresh
+                 2. query Settings-backed WindowsUpdateManager state
+                 3. return active state or enrich via online WUA
+                 4. merge exact identities and live status
+                 5. parse JSON output ─▶ List<WindowsUpdate>
 ```
 
 Registry-backed operations (pause, schedule, settings) bypass PowerShell and use direct `HKLM` access. See [Architecture](architecture.md) for the full picture.

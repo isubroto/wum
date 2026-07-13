@@ -14,7 +14,7 @@ Implementation docs for understanding and extending WUM.
 <div class="card-grid">
   <a class="card" href="{{ '/architecture/' | relative_url }}">
     <span class="card-title">Architecture</span>
-    <span class="card-desc">Project layout, service boundaries, scan cache, logging, and WUA integration.</span>
+    <span class="card-desc">Project layout, service boundaries, live scans, logging, and WUA integration.</span>
   </a>
   <a class="card" href="{{ '/development/' | relative_url }}">
     <span class="card-title">Development</span>

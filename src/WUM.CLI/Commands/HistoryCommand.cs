@@ -49,9 +49,9 @@ namespace WUM.CLI.Commands
         {
             List<UpdateHistory> history = new();
 
-            await ConsoleRenderer.ShowSpinnerAsync("Loading history...", async () =>
+            await ConsoleRenderer.ShowSpinnerAsync("Loading history...", async token =>
             {
-                history = await _updates.GetUpdateHistoryAsync(count);
+                history = await _updates.GetUpdateHistoryAsync(count, token);
             });
 
             if (failed)

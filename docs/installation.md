@@ -101,10 +101,10 @@ wum --help         # Top-level help and the command list
 
 | Path | Purpose |
 |---|---|
-| `%ProgramData%\WUM\logs\wum-YYYY-MM-DD.log` | Serilog daily rolling logs (7 days retained) |
-| `%ProgramData%\WUM\cache\available-h{0/1}-m{0/1}.json` | Available-updates scan cache (5-minute TTL) |
+| `%ProgramData%\WUM\logs\wum-YYYY-MM-DD.log` | Elevated-session Serilog daily rolling logs (7 days retained) |
+| `%LocalAppData%\WUM\logs\wum-YYYY-MM-DD.log` | Standard-user daily rolling logs (7 days retained) |
 
-`%ProgramData%` is normally `C:\ProgramData`. The cache is keyed by search variant (`h` = include-hidden, `m` = Microsoft Update) so different scans never collide. See [Architecture → Scan cache](architecture.md#scan-cache).
+`%ProgramData%` is normally `C:\ProgramData`. Standard-user sessions log under `%LocalAppData%`; elevated sessions log machine-wide under `%ProgramData%`. WUM does not persist available-update scan results; it queries WUA for current operating-system state.
 
 Next: [Command Reference →](commands.md)
 
