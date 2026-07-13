@@ -2,7 +2,11 @@
 // Complete rewrite using PowerShell + WUA scripting
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +28,7 @@ namespace WUM.Core.Services
         {
             _registry = registry;
             _log      = Log.ForContext<UpdateService>();
+            RemoveLegacyScanCache();
         }
 
         // ── WUA ResultCode → human reason ─────────────────────────────────
@@ -45,164 +50,452 @@ namespace WUM.Core.Services
             bool forceRefresh       = false,
             CancellationToken ct    = default)
         {
-            // Shared scan cache: status/list/diagnose reuse one online search so
-            // they agree (online WUA results drift between calls — e.g. Defender
-            // definition updates republish hourly). Invalidated on any mutation.
-            if (!forceRefresh)
-            {
-                var cached = ReadCache(includeHidden, useMicrosoftUpdate);
-                if (cached != null) return cached;
-            }
-
             try
             {
-                // Microsoft Update service (vs default Windows Update) surfaces
-                // drivers + other MS-product updates. Register + select it on
-                // demand: ServerSelection=3 (ssOthers) + ServiceID.
-                string serviceSetup = useMicrosoftUpdate ? @"
-$muId = '7971f918-a847-4430-9279-4a52d1efe18d'
-try {
-    $sm  = New-Object -ComObject Microsoft.Update.ServiceManager
-    $has = $false
-    foreach ($s in $sm.Services) { if ($s.ServiceID -eq $muId) { $has = $true } }
-    if (-not $has) { $sm.AddService2($muId, 2, '') | Out-Null }
-    $Searcher.ServerSelection = 3
-    $Searcher.ServiceID = $muId
-} catch { }
-" : "";
+                if (forceRefresh)
+                    await RequestUserInitiatedRefreshAsync(ct);
 
-                // Leave Type open (like PSWindowsUpdate) so driver updates are
-                // returned too — forcing Type='Software' silently hides drivers.
-                // Honor includeHidden via the IsHidden clause.
+                // Capture Settings/orchestrator state before starting the
+                // legacy online search. WUA can block behind an active feature
+                // update; this snapshot keeps that live update visible if the
+                // catalog search times out or fails.
+                OrchestratorSnapshot retainedOrchestrator =
+                    await QueryOrchestratorSnapshotAsync(ct);
+                bool orchestratorCoversQuery = OrchestratorCoversQuery(
+                    retainedOrchestrator.Available,
+                    includeHidden,
+                    useMicrosoftUpdate);
+
+                // GetApplicableUpdates is the Settings-backed, effective
+                // default view. Do not block a live download/install/reboot or
+                // attention state behind WUA catalog enrichment. Expanded
+                // hidden/Microsoft Update queries still require WUA below.
+                if (orchestratorCoversQuery && HasLiveOrchestratorState(
+                        retainedOrchestrator.Updates))
+                {
+                    _log.Information(
+                        "Returning {Count} live orchestrator update(s) without waiting for WUA enrichment",
+                        retainedOrchestrator.Updates.Count);
+                    return retainedOrchestrator.Updates;
+                }
+
                 string criteria = includeHidden
                     ? "IsInstalled=0"
                     : "IsInstalled=0 AND IsHidden=0";
 
-                // Use PowerShell to query WUA — works reliably with admin
                 string script = @"
-$Session  = New-Object -ComObject Microsoft.Update.Session
-$Searcher = $Session.CreateUpdateSearcher()
-$Searcher.Online = $true
-" + serviceSetup + @"
-$Results  = $Searcher.Search('" + criteria + @"')
-$Updates  = @()
-foreach ($u in $Results.Updates) {
-    $kb  = ''
-    if ($u.KBArticleIDs.Count -gt 0) { $kb = 'KB' + $u.KBArticleIDs[0] }
-    $cat = 'Optional'
-    if ($u.Categories.Count -gt 0) { $cat = $u.Categories.Item(0).Name }
-    $Updates += [PSCustomObject]@{
-        Id             = $u.Identity.UpdateID
-        Title          = $u.Title
-        Description    = $u.Description
-        KBArticle      = $kb
-        Category       = $cat
-        IsHidden       = $u.IsHidden
-        IsDownloaded   = $u.IsDownloaded
-        IsMandatory    = $u.IsMandatory
-        SizeInBytes    = $u.MaxDownloadSize
-        SupportUrl     = $u.SupportUrl
-        Severity       = $u.MsrcSeverity
-        RequiresReboot = ($u.InstallationBehavior.RebootBehavior -ne 0)
+$ErrorActionPreference = 'Stop'
+$Session = New-Object -ComObject Microsoft.Update.Session
+$Session.ClientApplicationID = 'WUM'
+$script:Updates = @()
+$script:Seen = @{}
+
+function Add-WumSearchResults([string]$source, [int]$serverSelection, [string]$serviceId) {
+    $searcher = $Session.CreateUpdateSearcher()
+    $searcher.Online = $true
+    # Explicitly request normal applicable results. Modern Windows ignores
+    # this legacy property, so tolerate E_NOTIMPL while keeping intent clear.
+    try { $searcher.IncludePotentiallySupersededUpdates = $false } catch { }
+    if ($serverSelection -eq 3) {
+        $searcher.ServerSelection = 3
+        $searcher.ServiceID = $serviceId
+    } else {
+        $searcher.ServerSelection = 0
+    }
+
+    $results = $searcher.Search('" + criteria + @"')
+    $resultCode = [int]$results.ResultCode
+    if ($resultCode -ne 2 -and $resultCode -ne 3) {
+        throw ('WUA search failed for ' + $source + ' (ResultCode ' + $resultCode + ')')
+    }
+    foreach ($warning in $results.Warnings) {
+        [Console]::Error.WriteLine(
+            'WUA search warning for ' + $source + ': ' +
+            ('0x{0:X8}' -f [int]$warning.HResult) + ' ' + $warning.Message)
+    }
+
+    foreach ($u in $results.Updates) {
+        $key = $u.Identity.UpdateID + ':' + $u.Identity.RevisionNumber
+        if ($script:Seen.ContainsKey($key)) { continue }
+        $script:Seen[$key] = $true
+
+        $kb = ''
+        if ($u.KBArticleIDs.Count -gt 0) { $kb = 'KB' + $u.KBArticleIDs[0] }
+        $categoryNames = @()
+        $categoryIds = @()
+        foreach ($category in $u.Categories) {
+            $categoryNames += $category.Name
+            $categoryIds += $category.CategoryID
+        }
+        $supersededIds = @()
+        try { foreach ($id in $u.SupersededUpdateIDs) { $supersededIds += $id } } catch { }
+        $actualReboot = $false
+        try { $actualReboot = [bool]$u.RebootRequired } catch { }
+        $browseOnly = $false
+        try { $browseOnly = [bool]$u.BrowseOnly } catch { }
+        $updateType = switch ([int]$u.Type) { 1 { 'Software' } 2 { 'Driver' } default { $u.Type.ToString() } }
+
+        $script:Updates += [PSCustomObject]@{
+            Id                  = $u.Identity.UpdateID
+            RevisionNumber      = [int]$u.Identity.RevisionNumber
+            ServerSelection     = $serverSelection
+            ServiceId           = $serviceId
+            Source              = $source
+            Title               = $u.Title
+            Description         = $u.Description
+            KBArticle           = $kb
+            UpdateType          = $updateType
+            CategoryNames       = @($categoryNames)
+            CategoryIds         = @($categoryIds)
+            IsInstalled         = [bool]$u.IsInstalled
+            IsHidden            = [bool]$u.IsHidden
+            IsDownloaded        = [bool]$u.IsDownloaded
+            BrowseOnly          = $browseOnly
+            IsBeta              = [bool]$u.IsBeta
+            IsMandatory         = [bool]$u.IsMandatory
+            SizeInBytes         = [long]$u.MaxDownloadSize
+            SupportUrl          = $u.SupportUrl
+            Severity            = $u.MsrcSeverity
+            RequiresReboot      = $actualReboot
+            MayRequireReboot    = ([int]$u.InstallationBehavior.RebootBehavior -ne 0)
+            ReleaseDate         = $u.LastDeploymentChangeTime.ToString('o')
+            SupersededUpdateIds = @($supersededIds)
+            IsOrchestratorUpdate          = $false
+            OrchestratorUpdateId          = ''
+            OrchestratorRevisionNumber    = 0
+            OrchestratorProviderId        = ''
+            CurrentAction                 = ''
+            OrchestratorProgress          = 0.0
+            HasOrchestratorActionResult   = $false
+            OrchestratorActionResultAction= ''
+            OrchestratorActionSucceeded   = $null
+            OrchestratorResultHResult     = 0
+            OrchestratorResultError       = ''
+            OrchestratorActionTimestamp   = $null
+            AttentionRequiredReason       = ''
+            AttentionRequiredTimestamp    = $null
+        }
     }
 }
-$Updates | ConvertTo-Json -Depth 3
+
+# ssDefault honors the device's effective WUA/WSUS policy and includes OS
+# flighting when the Service Locator makes it applicable to an Insider device.
+Add-WumSearchResults 'Default' 0 ''
+" + (useMicrosoftUpdate ? @"
+$muId = '7971f918-a847-4430-9279-4a52d1efe18d'
+$serviceManager = New-Object -ComObject Microsoft.Update.ServiceManager
+$mu = $serviceManager.Services | Where-Object { $_.ServiceID -eq $muId } | Select-Object -First 1
+if ($mu) {
+    Add-WumSearchResults 'Microsoft Update' 3 $muId
+} else {
+    [Console]::Error.WriteLine('Microsoft Update service is not registered; default WUA results were retained.')
+}
+" : "") + @"
+ConvertTo-Json -InputObject @($script:Updates) -Depth 6 -Compress
 ";
-                using var cts = CancellationTokenSource
-                    .CreateLinkedTokenSource(ct);
-                cts.CancelAfter(TimeSpan.FromSeconds(60));
-
-                var (success, output, error) =
-                    await PowerShellHelper.RunScriptAsync(script);
-
-                if (!success || string.IsNullOrWhiteSpace(output))
+                List<WindowsUpdate> wuaUpdates;
+                try
                 {
-                    _log.Warning("WUA search returned no output. Error: {E}", error);
-                    return new List<WindowsUpdate>();
+                    using var cts = CancellationTokenSource
+                        .CreateLinkedTokenSource(ct);
+                    cts.CancelAfter(orchestratorCoversQuery
+                        ? TimeSpan.FromSeconds(30)
+                        : TimeSpan.FromMinutes(5));
+
+                    var (success, output, error) =
+                        await PowerShellHelper.RunScriptAsync(
+                            script, ct: cts.Token);
+
+                    if (!success || string.IsNullOrWhiteSpace(output))
+                    {
+                        string message = string.IsNullOrWhiteSpace(error)
+                            ? "WUA search returned no JSON output."
+                            : error.Trim();
+                        throw new InvalidOperationException(message);
+                    }
+
+                    wuaUpdates = ParseUpdatesFromJson(output);
+                }
+                catch (OperationCanceledException ex)
+                    when (!ct.IsCancellationRequested)
+                {
+                    if (orchestratorCoversQuery)
+                    {
+                        _log.Warning(
+                            ex,
+                            "WUA enrichment timed out; returning authoritative default orchestrator view with {Count} update(s)",
+                            retainedOrchestrator.Updates.Count);
+                        return retainedOrchestrator.Updates;
+                    }
+
+                    throw new TimeoutException(
+                        "The online Windows Update Agent search timed out after five minutes, " +
+                        "and no complete orchestrator fallback was available for this query.",
+                        ex);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    if (orchestratorCoversQuery)
+                    {
+                        _log.Warning(
+                            ex,
+                            "WUA enrichment failed; returning authoritative default orchestrator view with {Count} update(s)",
+                            retainedOrchestrator.Updates.Count);
+                        return retainedOrchestrator.Updates;
+                    }
+
+                    throw;
                 }
 
-                var parsed = ParseUpdatesFromJson(output);
-                WriteCache(includeHidden, useMicrosoftUpdate, parsed);
-                return parsed;
+                // WUA may take long enough for download/install progress to
+                // change. Re-read the lightweight orchestrator state before
+                // merging; if that read is unavailable, use the retained
+                // snapshot rather than dropping known live state.
+                OrchestratorSnapshot currentOrchestrator =
+                    await QueryOrchestratorSnapshotAsync(ct);
+                List<WindowsUpdate> overlay = currentOrchestrator.Available
+                    ? currentOrchestrator.Updates
+                    : retainedOrchestrator.Updates;
+                List<WindowsUpdate> updates = MergeOrchestratorUpdates(
+                    wuaUpdates, overlay);
+
+                _log.Information(
+                    "Fresh update scan completed. Updates={Count}, WuaUpdates={WuaCount}, OrchestratorUpdates={OrchestratorCount}, IncludeHidden={Hidden}, MicrosoftUpdate={Mu}, UserRefresh={Refresh}",
+                    updates.Count, wuaUpdates.Count, overlay.Count,
+                    includeHidden, useMicrosoftUpdate, forceRefresh);
+                return updates;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 _log.Error(ex, "Error fetching available updates");
-                return new List<WindowsUpdate>();
+                throw;
             }
         }
 
-        // ── Available-updates scan cache ──────────────────────────────────
-        // Keyed by search variant so list --hidden / --mu never collide with the
-        // default status scan. Best-effort: any IO/JSON error -> treat as miss.
-        private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
-
-        private static string CacheDir => Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.CommonApplicationData),
-            "WUM", "cache");
-
-        private static string CachePath(bool hidden, bool mu) =>
-            Path.Combine(CacheDir,
-                "available-h" + (hidden ? 1 : 0) + "-m" + (mu ? 1 : 0) + ".json");
-
-        private sealed class CacheEnvelope
+        private async Task RequestUserInitiatedRefreshAsync(
+            CancellationToken ct)
         {
-            public DateTime TimestampUtc { get; set; }
-            public List<WindowsUpdate> Updates { get; set; } = new();
-        }
+            using var cts = CancellationTokenSource
+                .CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromMinutes(6));
 
-        private List<WindowsUpdate>? ReadCache(bool hidden, bool mu)
-        {
             try
             {
-                string path = CachePath(hidden, mu);
-                if (!File.Exists(path)) return null;
-
-                var env = JsonSerializer.Deserialize<CacheEnvelope>(
-                    File.ReadAllText(path));
-                if (env == null) return null;
-                if (DateTime.UtcNow - env.TimestampUtc > CacheTtl) return null;
-
-                _log.Debug("Available-updates cache hit (h{H} m{M})",
-                    hidden, mu);
-                return env.Updates;
-            }
-            catch { return null; }
-        }
-
-        private void WriteCache(bool hidden, bool mu, List<WindowsUpdate> updates)
-        {
-            try
-            {
-                Directory.CreateDirectory(CacheDir);
-                var env = new CacheEnvelope
+                var (success, _, error) =
+                    await PowerShellHelper.RunScriptAsync(
+                        BuildUserInitiatedRefreshScript(), ct: cts.Token);
+                if (!success)
                 {
-                    TimestampUtc = DateTime.UtcNow,
-                    Updates      = updates
-                };
-                File.WriteAllText(CachePath(hidden, mu),
-                    JsonSerializer.Serialize(env));
+                    _log.Warning(
+                        "User-initiated orchestrator refresh failed; continuing with live queries: {Error}",
+                        string.IsNullOrWhiteSpace(error)
+                            ? "PowerShell returned an error"
+                            : error.Trim());
+                }
             }
-            catch (Exception ex)
+            catch (OperationCanceledException)
+                when (!ct.IsCancellationRequested)
             {
-                _log.Debug(ex, "Failed to write available-updates cache");
+                _log.Warning(
+                    "User-initiated orchestrator refresh exceeded its six-minute safety bound; continuing with live queries");
             }
         }
 
-        // Drop the whole cache after any state-changing operation so the next
-        // status/list/diagnose all re-scan and agree on the new state.
-        private void InvalidateCache()
+        private sealed record OrchestratorSnapshot(
+            bool Available,
+            List<WindowsUpdate> Updates)
         {
+            internal static readonly OrchestratorSnapshot Unavailable =
+                new(false, new List<WindowsUpdate>());
+        }
+
+        internal static bool HasLiveOrchestratorState(
+            List<WindowsUpdate> updates) => updates.Any(update =>
+                update.Status == UpdateStatus.Downloading ||
+                update.Status == UpdateStatus.Installing ||
+                update.Status == UpdateStatus.PendingInstallation ||
+                update.Status == UpdateStatus.RestartRequired ||
+                update.Status == UpdateStatus.PendingReboot ||
+                update.Status == UpdateStatus.Failed ||
+                (!string.IsNullOrWhiteSpace(update.CurrentAction) &&
+                    !update.CurrentAction.Equals(
+                        "None", StringComparison.OrdinalIgnoreCase)) ||
+                (!string.IsNullOrWhiteSpace(
+                        update.AttentionRequiredReason) &&
+                    !update.AttentionRequiredReason.Equals(
+                        "None", StringComparison.OrdinalIgnoreCase)));
+
+        internal static bool OrchestratorCoversQuery(
+            bool available,
+            bool includeHidden,
+            bool useMicrosoftUpdate) =>
+            available && !includeHidden && !useMicrosoftUpdate;
+
+        private async Task<OrchestratorSnapshot>
+            QueryOrchestratorSnapshotAsync(CancellationToken ct)
+        {
+            using var cts = CancellationTokenSource
+                .CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(10));
+
             try
             {
-                if (Directory.Exists(CacheDir))
-                    Directory.Delete(CacheDir, recursive: true);
+                var (success, output, error) =
+                    await PowerShellHelper.RunScriptAsync(
+                        BuildOrchestratorSnapshotScript(), ct: cts.Token);
+                if (!success || string.IsNullOrWhiteSpace(output))
+                {
+                    _log.Warning(
+                        "Windows Update orchestrator snapshot was unavailable: {Error}",
+                        string.IsNullOrWhiteSpace(error)
+                            ? "no JSON output"
+                            : error.Trim());
+                    return OrchestratorSnapshot.Unavailable;
+                }
+
+                using var doc = JsonDocument.Parse(output);
+                JsonElement root = doc.RootElement;
+                bool available = root.TryGetProperty(
+                        "Available", out JsonElement availableElement) &&
+                    availableElement.ValueKind is JsonValueKind.True;
+                if (!root.TryGetProperty(
+                        "Updates", out JsonElement updatesElement))
+                {
+                    _log.Warning(
+                        "Windows Update orchestrator snapshot contained no Updates field");
+                    return OrchestratorSnapshot.Unavailable;
+                }
+
+                List<WindowsUpdate> updates = ParseUpdatesFromJson(
+                    updatesElement.GetRawText());
+                _log.Debug(
+                    "Windows Update orchestrator snapshot completed. Available={Available}, Updates={Count}",
+                    available, updates.Count);
+                return new OrchestratorSnapshot(available, updates);
+            }
+            catch (OperationCanceledException)
+                when (!ct.IsCancellationRequested)
+            {
+                _log.Warning(
+                    "Windows Update orchestrator snapshot timed out after 10 seconds");
+                return OrchestratorSnapshot.Unavailable;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                _log.Debug(ex, "Failed to invalidate available-updates cache");
+                _log.Warning(
+                    ex,
+                    "Windows Update orchestrator snapshot could not be parsed");
+                return OrchestratorSnapshot.Unavailable;
             }
+        }
+
+        internal static string BuildOrchestratorSnapshotScript() => @"
+$ErrorActionPreference = 'Stop'
+$script:Updates = @()
+$script:Seen = @{}
+" + BuildOrchestratorOverlayScript() + @"
+[PSCustomObject]@{
+    Available = [bool]$script:OrchestratorAvailable
+    Updates   = @($script:Updates)
+} | ConvertTo-Json -Depth 7 -Compress
+";
+
+        internal static List<WindowsUpdate> MergeOrchestratorUpdates(
+            List<WindowsUpdate> wuaUpdates,
+            List<WindowsUpdate> orchestratorUpdates)
+        {
+            ArgumentNullException.ThrowIfNull(wuaUpdates);
+            ArgumentNullException.ThrowIfNull(orchestratorUpdates);
+
+            var merged = new List<WindowsUpdate>(wuaUpdates);
+            foreach (WindowsUpdate modern in orchestratorUpdates)
+            {
+                List<WindowsUpdate> candidates = merged
+                    .Where(update => string.Equals(
+                        update.Id, modern.Id,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                WindowsUpdate? target = candidates.Count switch
+                {
+                    0 => null,
+                    1 => candidates[0],
+                    _ => modern.OrchestratorRevisionNumber > 0
+                        ? candidates.FirstOrDefault(update =>
+                            update.RevisionNumber ==
+                                modern.OrchestratorRevisionNumber)
+                        : null
+                };
+                if (target is null && candidates.Count > 0)
+                {
+                    target = candidates
+                        .OrderByDescending(update => update.RevisionNumber)
+                        .First();
+                }
+
+                if (target is null)
+                {
+                    merged.Add(modern);
+                    continue;
+                }
+
+                ApplyOrchestratorState(target, modern);
+            }
+
+            return merged;
+        }
+
+        private static void ApplyOrchestratorState(
+            WindowsUpdate target,
+            WindowsUpdate modern)
+        {
+            target.IsOrchestratorUpdate = true;
+            target.OrchestratorUpdateId = modern.OrchestratorUpdateId;
+            target.OrchestratorRevisionNumber =
+                modern.OrchestratorRevisionNumber;
+            target.OrchestratorProviderId = modern.OrchestratorProviderId;
+            target.CurrentAction = modern.CurrentAction;
+            target.OrchestratorProgress = modern.OrchestratorProgress;
+            target.IsDownloaded =
+                target.IsDownloaded || modern.IsDownloaded;
+            target.DownloadProgress = modern.DownloadProgress;
+            target.InstallProgress = modern.InstallProgress;
+            target.HasOrchestratorActionResult =
+                modern.HasOrchestratorActionResult;
+            target.OrchestratorActionResultAction =
+                modern.OrchestratorActionResultAction;
+            target.OrchestratorActionSucceeded =
+                modern.OrchestratorActionSucceeded;
+            target.OrchestratorResultHResult =
+                modern.OrchestratorResultHResult;
+            target.OrchestratorResultError =
+                modern.OrchestratorResultError;
+            target.OrchestratorActionTimestamp =
+                modern.OrchestratorActionTimestamp;
+            target.AttentionRequiredReason =
+                modern.AttentionRequiredReason;
+            target.AttentionRequiredTimestamp =
+                modern.AttentionRequiredTimestamp;
+            target.RequiresReboot =
+                target.RequiresReboot || modern.RequiresReboot;
+            target.Status = MapStatus(
+                target.IsInstalled,
+                target.IsHidden,
+                target.IsDownloaded,
+                target.RequiresReboot,
+                target.CurrentAction,
+                target.HasOrchestratorActionResult,
+                target.OrchestratorActionSucceeded,
+                target.AttentionRequiredReason);
         }
 
         // ── Get Installed Updates ─────────────────────────────────────────
@@ -212,50 +505,90 @@ $Updates | ConvertTo-Json -Depth 3
             try
             {
                 string script = @"
+$ErrorActionPreference = 'Stop'
 $Session  = New-Object -ComObject Microsoft.Update.Session
+$Session.ClientApplicationID = 'WUM'
 $Searcher = $Session.CreateUpdateSearcher()
-$Results  = $Searcher.Search('IsInstalled=1 AND Type=\'Software\'')
+$Searcher.Online = $true
+$Searcher.ServerSelection = 0
+try { $Searcher.IncludePotentiallySupersededUpdates = $false } catch { }
+$Results  = $Searcher.Search('IsInstalled=1')
+if ([int]$Results.ResultCode -ne 2 -and [int]$Results.ResultCode -ne 3) {
+    throw ('WUA installed-update search failed (ResultCode ' + [int]$Results.ResultCode + ')')
+}
 $Updates  = @()
 foreach ($u in $Results.Updates) {
     $kb  = ''
     if ($u.KBArticleIDs.Count -gt 0) { $kb = 'KB' + $u.KBArticleIDs[0] }
-    $cat = 'Optional'
-    if ($u.Categories.Count -gt 0) { $cat = $u.Categories.Item(0).Name }
+    $categoryNames = @()
+    $categoryIds = @()
+    foreach ($category in $u.Categories) {
+        $categoryNames += $category.Name
+        $categoryIds += $category.CategoryID
+    }
+    $actualReboot = $false
+    try { $actualReboot = [bool]$u.RebootRequired } catch { }
+    $browseOnly = $false
+    try { $browseOnly = [bool]$u.BrowseOnly } catch { }
+    $updateType = switch ([int]$u.Type) { 1 { 'Software' } 2 { 'Driver' } default { $u.Type.ToString() } }
     $Updates += [PSCustomObject]@{
-        Id             = $u.Identity.UpdateID
-        Title          = $u.Title
-        KBArticle      = $kb
-        Category       = $cat
-        IsHidden       = $u.IsHidden
-        IsDownloaded   = $true
-        IsMandatory    = $u.IsMandatory
-        SizeInBytes    = $u.MaxDownloadSize
-        SupportUrl     = $u.SupportUrl
-        Severity       = $u.MsrcSeverity
-        RequiresReboot = $false
-        Status         = 'Installed'
+        Id               = $u.Identity.UpdateID
+        RevisionNumber   = [int]$u.Identity.RevisionNumber
+        ServerSelection  = 0
+        ServiceId        = ''
+        Source           = 'Default'
+        Title            = $u.Title
+        Description      = $u.Description
+        KBArticle        = $kb
+        UpdateType       = $updateType
+        CategoryNames    = @($categoryNames)
+        CategoryIds      = @($categoryIds)
+        IsInstalled      = [bool]$u.IsInstalled
+        IsHidden         = [bool]$u.IsHidden
+        IsDownloaded     = [bool]$u.IsDownloaded
+        BrowseOnly       = $browseOnly
+        IsBeta           = [bool]$u.IsBeta
+        IsMandatory      = [bool]$u.IsMandatory
+        SizeInBytes      = [long]$u.MaxDownloadSize
+        SupportUrl       = $u.SupportUrl
+        Severity         = $u.MsrcSeverity
+        RequiresReboot   = $actualReboot
+        MayRequireReboot = ([int]$u.InstallationBehavior.RebootBehavior -ne 0)
+        ReleaseDate      = $u.LastDeploymentChangeTime.ToString('o')
     }
 }
-$Updates | ConvertTo-Json -Depth 3
+ConvertTo-Json -InputObject @($Updates) -Depth 6 -Compress
 ";
-                var (_, output, _) =
-                    await PowerShellHelper.RunScriptAsync(script);
+                using var cts = CancellationTokenSource
+                    .CreateLinkedTokenSource(ct);
+                cts.CancelAfter(TimeSpan.FromMinutes(5));
 
-                if (string.IsNullOrWhiteSpace(output))
-                    return new List<WindowsUpdate>();
+                var (success, output, error) =
+                    await PowerShellHelper.RunScriptAsync(script, ct: cts.Token);
+
+                if (!success || string.IsNullOrWhiteSpace(output))
+                {
+                    string message = string.IsNullOrWhiteSpace(error)
+                        ? "WUA installed-update search returned no JSON output."
+                        : error.Trim();
+                    _log.Error("Installed-update scan failed: {Error}", message);
+                    throw new InvalidOperationException(message);
+                }
 
                 return ParseUpdatesFromJson(output, installed: true);
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 _log.Error(ex, "Error fetching installed updates");
-                return new List<WindowsUpdate>();
+                throw;
             }
         }
 
         // ── Get History ───────────────────────────────────────────────────
         public async Task<List<UpdateHistory>> GetUpdateHistoryAsync(
-            int count = 50)
+            int count = 50,
+            CancellationToken ct = default)
         {
             try
             {
@@ -283,13 +616,14 @@ foreach ($h in $History) {
 $Items | ConvertTo-Json -Depth 3
 ";
                 var (_, output, _) =
-                    await PowerShellHelper.RunScriptAsync(script);
+                    await PowerShellHelper.RunScriptAsync(script, ct: ct);
 
                 if (string.IsNullOrWhiteSpace(output))
                     return new List<UpdateHistory>();
 
                 return ParseHistoryFromJson(output);
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 _log.Error(ex, "Error fetching update history");
@@ -298,132 +632,737 @@ $Items | ConvertTo-Json -Depth 3
         }
 
         // ── Download ──────────────────────────────────────────────────────
-        public async Task<bool> DownloadUpdateAsync(
+        public Task<bool> DownloadUpdateAsync(
             string updateId,
+            IProgress<double>? progress = null,
+            CancellationToken  ct       = default)
+            => DownloadUpdateAsync(
+                new WindowsUpdate { Id = updateId }, progress, ct);
+
+        public async Task<bool> DownloadUpdateAsync(
+            WindowsUpdate update,
             IProgress<double>? progress = null,
             CancellationToken  ct       = default)
         {
             LastError = null;
+            ArgumentNullException.ThrowIfNull(update);
+
             try
             {
+                update.Status = UpdateStatus.Downloading;
                 progress?.Report(5);
 
-                // WUA Search() criteria does NOT support UpdateID — searching
-                // by it throws WU_E_INVALID_CRITERIA. Search broad, then match
-                // the UpdateID in PowerShell. Single quotes only → no escaping.
+                string criteria = BuildIdentityCriteria(update);
+                string source   = BuildSearcherSource(update);
                 string script = @"
 $ErrorActionPreference = 'Stop'
 $Session  = New-Object -ComObject Microsoft.Update.Session
+$Session.ClientApplicationID = 'WUM'
 $Searcher = $Session.CreateUpdateSearcher()
-$Results  = $Searcher.Search('IsInstalled=0')
-$Update   = $Results.Updates | Where-Object { $_.Identity.UpdateID -eq '" + updateId + @"' } | Select-Object -First 1
-if (-not $Update) { Write-Output 'NOT_FOUND'; exit }
+$Searcher.Online = $true
+try { $Searcher.IncludePotentiallySupersededUpdates = $false } catch { }
+" + source + @"
+$Results  = $Searcher.Search(" + PsQuote(criteria) + @")
+$SearchCode = [int]$Results.ResultCode
+if ($SearchCode -ne 2 -and $SearchCode -ne 3) {
+    throw ('WUA download lookup failed (ResultCode ' + $SearchCode + ')')
+}
+$Update   = $Results.Updates | Where-Object { -not $_.IsInstalled } | Select-Object -First 1
+if (-not $Update) {
+    [PSCustomObject]@{ Found = $false } | ConvertTo-Json -Compress
+    exit
+}
+try { if (-not $Update.EulaAccepted) { $Update.AcceptEula() } } catch { }
 $Coll = New-Object -ComObject Microsoft.Update.UpdateColl
 [void]$Coll.Add($Update)
 $Downloader         = $Session.CreateUpdateDownloader()
+$Downloader.ClientApplicationID = 'WUM'
 $Downloader.Updates = $Coll
 $Result             = $Downloader.Download()
-Write-Output $Result.ResultCode
+$PerUpdate          = $Result.GetUpdateResult(0)
+[PSCustomObject]@{
+    Found             = $true
+    OverallResultCode = [int]$Result.ResultCode
+    ResultCode        = [int]$PerUpdate.ResultCode
+    HResult           = [int]$PerUpdate.HResult
+    IsDownloaded      = [bool]$Update.IsDownloaded
+} | ConvertTo-Json -Compress
 ";
-                using var cts = CancellationTokenSource
-                    .CreateLinkedTokenSource(ct);
-                cts.CancelAfter(TimeSpan.FromMinutes(15));
-
-                var (_, output, error) =
-                    await PowerShellHelper.RunScriptAsync(script);
+                var (success, output, error) =
+                    await PowerShellHelper.RunScriptAsync(
+                        script, ct: ct);
 
                 progress?.Report(100);
 
-                output = output.Trim();
-                _log.Information("Download result for {Id}: {Out}", updateId, output);
+                if (!success || string.IsNullOrWhiteSpace(output))
+                {
+                    update.Status = UpdateStatus.Failed;
+                    LastError = string.IsNullOrWhiteSpace(error)
+                        ? "Windows Update returned no download result."
+                        : error.Trim();
+                    return false;
+                }
 
-                // ResultCode 2 = Succeeded, 3 = SucceededWithErrors
-                if (output == "2" || output == "3") return true;
+                UpdateOperationOutcome outcome =
+                    ParseOperationOutcome(output);
+                _log.Information(
+                    "Download result for {Id} r{Revision} from {Source}: Overall={Overall}, Update={Code} (0x{HResult:X8}), Downloaded={Downloaded}",
+                    update.Id, update.RevisionNumber, update.Source,
+                    outcome.OverallResultCode, outcome.ResultCode,
+                    unchecked((uint)outcome.HResult),
+                    outcome.IsDownloaded);
 
-                LastError = output == "NOT_FOUND"
-                    ? "update not found in catalog — may be installed, hidden, or superseded"
-                    : !string.IsNullOrWhiteSpace(error)
-                        ? error.Trim()
-                        : ResultCodeReason(output);
+                if (!outcome.Found)
+                {
+                    update.Status = UpdateStatus.SupersededOrNotApplicable;
+                    LastError = "update is no longer offered by its scan source — " +
+                        "it may already be installed, superseded, or not applicable";
+                    return false;
+                }
+
+                bool overallSucceeded =
+                    outcome.OverallResultCode == 2 ||
+                    outcome.OverallResultCode == 3;
+                if (overallSucceeded &&
+                    (outcome.ResultCode == 2 || outcome.ResultCode == 3) &&
+                    outcome.IsDownloaded)
+                {
+                    update.IsDownloaded = true;
+                    update.Status = UpdateStatus.PendingInstallation;
+                    return true;
+                }
+
+                update.Status = UpdateStatus.Failed;
+                LastError = FormatOperationFailure(
+                    "download",
+                    IsSuccessfulResult(outcome.ResultCode)
+                        ? outcome.OverallResultCode
+                        : outcome.ResultCode,
+                    outcome.HResult, error);
                 return false;
+            }
+            catch (OperationCanceledException)
+            {
+                update.Status = UpdateStatus.Failed;
+                LastError = "download was cancelled or timed out";
+                throw;
             }
             catch (Exception ex)
             {
-                _log.Error(ex, "Download failed for {UpdateId}", updateId);
+                _log.Error(ex, "Download failed for {UpdateId}", update.Id);
+                update.Status = UpdateStatus.Failed;
                 LastError = ex.Message;
                 return false;
             }
         }
 
         // ── Install ───────────────────────────────────────────────────────
-        public async Task<bool> InstallUpdateAsync(
+        public Task<bool> InstallUpdateAsync(
             string updateId,
+            IProgress<double>? progress = null,
+            CancellationToken  ct       = default)
+            => InstallUpdateAsync(
+                new WindowsUpdate { Id = updateId }, progress, ct);
+
+        public async Task<bool> InstallUpdateAsync(
+            WindowsUpdate update,
             IProgress<double>? progress = null,
             CancellationToken  ct       = default)
         {
             LastError = null;
+            ArgumentNullException.ThrowIfNull(update);
+
             try
             {
+                update.Status = UpdateStatus.Installing;
                 progress?.Report(5);
 
-                // Same fix as Download: match UpdateID in PS, not in criteria.
-                // Update must be downloaded already; install from local cache.
+                string criteria = BuildIdentityCriteria(update);
+                string source   = BuildSearcherSource(update, "$Searcher");
                 string script = @"
 $ErrorActionPreference = 'Stop'
 $Session  = New-Object -ComObject Microsoft.Update.Session
+$Session.ClientApplicationID = 'WUM'
 $Searcher = $Session.CreateUpdateSearcher()
-$Results  = $Searcher.Search('IsInstalled=0')
-$Update   = $Results.Updates | Where-Object { $_.Identity.UpdateID -eq '" + updateId + @"' } | Select-Object -First 1
-if (-not $Update) { Write-Output 'NOT_FOUND'; exit }
+$Searcher.Online = $true
+try { $Searcher.IncludePotentiallySupersededUpdates = $false } catch { }
+" + source + @"
+$Results  = $Searcher.Search(" + PsQuote(criteria) + @")
+$SearchCode = [int]$Results.ResultCode
+if ($SearchCode -ne 2 -and $SearchCode -ne 3) {
+    throw ('WUA install lookup failed (ResultCode ' + $SearchCode + ')')
+}
+$Update   = $Results.Updates | Where-Object { -not $_.IsInstalled } | Select-Object -First 1
+if (-not $Update) {
+    [PSCustomObject]@{ Found = $false } | ConvertTo-Json -Compress
+    exit
+}
 $Coll = New-Object -ComObject Microsoft.Update.UpdateColl
 [void]$Coll.Add($Update)
 $Installer         = $Session.CreateUpdateInstaller()
+$Installer.ClientApplicationID = 'WUM'
 $Installer.Updates = $Coll
+if ([bool]$Installer.RebootRequiredBeforeInstallation) {
+    [PSCustomObject]@{
+        Found                            = $true
+        RebootRequiredBeforeInstallation = $true
+    } | ConvertTo-Json -Compress
+    exit
+}
 $Result            = $Installer.Install()
-Write-Output $Result.ResultCode
-";
-                using var cts = CancellationTokenSource
-                    .CreateLinkedTokenSource(ct);
-                cts.CancelAfter(TimeSpan.FromMinutes(30));
+$PerUpdate         = $Result.GetUpdateResult(0)
 
-                var (_, output, error) =
-                    await PowerShellHelper.RunScriptAsync(script);
+# Re-query the exact identity from the exact source. This is deliberately an
+# online verification: successful, fully applicable installs must disappear;
+# staged installs may remain only when WUA reports a real pending reboot.
+$VerifySearcher = $Session.CreateUpdateSearcher()
+$VerifySearcher.Online = $true
+try { $VerifySearcher.IncludePotentiallySupersededUpdates = $false } catch { }
+" + BuildSearcherSource(update, "$VerifySearcher") + @"
+$VerifyResult = $VerifySearcher.Search(" + PsQuote(criteria) + @")
+$VerifyCode = [int]$VerifyResult.ResultCode
+if ($VerifyCode -ne 2 -and $VerifyCode -ne 3) {
+    throw ('Post-install verification scan failed (ResultCode ' + $VerifyCode + ')')
+}
+$StillApplicable = @($VerifyResult.Updates | Where-Object { -not $_.IsInstalled }).Count -gt 0
+
+[PSCustomObject]@{
+    Found             = $true
+    OverallResultCode = [int]$Result.ResultCode
+    ResultCode        = [int]$PerUpdate.ResultCode
+    HResult           = [int]$PerUpdate.HResult
+    RebootRequired    = ([bool]$Result.RebootRequired -or [bool]$PerUpdate.RebootRequired)
+    IsInstalled       = [bool]$Update.IsInstalled
+    StillApplicable   = $StillApplicable
+} | ConvertTo-Json -Compress
+";
+                var (success, output, error) =
+                    await PowerShellHelper.RunScriptAsync(
+                        script, ct: ct);
 
                 progress?.Report(100);
 
-                output = output.Trim();
-                _log.Information("Install result for {Id}: {Out}", updateId, output);
+                if (!success || string.IsNullOrWhiteSpace(output))
+                {
+                    update.Status = UpdateStatus.Failed;
+                    LastError = string.IsNullOrWhiteSpace(error)
+                        ? "Windows Update returned no installation result."
+                        : error.Trim();
+                    return false;
+                }
 
-                if (output == "2" || output == "3") { InvalidateCache(); return true; }
+                UpdateOperationOutcome outcome =
+                    ParseOperationOutcome(output);
+                _log.Information(
+                    "Install result for {Id} r{Revision} from {Source}: Overall={Overall}, Update={Code} (0x{HResult:X8}), Reboot={Reboot}, StillApplicable={Applicable}",
+                    update.Id, update.RevisionNumber, update.Source,
+                    outcome.OverallResultCode, outcome.ResultCode,
+                    unchecked((uint)outcome.HResult),
+                    outcome.RebootRequired, outcome.StillApplicable);
 
-                LastError = output == "NOT_FOUND"
-                    ? "update not found in catalog — may be installed, hidden, or superseded"
-                    : !string.IsNullOrWhiteSpace(error)
-                        ? error.Trim()
-                        : ResultCodeReason(output);
+                if (!outcome.Found)
+                {
+                    update.Status = UpdateStatus.SupersededOrNotApplicable;
+                    LastError = "update is no longer offered by its scan source — " +
+                        "it may already be installed, superseded, or not applicable";
+                    return false;
+                }
+
+                if (outcome.RebootRequiredBeforeInstallation)
+                {
+                    update.RequiresReboot = true;
+                    update.Status = UpdateStatus.RestartRequired;
+                    LastError = "Windows Update requires a restart before this " +
+                        "update can be installed";
+                    return false;
+                }
+
+                bool operationSucceeded =
+                    (outcome.OverallResultCode == 2 ||
+                     outcome.OverallResultCode == 3) &&
+                    (outcome.ResultCode == 2 ||
+                     outcome.ResultCode == 3);
+                bool stateConfirmed =
+                    !outcome.StillApplicable || outcome.RebootRequired;
+
+                if (operationSucceeded && stateConfirmed)
+                {
+                    update.RequiresReboot = outcome.RebootRequired;
+                    update.IsInstalled = !outcome.StillApplicable;
+                    update.Status = outcome.RebootRequired
+                        ? UpdateStatus.RestartRequired
+                        : UpdateStatus.Installed;
+                    return true;
+                }
+
+                update.Status = UpdateStatus.Failed;
+                LastError = operationSucceeded
+                    ? "Windows Update completed the installer, but a fresh scan " +
+                      "still reports the update as applicable"
+                    : FormatOperationFailure(
+                        "installation",
+                        IsSuccessfulResult(outcome.ResultCode)
+                            ? outcome.OverallResultCode
+                            : outcome.ResultCode,
+                        outcome.HResult, error);
                 return false;
+            }
+            catch (OperationCanceledException)
+            {
+                update.Status = UpdateStatus.Failed;
+                LastError = "installation was cancelled or timed out";
+                throw;
             }
             catch (Exception ex)
             {
-                _log.Error(ex, "Install failed for {UpdateId}", updateId);
+                _log.Error(ex, "Install failed for {UpdateId}", update.Id);
+                update.Status = UpdateStatus.Failed;
                 LastError = ex.Message;
                 return false;
             }
         }
 
+        internal static string BuildIdentityCriteria(WindowsUpdate update)
+        {
+            if (string.IsNullOrWhiteSpace(update.Id))
+                throw new ArgumentException("Update ID is required.", nameof(update));
+
+            string criteria = "UpdateID='" +
+                update.Id.Replace("'", "''", StringComparison.Ordinal) + "'";
+            if (update.RevisionNumber > 0)
+                criteria += " AND RevisionNumber=" + update.RevisionNumber;
+            return criteria;
+        }
+
+        internal static string BuildSearcherSource(
+            WindowsUpdate update, string searcherVariable = "$Searcher")
+        {
+            if (string.IsNullOrWhiteSpace(searcherVariable) ||
+                !searcherVariable.StartsWith('$'))
+            {
+                throw new ArgumentException(
+                    "A PowerShell variable name is required.",
+                    nameof(searcherVariable));
+            }
+
+            if (update.ServerSelection == 3 &&
+                !string.IsNullOrWhiteSpace(update.ServiceId))
+            {
+                return searcherVariable + ".ServerSelection = 3\n" +
+                    searcherVariable + ".ServiceID = " +
+                    PsQuote(update.ServiceId);
+            }
+
+            return searcherVariable + ".ServerSelection = 0";
+        }
+
+        private static string PsQuote(string value) =>
+            "'" + value.Replace("'", "''", StringComparison.Ordinal) + "'";
+
+        private sealed class UpdateOperationOutcome
+        {
+            public bool Found { get; set; }
+            public int OverallResultCode { get; set; }
+            public int ResultCode { get; set; }
+            public int HResult { get; set; }
+            public bool IsDownloaded { get; set; }
+            public bool RebootRequired { get; set; }
+            public bool RebootRequiredBeforeInstallation { get; set; }
+            public bool IsInstalled { get; set; }
+            public bool StillApplicable { get; set; }
+        }
+
+        private static UpdateOperationOutcome ParseOperationOutcome(
+            string json)
+        {
+            var result = JsonSerializer.Deserialize<UpdateOperationOutcome>(
+                json,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            return result ?? throw new InvalidOperationException(
+                "Windows Update returned an empty operation result.");
+        }
+
+        private static string FormatOperationFailure(
+            string operation, int resultCode, int hresult, string stderr)
+        {
+            string code = "0x" + unchecked((uint)hresult).ToString("X8");
+            string? decoded = WuErrorCodes.Lookup(code);
+            string reason = resultCode == 0 || resultCode == 1 ||
+                            resultCode == 4 || resultCode == 5
+                ? ResultCodeReason(resultCode.ToString())
+                : "WUA reported ResultCode " + resultCode;
+
+            if (hresult != 0)
+                reason += "; " + code +
+                    (decoded == null ? string.Empty : " — " + decoded);
+            if (!string.IsNullOrWhiteSpace(stderr))
+                reason += "; " + stderr.Trim();
+            return operation + " failed: " + reason;
+        }
+
+        private static bool IsSuccessfulResult(int resultCode) =>
+            resultCode == 2 || resultCode == 3;
+
+        // Windows Update Agent supplies catalog metadata and an installable
+        // identity. WindowsUpdateManager supplies the live orchestrator state
+        // shown by Settings. This overlay is deliberately read-only and
+        // best-effort: unsupported/failed WinRT access leaves WUA intact.
+        internal static string BuildOrchestratorOverlayScript() => @"
+$script:OrchestratorAvailable = $false
+
+function Get-WumModernValue($item, [string]$name, $fallback) {
+    try {
+        $value = $item.$name
+        if ($null -eq $value) { return $fallback }
+        return $value
+    } catch {
+        return $fallback
+    }
+}
+
+try {
+    $managerType = [Type]::GetType(
+        'Windows.Management.Update.WindowsUpdateManager, Windows.Management, ContentType=WindowsRuntime',
+        $false)
+    if ($null -eq $managerType) {
+        [Console]::Error.WriteLine(
+            'Windows Update orchestrator state is unavailable on this Windows build; WUA results were retained.')
+    } else {
+        $manager = [Activator]::CreateInstance(
+            $managerType, [object[]]@('WUM'))
+
+        $modernUpdates = @($manager.GetApplicableUpdates())
+        $script:OrchestratorAvailable = $true
+        foreach ($modern in $modernUpdates) {
+            $rawUpdateId = [string](
+                Get-WumModernValue $modern 'UpdateId' '')
+            if ([string]::IsNullOrWhiteSpace($rawUpdateId)) { continue }
+
+            # WindowsUpdateManager commonly appends a provider revision (for
+            # example :1) that is not WUA's Identity.RevisionNumber (for
+            # example 205). Normalize the GUID first. Use the suffix only to
+            # break a tie between multiple WUA revisions; never reject the
+            # same GUID merely because the two revision values differ.
+            $identityId = $rawUpdateId
+            $modernRevision = 0
+            $identityMatch = [regex]::Match(
+                $rawUpdateId,
+                '^(?<id>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?::(?<revision>[0-9]+))?$')
+            if ($identityMatch.Success) {
+                $identityId = $identityMatch.Groups['id'].Value
+                if ($identityMatch.Groups['revision'].Success) {
+                    [void][int]::TryParse(
+                        $identityMatch.Groups['revision'].Value,
+                        [ref]$modernRevision)
+                }
+            }
+
+            $candidates = @($script:Updates | Where-Object {
+                [string]::Equals(
+                    [string]$_.Id, $identityId,
+                    [StringComparison]::OrdinalIgnoreCase)
+            })
+            $target = $null
+            if ($candidates.Count -eq 1) {
+                $target = $candidates[0]
+            } elseif ($candidates.Count -gt 1) {
+                if ($modernRevision -gt 0) {
+                    $target = $candidates |
+                        Where-Object {
+                            [int]$_.RevisionNumber -eq $modernRevision
+                        } |
+                        Select-Object -First 1
+                }
+                if ($null -eq $target) {
+                    $target = $candidates |
+                        Sort-Object RevisionNumber -Descending |
+                        Select-Object -First 1
+                }
+            }
+
+            $providerId = [string](
+                Get-WumModernValue $modern 'ProviderId' '')
+            $currentAction = [string](
+                Get-WumModernValue $modern 'CurrentAction' '')
+            $actionProgress = Get-WumModernValue $modern 'ActionProgress' $null
+            $progress = 0.0
+            if ($null -ne $actionProgress) {
+                try {
+                    $progress = [Math]::Min(
+                        1.0, [Math]::Max(
+                            0.0, [double]$actionProgress.Progress))
+                } catch { $progress = 0.0 }
+                if ([string]::IsNullOrWhiteSpace($currentAction)) {
+                    $currentAction = [string](
+                        Get-WumModernValue $actionProgress 'Action' '')
+                }
+            }
+
+            $hasActionResult = $false
+            $resultAction = ''
+            $actionSucceeded = $null
+            $resultHResult = 0
+            $resultError = ''
+            $resultTimestamp = $null
+            $actionResult = Get-WumModernValue $modern 'ActionResult' $null
+            if ($null -ne $actionResult) {
+                $hasActionResult = $true
+                $resultAction = [string](
+                    Get-WumModernValue $actionResult 'Action' '')
+                $actionSucceeded = [bool](
+                    Get-WumModernValue $actionResult 'Succeeded' $false)
+                $timestamp = Get-WumModernValue $actionResult 'Timestamp' $null
+                if ($null -ne $timestamp) {
+                    try { $resultTimestamp = $timestamp.ToString('o') }
+                    catch { $resultTimestamp = [string]$timestamp }
+                }
+
+                $extendedError = Get-WumModernValue $actionResult 'ExtendedError' $null
+                if ($null -ne $extendedError) {
+                    try { $resultHResult = [int]$extendedError.HResult }
+                    catch {
+                        try { $resultHResult = [int]$extendedError }
+                        catch { $resultHResult = 0 }
+                    }
+                    try { $resultError = [string]$extendedError.Message }
+                    catch { $resultError = [string]$extendedError }
+                    if ([string]::IsNullOrWhiteSpace($resultError)) {
+                        $resultError = [string]$extendedError
+                    }
+                }
+            }
+            $modernDownloaded = (
+                $hasActionResult -and
+                ($actionSucceeded -eq $true) -and
+                [string]::Equals(
+                    $resultAction, 'Download',
+                    [StringComparison]::OrdinalIgnoreCase))
+
+            $attentionReason = ''
+            $attentionTimestamp = $null
+            $attention = Get-WumModernValue $modern 'AttentionRequiredInfo' $null
+            if ($null -ne $attention) {
+                $attentionReason = [string](
+                    Get-WumModernValue $attention 'Reason' '')
+                $timestamp = Get-WumModernValue $attention 'Timestamp' $null
+                if ($null -ne $timestamp) {
+                    try { $attentionTimestamp = $timestamp.ToString('o') }
+                    catch { $attentionTimestamp = [string]$timestamp }
+                }
+            }
+
+            if ($null -eq $target) {
+                # A modern provider can expose an applicable update that WUA's
+                # COM catalog does not. Keep it visible, while leaving the WUA
+                # revision at zero so later lookup never pins the provider's
+                # unrelated revision suffix as a WUA revision.
+                $categoryNames = @()
+                $isDriver = [bool](
+                    Get-WumModernValue $modern 'IsDriver' $false)
+                if ($isDriver) { $categoryNames += 'Drivers' }
+                if ([bool](Get-WumModernValue $modern 'IsFeatureUpdate' $false)) {
+                    $categoryNames += 'Feature Updates'
+                }
+                if ([bool](Get-WumModernValue $modern 'IsSecurity' $false)) {
+                    $categoryNames += 'Security Updates'
+                }
+                if ([bool](Get-WumModernValue $modern 'IsCritical' $false)) {
+                    $categoryNames += 'Critical Updates'
+                }
+
+                $target = [PSCustomObject]@{
+                    Id                  = $identityId
+                    RevisionNumber      = 0
+                    ServerSelection     = 0
+                    ServiceId           = ''
+                    Source              = 'Windows Update Orchestrator'
+                    Title               = [string](Get-WumModernValue $modern 'Title' '')
+                    Description         = [string](Get-WumModernValue $modern 'Description' '')
+                    KBArticle           = ''
+                    UpdateType          = if ($isDriver) { 'Driver' } else { 'Software' }
+                    CategoryNames       = @($categoryNames)
+                    CategoryIds         = @()
+                    IsInstalled         = $false
+                    IsHidden            = $false
+                    IsDownloaded        = [bool]$modernDownloaded
+                    BrowseOnly          = [bool](Get-WumModernValue $modern 'IsSeeker' $false)
+                    IsBeta              = ([string](Get-WumModernValue $modern 'Title' '') -match 'Insider|Preview')
+                    IsMandatory         = [bool](Get-WumModernValue $modern 'IsMandatory' $false)
+                    SizeInBytes         = 0
+                    SupportUrl          = [string](Get-WumModernValue $modern 'SupportUrl' '')
+                    Severity            = ''
+                    RequiresReboot      = $false
+                    MayRequireReboot    = $false
+                    ReleaseDate         = $null
+                    SupersededUpdateIds = @()
+                    IsOrchestratorUpdate           = $true
+                    OrchestratorUpdateId           = $rawUpdateId
+                    OrchestratorRevisionNumber     = $modernRevision
+                    OrchestratorProviderId         = $providerId
+                    CurrentAction                  = $currentAction
+                    OrchestratorProgress           = $progress
+                    HasOrchestratorActionResult    = $hasActionResult
+                    OrchestratorActionResultAction = $resultAction
+                    OrchestratorActionSucceeded    = $actionSucceeded
+                    OrchestratorResultHResult      = $resultHResult
+                    OrchestratorResultError        = $resultError
+                    OrchestratorActionTimestamp    = $resultTimestamp
+                    AttentionRequiredReason        = $attentionReason
+                    AttentionRequiredTimestamp     = $attentionTimestamp
+                }
+                $script:Updates += $target
+                $script:Seen[$identityId + ':0'] = $true
+            } else {
+                $target.IsOrchestratorUpdate = $true
+                $target.OrchestratorUpdateId = $rawUpdateId
+                $target.OrchestratorRevisionNumber = $modernRevision
+                $target.OrchestratorProviderId = $providerId
+                $target.CurrentAction = $currentAction
+                $target.OrchestratorProgress = $progress
+                $target.HasOrchestratorActionResult = $hasActionResult
+                $target.OrchestratorActionResultAction = $resultAction
+                $target.OrchestratorActionSucceeded = $actionSucceeded
+                $target.OrchestratorResultHResult = $resultHResult
+                $target.OrchestratorResultError = $resultError
+                $target.OrchestratorActionTimestamp = $resultTimestamp
+                $target.AttentionRequiredReason = $attentionReason
+                $target.AttentionRequiredTimestamp = $attentionTimestamp
+            }
+        }
+    }
+} catch {
+    [Console]::Error.WriteLine(
+        'Windows Update orchestrator state query failed: ' +
+        $_.Exception.GetBaseException().Message +
+        '; WUA results were retained.')
+}
+";
+
+        // --refresh uses the Windows Update orchestrator on builds that expose
+        // Windows.Management.Update. StartScan(true) is the OS-supported
+        // equivalent of the Settings "Check for updates" action. Older builds
+        // simply continue to the uncached online WUA search below.
+        internal static string BuildUserInitiatedRefreshScript() => @"
+$ErrorActionPreference = 'Stop'
+try {
+    $managerType = [Type]::GetType(
+        'Windows.Management.Update.WindowsUpdateManager, Windows.Management, ContentType=WindowsRuntime',
+        $false)
+    if ($null -ne $managerType) {
+        $manager = [Activator]::CreateInstance(
+            $managerType, [object[]]@('WUM'))
+        $before = $manager.LastSuccessfulScanTimestamp
+        $started = [bool]$manager.IsScanning
+
+        if (-not $started) {
+            $manager.StartScan($true)
+        }
+
+        $startDeadline = [DateTimeOffset]::UtcNow.AddSeconds(15)
+        while (-not $started -and
+               [DateTimeOffset]::UtcNow -lt $startDeadline) {
+            if ([bool]$manager.IsScanning) {
+                $started = $true
+                break
+            }
+            $after = $manager.LastSuccessfulScanTimestamp
+            if ($null -ne $after -and
+                ($null -eq $before -or $after -gt $before)) {
+                $started = $true
+                break
+            }
+            Start-Sleep -Milliseconds 250
+        }
+
+        if ($started -and [bool]$manager.IsScanning) {
+            $finishDeadline = [DateTimeOffset]::UtcNow.AddMinutes(5)
+            while ([bool]$manager.IsScanning -and
+                   [DateTimeOffset]::UtcNow -lt $finishDeadline) {
+                Start-Sleep -Milliseconds 500
+            }
+            if ([bool]$manager.IsScanning) {
+                throw 'Windows Update orchestrator scan timed out after five minutes.'
+            }
+        } elseif (-not $started) {
+            [Console]::Error.WriteLine(
+                'Windows Update orchestrator did not report a scan start; continuing with an online WUA scan.')
+        }
+    }
+} catch {
+    [Console]::Error.WriteLine(
+        'Windows Update orchestrator refresh was unavailable: ' +
+        $_.Exception.GetBaseException().Message +
+        '; continuing with an online WUA scan.')
+}
+";
+
+        // Releases before this fix wrote four five-minute scan snapshots here.
+        // They are never read now. Delete only those exact legacy filenames;
+        // leave unrelated diagnostic/configuration files untouched.
+        private void RemoveLegacyScanCache()
+        {
+            try
+            {
+                string cacheDirectory = Path.Combine(
+                    Environment.GetFolderPath(
+                        Environment.SpecialFolder.CommonApplicationData),
+                    "WUM", "cache");
+
+                foreach (string hidden in new[] { "0", "1" })
+                foreach (string mu in new[] { "0", "1" })
+                {
+                    string path = Path.Combine(
+                        cacheDirectory,
+                        "available-h" + hidden + "-m" + mu + ".json");
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                        _log.Information(
+                            "Removed obsolete WUM scan cache {Path}", path);
+                    }
+                }
+
+                if (Directory.Exists(cacheDirectory) &&
+                    Directory.GetFileSystemEntries(cacheDirectory).Length == 0)
+                {
+                    Directory.Delete(cacheDirectory);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Cache files created by an elevated older build may be
+                // read-only to a standard user. They are never read now and
+                // the next elevated WUM run will remove them.
+                _log.Information(
+                    "Obsolete elevated WUM scan cache is ignored until an elevated cleanup can remove it");
+            }
+            catch (Exception ex)
+            {
+                _log.Warning(ex,
+                    "Could not remove obsolete WUM scan cache; it will be ignored");
+            }
+        }
+
         // ── Uninstall ─────────────────────────────────────────────────────
-        public async Task<bool> UninstallUpdateAsync(string kbArticle)
+        public async Task<bool> UninstallUpdateAsync(
+            string kbArticle,
+            CancellationToken ct = default)
         {
             var kb = kbArticle.Replace("KB", "",
                 StringComparison.OrdinalIgnoreCase);
             bool ok = await PowerShellHelper.RunCommandAsync(
-                "wusa.exe /uninstall /kb:" + kb + " /quiet /norestart");
-            if (ok) InvalidateCache();
+                "wusa.exe /uninstall /kb:" + kb + " /quiet /norestart",
+                ct: ct);
             return ok;
         }
 
         // ── Hide ──────────────────────────────────────────────────────────
-        public async Task<bool> HideUpdateAsync(string updateId)
+        public async Task<bool> HideUpdateAsync(
+            string updateId,
+            CancellationToken ct = default)
         {
             string script = @"
 $Session  = New-Object -ComObject Microsoft.Update.Session
@@ -432,14 +1371,16 @@ $Results  = $Searcher.Search(""UpdateID='"  + updateId + @"'"")
 foreach ($u in $Results.Updates) { $u.IsHidden = $true }
 Write-Output 'OK'
 ";
-            var (_, output, _) = await PowerShellHelper.RunScriptAsync(script);
+            var (_, output, _) = await PowerShellHelper.RunScriptAsync(
+                script, ct: ct);
             bool ok = output.Trim() == "OK";
-            if (ok) InvalidateCache();
             return ok;
         }
 
         // ── Unhide ────────────────────────────────────────────────────────
-        public async Task<bool> UnhideUpdateAsync(string updateId)
+        public async Task<bool> UnhideUpdateAsync(
+            string updateId,
+            CancellationToken ct = default)
         {
             string script = @"
 $Session  = New-Object -ComObject Microsoft.Update.Session
@@ -448,9 +1389,9 @@ $Results  = $Searcher.Search(""IsHidden=1 AND UpdateID='"  + updateId + @"'"")
 foreach ($u in $Results.Updates) { $u.IsHidden = $false }
 Write-Output 'OK'
 ";
-            var (_, output, _) = await PowerShellHelper.RunScriptAsync(script);
+            var (_, output, _) = await PowerShellHelper.RunScriptAsync(
+                script, ct: ct);
             bool ok = output.Trim() == "OK";
-            if (ok) InvalidateCache();
             return ok;
         }
 
@@ -507,6 +1448,49 @@ Write-Output 'OK'
         // (noisy, set by routine installers; false positive for update reboots).
         public bool IsRebootRequired()
         {
+            string? commitMarker = _registry.GetValue<string>(
+                @"SOFTWARE\WUM\Runtime",
+                "UpdateCommitBootSession",
+                null);
+            if (IsCommitMarkerForCurrentBoot(
+                    commitMarker,
+                    DateTimeOffset.UtcNow,
+                    Environment.TickCount64))
+            {
+                return true;
+            }
+
+            object? systemInfo = null;
+            try
+            {
+                Type? type = Type.GetTypeFromProgID(
+                    "Microsoft.Update.SystemInfo", throwOnError: false);
+                systemInfo = type == null ? null : Activator.CreateInstance(type);
+                if (type != null && systemInfo != null)
+                {
+                    object? value = type.InvokeMember(
+                        "RebootRequired",
+                        BindingFlags.GetProperty,
+                        binder: null,
+                        target: systemInfo,
+                        args: null);
+                    if (Convert.ToBoolean(value)) return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Warning(ex,
+                    "WUA system reboot check failed; using registry markers");
+            }
+            finally
+            {
+                if (systemInfo != null && Marshal.IsComObject(systemInfo))
+                {
+                    try { Marshal.FinalReleaseComObject(systemInfo); }
+                    catch { /* COM object is already disconnected */ }
+                }
+            }
+
             try
             {
                 return _registry.KeyExists(
@@ -519,24 +1503,203 @@ Write-Output 'OK'
             catch { return false; }
         }
 
+        internal static bool IsCommitMarkerForCurrentBoot(
+            string? marker,
+            DateTimeOffset nowUtc,
+            long tickCountMilliseconds)
+        {
+            if (string.IsNullOrWhiteSpace(marker) ||
+                tickCountMilliseconds < 0)
+            {
+                return false;
+            }
+
+            string[] parts = marker.Split('|', 2);
+            if (parts.Length != 2 ||
+                !(parts[0].Equals(
+                        "Started", StringComparison.OrdinalIgnoreCase) ||
+                  parts[0].Equals(
+                        "Committed", StringComparison.OrdinalIgnoreCase)) ||
+                !DateTimeOffset.TryParse(
+                    parts[1],
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTimeOffset markerBoot))
+            {
+                return false;
+            }
+
+            DateTimeOffset estimatedBoot = nowUtc -
+                TimeSpan.FromMilliseconds(tickCountMilliseconds);
+            return Math.Abs(
+                (markerBoot.ToUniversalTime() -
+                 estimatedBoot.ToUniversalTime()).TotalMinutes) <= 5;
+        }
+
+        // WUA feature updates must be committed exactly once immediately
+        // before reboot. Keep commit and shutdown in one PowerShell process,
+        // serialize all WUM processes, and persist Started before Commit so a
+        // crash can never make a retry invoke the unsupported second Commit.
+        public async Task<bool> CommitAndScheduleRebootAsync(
+            int secondsDelay,
+            string message,
+            CancellationToken ct = default)
+        {
+            LastError = null;
+            if (secondsDelay < 0 || secondsDelay > 315_360_000)
+                throw new ArgumentOutOfRangeException(nameof(secondsDelay));
+            ArgumentException.ThrowIfNullOrWhiteSpace(message);
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                string script = BuildCommitAndScheduleRebootScript(
+                    secondsDelay, message);
+                // From the first durable Started marker through shutdown.exe,
+                // cancellation would leave an unknowable transaction state.
+                // Let this short critical section finish. If the process is
+                // externally terminated, the Started marker makes retry safe.
+                var (success, output, error) =
+                    await PowerShellHelper.RunScriptAsync(
+                        script, ct: CancellationToken.None);
+
+                if (!success)
+                {
+                    LastError = string.IsNullOrWhiteSpace(error)
+                        ? "Windows Update commit or restart scheduling failed."
+                        : error.Trim();
+                    _log.Error(
+                        "Update commit/restart scheduling failed: {Error}",
+                        LastError);
+                    return false;
+                }
+
+                _log.Information(
+                    "Update commit/restart scheduling completed: {Result}",
+                    output);
+                if (output.Contains("\"CommitUncertain\":true",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    _log.Warning(
+                        "A prior commit was interrupted; WUM safely skipped " +
+                        "a duplicate Commit and scheduled the required reboot");
+                }
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                LastError = "update commit/restart scheduling was cancelled";
+                throw;
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+                _log.Error(ex, "Update commit/restart scheduling failed");
+                return false;
+            }
+        }
+
+        internal static string BuildCommitAndScheduleRebootScript(
+            int secondsDelay,
+            string message) => @"
+$ErrorActionPreference = 'Stop'
+$statePath = 'HKLM:\SOFTWARE\WUM\Runtime'
+$markerName = 'UpdateCommitBootSession'
+$mutex = New-Object System.Threading.Mutex(
+    $false, 'Global\WUM.UpdateCommitReboot')
+$mutexHeld = $false
+try {
+    try {
+        $mutexHeld = $mutex.WaitOne([TimeSpan]::FromMinutes(2))
+    } catch [System.Threading.AbandonedMutexException] {
+        # The previous process died while holding the lock. The durable
+        # Started marker below determines whether Commit may be called.
+        $mutexHeld = $true
+    }
+    if (-not $mutexHeld) {
+        throw 'Timed out waiting for another WUM commit/restart operation.'
+    }
+
+    $boot = (Get-CimInstance -ClassName Win32_OperatingSystem `
+        -Property LastBootUpTime).LastBootUpTime
+    if ($null -eq $boot) {
+        throw 'Could not determine the current boot session.'
+    }
+    $bootToken = $boot.ToUniversalTime().ToString('o')
+    $startedMarker = 'Started|' + $bootToken
+    $committedMarker = 'Committed|' + $bootToken
+    $lastMarker = (Get-ItemProperty -LiteralPath $statePath `
+        -Name $markerName -ErrorAction SilentlyContinue).$markerName
+    $alreadyCommitted = ($lastMarker -eq $committedMarker)
+    $commitUncertain = ($lastMarker -eq $startedMarker)
+    $commitPerformed = $false
+
+    if (-not $alreadyCommitted -and -not $commitUncertain) {
+        # Prove the marker is writable before changing WUA transaction state.
+        [void](New-Item -Path $statePath -Force)
+        Set-ItemProperty -LiteralPath $statePath `
+            -Name 'CommitWriteProbe' -Value $bootToken
+        Remove-ItemProperty -LiteralPath $statePath `
+            -Name 'CommitWriteProbe' -ErrorAction SilentlyContinue
+
+        # Record intent before the non-repeatable call. If the process dies
+        # after this write, a retry reboots without risking a second Commit.
+        Set-ItemProperty -LiteralPath $statePath `
+            -Name $markerName -Value $startedMarker
+
+        $session = New-Object -ComObject Microsoft.Update.Session
+        $session.ClientApplicationID = 'WUM'
+        $installer = $session.CreateUpdateInstaller()
+        $installer.ClientApplicationID = 'WUM'
+        $installer.Commit([uint32]0)
+        $commitPerformed = $true
+
+        Set-ItemProperty -LiteralPath $statePath `
+            -Name $markerName -Value $committedMarker
+    }
+
+    $shutdown = Join-Path $env:SystemRoot 'System32\shutdown.exe'
+    & $shutdown '/r' '/t' '" + secondsDelay + @"' '/c' " + PsQuote(message) + @"
+    if ($LASTEXITCODE -ne 0) {
+        throw ('shutdown.exe failed with exit code ' + $LASTEXITCODE)
+    }
+
+    [PSCustomObject]@{
+        Scheduled        = $true
+        CommitPerformed  = $commitPerformed
+        AlreadyCommitted = $alreadyCommitted
+        CommitUncertain  = $commitUncertain
+        BootSession      = $bootToken
+    } | ConvertTo-Json -Compress
+} finally {
+    if ($mutexHeld) {
+        try { [void]$mutex.ReleaseMutex() } catch { }
+    }
+    $mutex.Dispose()
+}
+";
+
         // ── Service Status ────────────────────────────────────────────────
-        public async Task<string> GetServiceStatusAsync()
+        public async Task<string> GetServiceStatusAsync(
+            CancellationToken ct = default)
         {
             try
             {
                 var (_, output, _) = await PowerShellHelper.RunScriptAsync(
                     "(Get-Service -Name wuauserv " +
-                    "-ErrorAction SilentlyContinue).Status");
+                    "-ErrorAction SilentlyContinue).Status",
+                    ct: ct);
 
                 return string.IsNullOrWhiteSpace(output)
                     ? "Unknown"
                     : output.Trim();
             }
+            catch (OperationCanceledException) { throw; }
             catch { return "Unknown"; }
         }
 
         // ── JSON Parsers ──────────────────────────────────────────────────
-        private static List<WindowsUpdate> ParseUpdatesFromJson(
+        internal static List<WindowsUpdate> ParseUpdatesFromJson(
             string json, bool installed = false)
         {
             var list = new List<WindowsUpdate>();
@@ -552,34 +1715,151 @@ Write-Output 'OK'
 
                 foreach (var el in root.EnumerateArray())
                 {
+                    var categoryNames = GetStrings(el, "CategoryNames");
+                    var updateType    = GetStr(el, "UpdateType");
+                    var title         = GetStr(el, "Title");
+                    bool isInstalled  = installed || GetBool(el, "IsInstalled");
+                    bool isHidden     = GetBool(el, "IsHidden");
+                    bool isDownloaded = GetBool(el, "IsDownloaded");
+                    string currentAction = GetStr(el, "CurrentAction");
+                    string attentionReason =
+                        GetStr(el, "AttentionRequiredReason");
+                    bool? actionSucceeded =
+                        GetNullableBool(el, "OrchestratorActionSucceeded");
+                    bool hasActionResult =
+                        GetBool(el, "HasOrchestratorActionResult") ||
+                        actionSucceeded.HasValue;
+                    double orchestratorProgress = Math.Clamp(
+                        GetDouble(el, "OrchestratorProgress"), 0.0, 1.0);
+                    bool needsReboot =
+                        GetBool(el, "RequiresReboot") ||
+                        IsRestartOrchestratorState(attentionReason);
+
                     var u = new WindowsUpdate
                     {
-                        Id          = GetStr(el, "Id"),
-                        Title       = GetStr(el, "Title"),
-                        Description = GetStr(el, "Description"),
-                        KBArticle   = GetStr(el, "KBArticle"),
-                        IsHidden    = GetBool(el, "IsHidden"),
-                        IsMandatory = GetBool(el, "IsMandatory"),
-                        SizeInBytes = GetLong(el, "SizeInBytes"),
-                        SupportUrl  = GetStr(el, "SupportUrl"),
-                        Severity    = GetStr(el, "Severity"),
-                        RequiresReboot = GetBool(el, "RequiresReboot"),
-                        Status      = installed
-                            ? UpdateStatus.Installed
-                            : GetBool(el, "IsDownloaded")
-                                ? UpdateStatus.Downloaded
-                                : UpdateStatus.NotStarted,
-                        Category    = ParseCategory(GetStr(el, "Category"))
+                        Id             = GetStr(el, "Id"),
+                        RevisionNumber = GetInt(el, "RevisionNumber"),
+                        ServerSelection= GetInt(el, "ServerSelection"),
+                        ServiceId      = GetStr(el, "ServiceId"),
+                        Source         = GetStr(el, "Source"),
+                        Title          = title,
+                        Description    = GetStr(el, "Description"),
+                        KBArticle      = GetStr(el, "KBArticle"),
+                        UpdateType     = updateType,
+                        CategoryNames  = categoryNames,
+                        CategoryIds    = GetStrings(el, "CategoryIds"),
+                        IsInstalled    = isInstalled,
+                        IsHidden       = isHidden,
+                        IsDownloaded   = isDownloaded,
+                        BrowseOnly     = GetBool(el, "BrowseOnly"),
+                        IsBeta         = GetBool(el, "IsBeta"),
+                        IsMandatory    = GetBool(el, "IsMandatory"),
+                        SizeInBytes    = GetLong(el, "SizeInBytes"),
+                        SupportUrl     = GetStr(el, "SupportUrl"),
+                        Severity       = GetStr(el, "Severity"),
+                        RequiresReboot = needsReboot,
+                        MayRequireReboot = GetBool(el, "MayRequireReboot"),
+                        ReleaseDate    = GetDate(el, "ReleaseDate"),
+                        SupersededUpdateIds = GetStrings(el, "SupersededUpdateIds"),
+                        IsOrchestratorUpdate =
+                            GetBool(el, "IsOrchestratorUpdate"),
+                        OrchestratorUpdateId =
+                            GetStr(el, "OrchestratorUpdateId"),
+                        OrchestratorRevisionNumber =
+                            GetInt(el, "OrchestratorRevisionNumber"),
+                        OrchestratorProviderId =
+                            GetStr(el, "OrchestratorProviderId"),
+                        CurrentAction = currentAction,
+                        OrchestratorProgress = orchestratorProgress,
+                        DownloadProgress = IsAction(
+                                currentAction, "Download")
+                            ? orchestratorProgress * 100.0
+                            : 0.0,
+                        InstallProgress = IsInstallAction(currentAction)
+                            ? orchestratorProgress * 100.0
+                            : 0.0,
+                        HasOrchestratorActionResult = hasActionResult,
+                        OrchestratorActionResultAction =
+                            GetStr(el, "OrchestratorActionResultAction"),
+                        OrchestratorActionSucceeded = actionSucceeded,
+                        OrchestratorResultHResult =
+                            GetInt(el, "OrchestratorResultHResult"),
+                        OrchestratorResultError =
+                            GetStr(el, "OrchestratorResultError"),
+                        OrchestratorActionTimestamp =
+                            GetDate(el, "OrchestratorActionTimestamp"),
+                        AttentionRequiredReason = attentionReason,
+                        AttentionRequiredTimestamp =
+                            GetDate(el, "AttentionRequiredTimestamp"),
+                        Status         = MapStatus(
+                            isInstalled, isHidden, isDownloaded, needsReboot,
+                            currentAction, hasActionResult, actionSucceeded,
+                            attentionReason),
+                        Category       = ParseCategory(
+                            categoryNames, updateType, title)
                     };
                     list.Add(u);
                 }
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Failed to parse updates JSON");
+                Log.Error(ex, "Failed to parse WUA updates JSON");
+                throw new InvalidOperationException(
+                    "Windows Update returned malformed update data.", ex);
             }
             return list;
         }
+
+        internal static UpdateStatus MapStatus(
+            bool installed,
+            bool hidden,
+            bool downloaded,
+            bool rebootRequired,
+            string currentAction = "",
+            bool hasActionResult = false,
+            bool? actionSucceeded = null,
+            string attentionReason = "")
+        {
+            // A genuine reboot gate is more actionable than a historical
+            // failed action result that may still be attached to the item.
+            if (rebootRequired || IsRestartOrchestratorState(
+                    attentionReason))
+                return UpdateStatus.RestartRequired;
+            if (IsAction(currentAction, "Download"))
+                return UpdateStatus.Downloading;
+            if (IsInstallAction(currentAction))
+                return UpdateStatus.Installing;
+            if ((hasActionResult && actionSucceeded == false) ||
+                IsTerminalAttention(attentionReason))
+                return UpdateStatus.Failed;
+            if (installed)  return UpdateStatus.Installed;
+            if (hidden)     return UpdateStatus.Hidden;
+            if (downloaded) return UpdateStatus.PendingInstallation;
+            return UpdateStatus.Available;
+        }
+
+        private static bool IsAction(string actual, string expected) =>
+            string.Equals(
+                actual?.Trim(), expected,
+                StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsInstallAction(string action) =>
+            IsAction(action, "Install") ||
+            IsAction(action, "Deploy") ||
+            IsAction(action, "Commit") ||
+            IsAction(action, "Reboot") ||
+            IsAction(action, "PostReboot");
+
+        private static bool IsRestartOrchestratorState(
+            string attentionReason) =>
+            IsAction(attentionReason, "ReadyToReboot");
+
+        internal static bool IsTerminalAttention(string attentionReason) =>
+            IsAction(attentionReason, "CompatibilityError") ||
+            IsAction(attentionReason, "BlockedByPostRebootFailure") ||
+            IsAction(attentionReason, "BlockedByTooManyAttempts") ||
+            IsAction(attentionReason, "BlockedByFailure") ||
+            IsAction(attentionReason, "Demotion");
 
         private static List<UpdateHistory> ParseHistoryFromJson(string json)
         {
@@ -618,18 +1898,32 @@ Write-Output 'OK'
         }
 
         // ── Category Parser ───────────────────────────────────────────────
-        private static UpdateCategory ParseCategory(string name)
+        internal static UpdateCategory ParseCategory(
+            List<string> names, string updateType, string title)
         {
-            if (string.IsNullOrEmpty(name)) return UpdateCategory.Unknown;
-            name = name.ToLowerInvariant();
+            string text = (string.Join(" ", names) + " " + title)
+                .ToLowerInvariant();
+            string type = updateType.ToLowerInvariant();
 
-            if (name.Contains("security"))    return UpdateCategory.Security;
-            if (name.Contains("critical"))    return UpdateCategory.Critical;
-            if (name.Contains("driver"))      return UpdateCategory.Driver;
-            if (name.Contains("feature"))     return UpdateCategory.FeatureUpdate;
-            if (name.Contains("cumulative"))  return UpdateCategory.CumulativeUpdate;
-            if (name.Contains("definition"))  return UpdateCategory.Definition;
-            if (name.Contains("service pack"))return UpdateCategory.ServicePack;
+            if (type.Contains("driver") || text.Contains("driver"))
+                return UpdateCategory.Driver;
+            if (text.Contains("feature update") || text.Contains("upgrade") ||
+                text.Contains("insider preview"))
+                return UpdateCategory.FeatureUpdate;
+            if (text.Contains("cumulative"))
+                return UpdateCategory.CumulativeUpdate;
+            if (text.Contains("definition") ||
+                text.Contains("security intelligence") ||
+                text.Contains("defender antivirus"))
+                return UpdateCategory.Definition;
+            if (text.Contains("security"))
+                return UpdateCategory.Security;
+            if (text.Contains("critical"))
+                return UpdateCategory.Critical;
+            if (text.Contains("service pack"))
+                return UpdateCategory.ServicePack;
+            if (names.Count == 0 && string.IsNullOrWhiteSpace(title))
+                return UpdateCategory.Unknown;
             return UpdateCategory.Optional;
         }
 
@@ -657,11 +1951,59 @@ Write-Output 'OK'
             try { return el.GetProperty(key).GetInt32(); }
             catch { return 0; }
         }
-        // Add this method to src/WUM.Core/Services/UpdateService.cs
-// Paste it just before the last closing brace of the class
 
+        private static double GetDouble(JsonElement el, string key)
+        {
+            try { return el.GetProperty(key).GetDouble(); }
+            catch { return 0.0; }
+        }
+
+        private static bool? GetNullableBool(JsonElement el, string key)
+        {
+            try
+            {
+                JsonElement value = el.GetProperty(key);
+                return value.ValueKind == JsonValueKind.True
+                    ? true
+                    : value.ValueKind == JsonValueKind.False
+                        ? false
+                        : null;
+            }
+            catch { return null; }
+        }
+
+        private static DateTime? GetDate(JsonElement el, string key)
+        {
+            string value = GetStr(el, key);
+            return DateTime.TryParse(value, out var date) ? date : null;
+        }
+
+        private static List<string> GetStrings(JsonElement el, string key)
+        {
+            var values = new List<string>();
+            try
+            {
+                JsonElement property = el.GetProperty(key);
+                if (property.ValueKind == JsonValueKind.String)
+                {
+                    string? value = property.GetString();
+                    if (!string.IsNullOrWhiteSpace(value)) values.Add(value);
+                }
+                else if (property.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (JsonElement item in property.EnumerateArray())
+                    {
+                        string? value = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(value)) values.Add(value);
+                    }
+                }
+            }
+            catch { /* optional metadata */ }
+            return values;
+        }
         // ── Diagnostics ───────────────────────────────────────────────────
-        public async Task<string> DiagnoseAsync()
+        public async Task<string> DiagnoseAsync(
+            CancellationToken ct = default)
         {
             string script = @"
 Write-Output '=== WUA Diagnostics ==='
@@ -737,31 +2079,38 @@ try {
     exit
 }
 
-# 4b. Registered update services (WU vs Microsoft Update vs WSUS/Store)
-#     Default searcher hits Windows Update only. Microsoft Update service
-#     (7971f918-a847-4430-9279-4a52d1efe18d) adds drivers + other MS products.
+# 4b. Registered update services. ssDefault follows the effective Automatic
+#     Updates service/policy. Service Locator may also surface OS flighting on
+#     an Insider device.
 try {
     $sm = New-Object -ComObject Microsoft.Update.ServiceManager
     $muId = '7971f918-a847-4430-9279-4a52d1efe18d'
+    $flightId = '8b24b027-1dee-babb-9a95-3517dfb9c552'
     $hasMu = $false
+    $script:defaultAuName = ''
+    $script:defaultAuId = ''
     foreach ($s in $sm.Services) {
         $flag = ''
-        if ($s.IsDefaultAUService) { $flag = ' [default]' }
+        if ($s.IsDefaultAUService) {
+            $flag = ' [effective default]'
+            $script:defaultAuName = $s.Name
+            $script:defaultAuId = $s.ServiceID
+        }
         if ($s.ServiceID -eq $muId) { $hasMu = $true; $flag += ' [Microsoft Update]' }
+        if ($s.ServiceID -eq $flightId) { $flag += ' [OS flighting]' }
         Write-Output ('Service       : ' + $s.Name + $flag)
     }
     if ($hasMu) {
         Write-Output 'Microsoft Upd : Registered'
     } else {
-        Write-Output 'Microsoft Upd : NOT registered (drivers/MS-product updates hidden)'
+        Write-Output 'Microsoft Upd : NOT registered (other Microsoft-product updates unavailable)'
     }
 } catch {
     Write-Output ('Service Mgr   : FAILED - ' + $_.Exception.Message)
 }
 
-# 5. Search test - validate the COM searcher works. The user-facing
-#    'Updates Found' count is printed by the CLI from the shared scan cache
-#    so status/list/diagnose always agree.
+# 5. Search test - validate that the COM searcher works. The CLI performs its
+#    own live query after diagnostics to report the current applicable count.
 try {
     $null = $Searcher.Search('IsInstalled=0 AND Type=''Software''')
     Write-Output 'Search Test   : OK'
@@ -805,7 +2154,8 @@ try {
     Write-Output 'WU AU Options : Unable to read'
 }
 
-# 8b. Update source: WSUS vs Microsoft Update (explains '0 found' on managed PCs)
+# 8b. Effective source: managed WSUS policy wins; otherwise report WUA's
+#     current default Automatic Updates service discovered above.
 try {
     $wuPath   = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
     $wu       = Get-ItemProperty -Path $wuPath -ErrorAction SilentlyContinue
@@ -816,8 +2166,11 @@ try {
         Write-Output ('Update Source : WSUS (' + $wu.WUServer + ')')
     } elseif ($useWsus) {
         Write-Output 'Update Source : WSUS (policy set, server URL missing)'
+    } elseif ($script:defaultAuName) {
+        Write-Output ('Update Source : ' + $script:defaultAuName +
+            ' (' + $script:defaultAuId + ')')
     } else {
-        Write-Output 'Update Source : Microsoft Update (direct)'
+        Write-Output 'Update Source : Default WUA policy/service'
     }
 } catch {
     Write-Output 'Update Source : Unable to read'
@@ -927,7 +2280,7 @@ Write-Output '=== End Diagnostics ==='
             try
             {
                 var (_, output, error) =
-                    await PowerShellHelper.RunScriptAsync(script);
+                    await PowerShellHelper.RunScriptAsync(script, ct: ct);
 
                 string result = output ?? string.Empty;
 
@@ -936,6 +2289,7 @@ Write-Output '=== End Diagnostics ==='
 
                 return result;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 _log.Error(ex, "DiagnoseAsync failed");
@@ -947,7 +2301,8 @@ Write-Output '=== End Diagnostics ==='
         // Mirrors PSWindowsUpdate Reset-WUComponents: stop services, clear the
         // SoftwareDistribution + Catroot2 caches, reregister DLLs, reset network
         // stacks, restart services. Caller must enforce admin + confirmation.
-        public async Task<string> ResetComponentsAsync()
+        public async Task<string> ResetComponentsAsync(
+            CancellationToken ct = default)
         {
             string script = @"
 $ErrorActionPreference = 'Continue'
@@ -1005,15 +2360,15 @@ Write-Output 'Reset complete. A reboot is recommended.'
             {
                 _log.Information("ResetComponentsAsync started");
                 var (_, output, error) =
-                    await PowerShellHelper.RunScriptAsync(script);
+                    await PowerShellHelper.RunScriptAsync(script, ct: ct);
 
                 string result = output ?? string.Empty;
                 if (!string.IsNullOrWhiteSpace(error))
                     result += "\nPS Errors:\n" + error;
 
-                InvalidateCache();
                 return result;
             }
+            catch (OperationCanceledException) { throw; }
             catch (Exception ex)
             {
                 _log.Error(ex, "ResetComponentsAsync failed");

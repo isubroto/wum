@@ -18,13 +18,6 @@ Pauses Windows Updates for fixed days, or resumes updates early.
 /pause resume
 ```
 
-CLI equivalent:
-
-```powershell
-wum pause [--days <N>]
-wum pause resume
-```
-
 ## Options and subcommands
 
 | Form | Detail |
@@ -48,6 +41,6 @@ It writes standard Windows Update pause registry values. `resume` deletes those 
 /pause resume
 ```
 
-More backend detail: [`wum pause`](command-pause.md)
+Implementation detail: [pause behavior](command-pause.md)
 
 Next: [`/schedule`](interactive-command-schedule.md)

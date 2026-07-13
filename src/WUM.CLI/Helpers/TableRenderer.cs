@@ -19,11 +19,11 @@ namespace WUM.CLI.Helpers
                 return;
             }
 
-            int winWidth = Math.Max(Console.WindowWidth, 80);
+            int winWidth = GetConsoleWidth();
             int kbW      = 13;
             int catW     = 14;
             int sizeW    = 10;
-            int statusW  = 13;
+            int statusW  = 18;
             int titleW   = winWidth - kbW - catW - sizeW - statusW - 6;
             if (titleW < 10) titleW = 10;
 
@@ -125,7 +125,7 @@ namespace WUM.CLI.Helpers
                 return;
             }
 
-            int winWidth = Math.Max(Console.WindowWidth, 80);
+            int winWidth = GetConsoleWidth();
             int dateW    = 20;
             int kbW      = 13;
             int statW    = 12;
@@ -189,6 +189,20 @@ namespace WUM.CLI.Helpers
         }
 
         // ── Private Helpers ───────────────────────────────────────────────
+        private static int GetConsoleWidth()
+        {
+            try
+            {
+                return Console.IsOutputRedirected
+                    ? 80
+                    : Math.Max(Console.WindowWidth, 80);
+            }
+            catch
+            {
+                return 80;
+            }
+        }
+
         // Show only categories actually present in the table, so the legend
         // never lists keys the rows don't use (or omits ones they do).
         private static void RenderLegend(List<WindowsUpdate> updates)
@@ -206,15 +220,20 @@ namespace WUM.CLI.Helpers
             Console.WriteLine();
         }
 
-        // Raw enum → glyph + friendly label. NotStarted reads as "Available".
+        // Raw WUA/application state -> compact table label.
         private static string FriendlyStatus(UpdateStatus st) => st switch
         {
-            UpdateStatus.Installed     => "✓ Installed",
-            UpdateStatus.Downloaded    => "▼ Downloaded",
-            UpdateStatus.Failed        => "✗ Failed",
-            UpdateStatus.PendingReboot => "⟳ Reboot",
-            UpdateStatus.Hidden        => "○ Hidden",
-            _                          => "○ Available",
+            UpdateStatus.Downloading                 => "↓ Downloading",
+            UpdateStatus.Downloaded                  => "↓ Downloaded",
+            UpdateStatus.PendingInstallation         => "⌛ Pending install",
+            UpdateStatus.Installing                  => "… Installing",
+            UpdateStatus.Installed                   => "✓ Installed",
+            UpdateStatus.Failed                      => "✗ Failed",
+            UpdateStatus.PendingReboot               => "⟳ Restart needed",
+            UpdateStatus.RestartRequired             => "⟳ Restart needed",
+            UpdateStatus.Hidden                      => "○ Hidden",
+            UpdateStatus.SupersededOrNotApplicable   => "− Not applicable",
+            _                                        => "○ Available",
         };
 
         private static void LegendItem(string text, ConsoleColor color)
@@ -237,11 +256,17 @@ namespace WUM.CLI.Helpers
 
         private static ConsoleColor GetStatusColor(UpdateStatus st)
         {
-            if (st == UpdateStatus.Installed)     return ConsoleColor.Green;
-            if (st == UpdateStatus.Downloaded)    return ConsoleColor.Cyan;
-            if (st == UpdateStatus.Failed)        return ConsoleColor.Red;
-            if (st == UpdateStatus.PendingReboot) return ConsoleColor.Yellow;
-            if (st == UpdateStatus.Hidden)        return ConsoleColor.DarkGray;
+            if (st == UpdateStatus.Installed)       return ConsoleColor.Green;
+            if (st == UpdateStatus.Downloading ||
+                st == UpdateStatus.Downloaded ||
+                st == UpdateStatus.PendingInstallation ||
+                st == UpdateStatus.Installing)      return ConsoleColor.Cyan;
+            if (st == UpdateStatus.Failed)          return ConsoleColor.Red;
+            if (st == UpdateStatus.PendingReboot ||
+                st == UpdateStatus.RestartRequired) return ConsoleColor.Yellow;
+            if (st == UpdateStatus.Hidden ||
+                st == UpdateStatus.SupersededOrNotApplicable)
+                                                    return ConsoleColor.DarkGray;
             return ConsoleColor.Gray;
         }
     }

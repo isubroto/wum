@@ -6,6 +6,7 @@ PackageVersion: 0.3.0.58
 Platform:
   - Windows.Desktop
 MinimumOSVersion: 10.0.0.0
+InstallerType: wix
 InstallModes:
   - interactive
   - silent
@@ -22,7 +23,6 @@ ExpectedReturnCodes:
 UpgradeBehavior: install
 Installers:
   - Architecture: x64
-    InstallerType: wix
     Scope: machine
     InstallerUrl: https://github.com/SubrotoSaha/wum/releases/download/v0.3.0.58/wum-0.3.0.58.msi
     InstallerSha256: ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789

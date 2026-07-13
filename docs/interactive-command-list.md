@@ -19,12 +19,6 @@ Lists available updates inside interactive mode. Can also show installed updates
       [--json] [--no-color] [--verbose|-v] [--refresh]
 ```
 
-CLI equivalent:
-
-```powershell
-wum list [filters] [options]
-```
-
 ## Filter options
 
 | Option | Detail |
@@ -44,14 +38,14 @@ Filters combine as OR. `/list --security --drivers` shows security updates and d
 | `--hidden` | Include hidden updates. |
 | `--installed` | Show installed updates instead of available updates. |
 | `--microsoft-update`, `--mu` | Include Microsoft Update service. Useful for drivers and other Microsoft products. |
-| `--refresh` | Force fresh scan and bypass cache. |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before querying current updates. |
 | `--json` | Print JSON list. |
 | `--no-color` | Disable ANSI color. |
 | `--verbose`, `-v` | Show full update detail. |
 
 ## Behavior
 
-`/list` is read-only. No Administrator terminal needed.
+`/list` is read-only. No Administrator terminal needed. Its default view reads the Settings-backed Windows Update orchestrator first and uses WUA metadata when available, so live action/progress is visible and installed, superseded, and no-longer-applicable updates are not retained from an older scan.
 
 Interactive completion suggests known filters and aliases after `/list `.
 
@@ -67,6 +61,6 @@ Interactive completion suggests known filters and aliases after `/list `.
 /list --refresh
 ```
 
-More backend detail: [`wum list`](command-list.md)
+Implementation detail: [list behavior](command-list.md)
 
 Next: [`/search`](interactive-command-search.md)

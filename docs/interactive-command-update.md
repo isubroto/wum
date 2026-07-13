@@ -18,13 +18,6 @@ Checks the latest GitHub release from interactive mode and can install the newes
 /upgrade [--check|-c] [--force|-f|--yes|-y]
 ```
 
-CLI equivalent:
-
-```powershell
-wum update [--check|-c] [--force|-f|--yes|-y]
-wum upgrade [--check|-c] [--force|-f|--yes|-y]
-```
-
 ## Options
 
 | Option | Detail |
@@ -52,6 +45,6 @@ Typing `/up` suggests both `/update` and `/upgrade`. Typing `/update ` suggests 
 /upgrade --yes
 ```
 
-More backend detail: [`wum update`](command-update.md)
+Implementation detail: [update behavior](command-update.md)
 
 Next: [Session Commands](interactive-session.md)

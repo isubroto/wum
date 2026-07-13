@@ -31,7 +31,7 @@ namespace WUM.CLI.Commands
             var verboseOpt = new Option<bool>(
                 new[] { "--verbose", "-v" }, "Show debug details");
             var refreshOpt = new Option<bool>(
-                "--refresh", "Force a fresh update scan instead of the shared cache");
+                "--refresh", "Request a user-initiated Windows Update scan first");
 
             cmd.AddOption(jsonOpt);
             cmd.AddOption(verboseOpt);
@@ -58,9 +58,9 @@ namespace WUM.CLI.Commands
             if (verbose) PrintStep("1", "Checking Windows Update service...");
 
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Checking WU service...", async () =>
+                "Checking WU service...", async token =>
                 {
-                    svcStatus = await _updates.GetServiceStatusAsync();
+                    svcStatus = await _updates.GetServiceStatusAsync(token);
                 }, timeoutSeconds: 10);
 
             if (verbose) PrintResult("WU Service", svcStatus,
@@ -78,9 +78,9 @@ namespace WUM.CLI.Commands
             if (verbose) PrintStep("3", "Reading pause settings from registry...");
 
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Reading pause info...", async () =>
+                "Reading pause info...", async token =>
                 {
-                    pauseInfo = await _pause.GetPauseInfoAsync();
+                    pauseInfo = await _pause.GetPauseInfoAsync(token);
                 }, timeoutSeconds: 5);
 
             if (verbose) PrintResult("Updates Paused",
@@ -93,11 +93,18 @@ namespace WUM.CLI.Commands
 
             await ConsoleRenderer.ShowSpinnerAsync(
                 "Fetching available updates from Windows Update...",
-                async () =>
+                async token =>
                 {
                     updates = await _updates.GetAvailableUpdatesAsync(
-                        forceRefresh: refresh);
-                }, timeoutSeconds: 90);
+                        forceRefresh: refresh,
+                        ct: token);
+                }, timeoutSeconds: refresh ? 630 : 330);
+
+            // ReadyToReboot attention can precede legacy SystemInfo or
+            // registry markers. In-progress Commit remains Installing.
+            reboot = reboot || updates.Any(u =>
+                u.Status == UpdateStatus.RestartRequired ||
+                u.Status == UpdateStatus.PendingReboot);
 
             if (verbose)
             {
@@ -110,9 +117,18 @@ namespace WUM.CLI.Commands
                         ConsoleRenderer.Inline(u.KBArticle.PadRight(14), ConsoleColor.White);
                         ConsoleRenderer.Inline(u.Category.ToString().PadRight(14),
                             CategoryColor(u.Category));
+                        ConsoleRenderer.Inline(u.Status.ToString().PadRight(20),
+                            StatusColor(u.Status));
                         ConsoleRenderer.Inline(
-                            u.Title.Substring(0, Math.Min(50, u.Title.Length)),
+                            u.Title.Substring(0, Math.Min(38, u.Title.Length)),
                             ConsoleColor.DarkGray);
+                        if (!string.IsNullOrWhiteSpace(u.CurrentAction))
+                        {
+                            ConsoleRenderer.Inline(
+                                "  [" + u.CurrentAction + " " +
+                                (u.OrchestratorProgress * 100).ToString("0") + "%]",
+                                ConsoleColor.Cyan);
+                        }
                         Console.WriteLine();
                     }
                 }
@@ -125,7 +141,22 @@ namespace WUM.CLI.Commands
                 {
                     reboot_required   = reboot,
                     updates_available = updates.Count,
+                    available_updates = updates.Count(u =>
+                        u.Status == UpdateStatus.Available),
                     security_updates  = updates.Count(u => u.IsSecurityUpdate),
+                    feature_updates   = updates.Count(u =>
+                        u.Category == UpdateCategory.FeatureUpdate),
+                    downloading_updates = updates.Count(u =>
+                        u.Status == UpdateStatus.Downloading),
+                    pending_installation = updates.Count(u =>
+                        u.Status == UpdateStatus.PendingInstallation),
+                    installing_updates = updates.Count(u =>
+                        u.Status == UpdateStatus.Installing),
+                    restart_required_updates = updates.Count(u =>
+                        u.Status == UpdateStatus.RestartRequired ||
+                        u.Status == UpdateStatus.PendingReboot),
+                    failed_updates = updates.Count(u =>
+                        u.Status == UpdateStatus.Failed),
                     updates_paused    = pauseInfo.IsPaused,
                     paused_until      = pauseInfo.PausedUntil,
                     wu_service        = svcStatus,
@@ -141,7 +172,35 @@ namespace WUM.CLI.Commands
             string statusText;
             ConsoleColor statusColor;
 
-            if (updates.Count == 0)
+            if (reboot || updates.Any(u =>
+                    u.Status == UpdateStatus.RestartRequired ||
+                    u.Status == UpdateStatus.PendingReboot))
+            {
+                statusText  = "⟳ Restart required";
+                statusColor = ConsoleColor.Yellow;
+            }
+            else if (updates.Any(u => u.Status == UpdateStatus.Failed))
+            {
+                statusText  = "✗ Update failure needs attention";
+                statusColor = ConsoleColor.Red;
+            }
+            else if (updates.Any(u => u.Status == UpdateStatus.Installing))
+            {
+                statusText  = "… Updates installing";
+                statusColor = ConsoleColor.Cyan;
+            }
+            else if (updates.Any(u => u.Status == UpdateStatus.Downloading))
+            {
+                statusText  = "↓ Updates downloading";
+                statusColor = ConsoleColor.Cyan;
+            }
+            else if (updates.Any(u =>
+                    u.Status == UpdateStatus.PendingInstallation))
+            {
+                statusText  = "⌛ Updates pending installation";
+                statusColor = ConsoleColor.Cyan;
+            }
+            else if (updates.Count == 0)
             {
                 statusText  = "✓ System is up to date";
                 statusColor = ConsoleColor.Green;
@@ -175,7 +234,7 @@ namespace WUM.CLI.Commands
             ConsoleRenderer.CountLine("Total",
                 updates.Count, ConsoleColor.Cyan);
             ConsoleRenderer.CountLine("Security",
-                updates.Count(u => u.Category == UpdateCategory.Security),
+                updates.Count(u => u.IsSecurityUpdate),
                 ConsoleColor.Red);
             ConsoleRenderer.CountLine("Critical",
                 updates.Count(u => u.Category == UpdateCategory.Critical),
@@ -186,15 +245,45 @@ namespace WUM.CLI.Commands
             ConsoleRenderer.CountLine("Drivers",
                 updates.Count(u => u.Category == UpdateCategory.Driver),
                 ConsoleColor.Magenta);
+            ConsoleRenderer.CountLine("Feature / Insider",
+                updates.Count(u => u.Category == UpdateCategory.FeatureUpdate),
+                ConsoleColor.Cyan);
+            ConsoleRenderer.CountLine("Available",
+                updates.Count(u => u.Status == UpdateStatus.Available),
+                ConsoleColor.Blue);
+            ConsoleRenderer.CountLine("Downloading",
+                updates.Count(u => u.Status == UpdateStatus.Downloading),
+                ConsoleColor.Cyan);
+            ConsoleRenderer.CountLine("Pending Install",
+                updates.Count(u =>
+                    u.Status == UpdateStatus.PendingInstallation),
+                ConsoleColor.Cyan);
+            ConsoleRenderer.CountLine("Installing",
+                updates.Count(u => u.Status == UpdateStatus.Installing),
+                ConsoleColor.Cyan);
+            ConsoleRenderer.CountLine("Failed",
+                updates.Count(u => u.Status == UpdateStatus.Failed),
+                ConsoleColor.Red);
+            ConsoleRenderer.CountLine("Restart Required",
+                updates.Count(u =>
+                    u.Status == UpdateStatus.RestartRequired ||
+                    u.Status == UpdateStatus.PendingReboot),
+                ConsoleColor.Yellow);
 
             Console.WriteLine();
             if (updates.Count > 0)
             {
-                ConsoleRenderer.Hint("wum list               -> see all updates");
-                ConsoleRenderer.Hint("wum install --security -> install security updates");
+                ConsoleRenderer.Hint(
+                    CommandPresentation.FormatCommand("list") +
+                    " -> see all updates");
+                ConsoleRenderer.Hint(
+                    CommandPresentation.FormatCommand("install --security") +
+                    " -> install security updates");
             }
             if (reboot)
-                ConsoleRenderer.Hint("wum reboot             -> restart to finish install");
+                ConsoleRenderer.Hint(
+                    CommandPresentation.FormatCommand("reboot") +
+                    " -> restart to finish install");
             Console.WriteLine();
         }
 
@@ -228,6 +317,18 @@ namespace WUM.CLI.Commands
             if (category == UpdateCategory.FeatureUpdate) return ConsoleColor.Cyan;
             if (category == UpdateCategory.Definition) return ConsoleColor.DarkGreen;
             return ConsoleColor.Blue;
+        }
+
+        private static ConsoleColor StatusColor(UpdateStatus status)
+        {
+            if (status == UpdateStatus.Failed) return ConsoleColor.Red;
+            if (status == UpdateStatus.RestartRequired ||
+                status == UpdateStatus.PendingReboot) return ConsoleColor.Yellow;
+            if (status == UpdateStatus.Downloading ||
+                status == UpdateStatus.PendingInstallation ||
+                status == UpdateStatus.Installing) return ConsoleColor.Cyan;
+            if (status == UpdateStatus.Installed) return ConsoleColor.Green;
+            return ConsoleColor.Gray;
         }
     }
 }

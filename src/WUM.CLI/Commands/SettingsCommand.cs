@@ -90,8 +90,12 @@ namespace WUM.CLI.Commands
                 s.DeferQualityUpdatesDays + " days", ConsoleColor.White);
 
             Console.WriteLine();
-            ConsoleRenderer.Hint("wum settings set <key> <value>  -> change a setting");
-            ConsoleRenderer.Hint("wum settings reset               -> reset to defaults");
+            ConsoleRenderer.Hint(
+                CommandPresentation.FormatCommand("settings set <key> <value>") +
+                " -> change a setting");
+            ConsoleRenderer.Hint(
+                CommandPresentation.FormatCommand("settings reset") +
+                " -> reset to defaults");
             Console.WriteLine();
         }
 
@@ -112,7 +116,8 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.SuccessResult(
                     "Setting saved.",
                     key + " = " + value,
-                    "Run wum settings show to verify.");
+                    "Run " + CommandPresentation.FormatCommand("settings show") +
+                    " to verify.");
                 Console.WriteLine();
             }
             catch (ArgumentException ex)
@@ -150,7 +155,8 @@ namespace WUM.CLI.Commands
             ConsoleRenderer.SuccessResult(
                 "Settings reset to defaults.",
                 "WUM wrote default settings values.",
-                "Run wum settings show to verify.");
+                "Run " + CommandPresentation.FormatCommand("settings show") +
+                " to verify.");
             Console.WriteLine();
         }
     }

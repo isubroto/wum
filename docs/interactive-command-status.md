@@ -17,19 +17,13 @@ Shows current Windows Update state inside interactive mode.
 /status [--json] [--verbose|-v] [--refresh]
 ```
 
-CLI equivalent:
-
-```powershell
-wum status [--json] [--verbose|-v] [--refresh]
-```
-
 ## Options
 
 | Option | Detail |
 |---|---|
 | `--json` | Print machine-readable status JSON instead of the dashboard. |
-| `--verbose`, `-v` | Show service check, reboot check, pause check, scan/cache detail, and per-update detail. |
-| `--refresh` | Force fresh online scan and bypass the 5-minute scan cache. |
+| `--verbose`, `-v` | Show service check, reboot check, pause check, scan detail, and per-update detail. |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before querying current status. |
 
 ## Behavior
 
@@ -46,6 +40,6 @@ It prints service state, reboot requirement, pause state, available update count
 /status --refresh
 ```
 
-More backend detail: [`wum status`](command-status.md)
+Implementation detail: [status behavior](command-status.md)
 
 Next: [`/list`](interactive-command-list.md)

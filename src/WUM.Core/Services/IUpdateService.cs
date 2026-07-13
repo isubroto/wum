@@ -19,9 +19,10 @@ namespace WUM.Core.Services
             CancellationToken ct = default);
 
         Task<List<UpdateHistory>> GetUpdateHistoryAsync(
-            int count = 50);
+            int count = 50,
+            CancellationToken ct = default);
 
-        // Last failure detail, set by Download/Install when they return false.
+        // Last failure detail, set by update mutations when they return false.
         // Null when the last call succeeded or none ran yet.
         string? LastError { get; }
 
@@ -30,16 +31,32 @@ namespace WUM.Core.Services
             IProgress<double>? progress = null,
             CancellationToken  ct       = default);
 
+        Task<bool> DownloadUpdateAsync(
+            WindowsUpdate update,
+            IProgress<double>? progress = null,
+            CancellationToken  ct       = default);
+
         Task<bool> InstallUpdateAsync(
             string updateId,
             IProgress<double>? progress = null,
             CancellationToken  ct       = default);
 
-        Task<bool> UninstallUpdateAsync(string kbArticle);
+        Task<bool> InstallUpdateAsync(
+            WindowsUpdate update,
+            IProgress<double>? progress = null,
+            CancellationToken  ct       = default);
 
-        Task<bool> HideUpdateAsync(string updateId);
+        Task<bool> UninstallUpdateAsync(
+            string kbArticle,
+            CancellationToken ct = default);
 
-        Task<bool> UnhideUpdateAsync(string updateId);
+        Task<bool> HideUpdateAsync(
+            string updateId,
+            CancellationToken ct = default);
+
+        Task<bool> UnhideUpdateAsync(
+            string updateId,
+            CancellationToken ct = default);
 
         Task<UpdateSettings> GetSettingsAsync();
 
@@ -47,12 +64,22 @@ namespace WUM.Core.Services
 
         bool IsRebootRequired();
 
-        Task<string> GetServiceStatusAsync();
+        // Finalize staged WUA updates exactly once for the current boot, then
+        // schedule the restart. Required for pending feature updates.
+        Task<bool> CommitAndScheduleRebootAsync(
+            int secondsDelay,
+            string message,
+            CancellationToken ct = default);
+
+        Task<string> GetServiceStatusAsync(
+            CancellationToken ct = default);
 
         // Diagnostics
-        Task<string> DiagnoseAsync();
+        Task<string> DiagnoseAsync(
+            CancellationToken ct = default);
 
         // Reset Windows Update components to default (destructive — admin only)
-        Task<string> ResetComponentsAsync();
+        Task<string> ResetComponentsAsync(
+            CancellationToken ct = default);
     }
 }

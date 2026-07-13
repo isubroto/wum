@@ -19,14 +19,6 @@ wum list [--security] [--critical] [--optional] [--drivers] [--definition]
          [--json] [--no-color] [--verbose|-v] [--refresh]
 ```
 
-## Interactive form
-
-```text
-/list [--security] [--critical] [--optional] [--drivers] [--definition]
-      [--hidden] [--installed] [--microsoft-update|--mu]
-      [--json] [--no-color] [--verbose|-v] [--refresh]
-```
-
 ## Filter options
 
 | Option | Detail |
@@ -46,7 +38,7 @@ Category filters are OR-combined. `wum list --security --drivers` shows security
 | `--hidden` | Include hidden updates in the scan result. |
 | `--installed` | Show installed updates instead of available updates. |
 | `--microsoft-update`, `--mu` | Include Microsoft Update service for drivers and other Microsoft products. |
-| `--refresh` | Force a fresh scan and bypass the shared 5-minute cache. |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before querying current updates. |
 
 ## Output options
 
@@ -58,7 +50,7 @@ Category filters are OR-combined. `wum list --security --drivers` shows security
 
 ## Behavior
 
-`list` is read-only and does not require Administrator. Filtering happens after scan data is collected. The footer reports total download size and reboot count.
+`list` is read-only and does not require Administrator. On supported builds, the default view reads the Settings-backed Windows Update orchestrator first and uses WUA for catalog enrichment; older builds use an online WUA scan. Both honor the operating system's effective update source and policy. Only currently applicable, not-installed results appear. Active download/install progress, pending installation, failure, and restart attention are distinct; installed, superseded, or no-longer-applicable items do not remain available. Filtering happens after scan data is collected.
 
 ## Examples
 

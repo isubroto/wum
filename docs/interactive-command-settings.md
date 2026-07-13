@@ -20,12 +20,6 @@ Shows, changes, or resets Windows Update preferences.
 /settings reset
 ```
 
-CLI equivalent:
-
-```powershell
-wum settings [show|set|reset] [key] [value]
-```
-
 ## Subcommands
 
 | Subcommand | Detail |
@@ -60,6 +54,6 @@ Use quotes if a value needs spaces.
 /settings reset
 ```
 
-More backend detail: [`wum settings`](command-settings.md)
+Implementation detail: [settings behavior](command-settings.md)
 
 Next: [`/reboot`](interactive-command-reboot.md)

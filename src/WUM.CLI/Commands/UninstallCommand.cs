@@ -20,23 +20,25 @@ namespace WUM.CLI.Commands
         {
             var cmd     = new Command("uninstall", "Uninstall an update by KB number");
             var kbArg   = new Argument<string>("kb-article", "KB number (e.g. KB5034441)");
-            var forceOpt = new Option<bool>(new[] { "--force", "-f" }, "Skip confirmation");
+            var forceOpt = new Option<bool>(
+                new[] { "--force", "-f" },
+                "Skip the uninstall confirmation prompt");
 
             cmd.AddArgument(kbArg);
             cmd.AddOption(forceOpt);
 
-            cmd.SetHandler(async (string kb, bool force) =>
+            cmd.SetHandler(async (ctx) =>
             {
-                await RunAsync(kb, force);
-            }, kbArg, forceOpt);
+                string kb = ctx.ParseResult.GetValueForArgument(kbArg);
+                bool force = ctx.ParseResult.GetValueForOption(forceOpt);
+                ctx.ExitCode = await RunAsync(kb, force);
+            });
 
             return cmd;
         }
 
-        private async Task RunAsync(string kb, bool force)
+        private async Task<int> RunAsync(string kb, bool force)
         {
-            AdminHelper.RequireAdmin();
-
             string norm = kb.StartsWith("KB", StringComparison.OrdinalIgnoreCase)
                 ? kb : "KB" + kb;
 
@@ -49,13 +51,16 @@ namespace WUM.CLI.Commands
             {
                 ConsoleRenderer.Cancelled(norm + " was not removed.");
                 Console.WriteLine();
-                return;
+                return 0;
             }
 
+            if (!AdminHelper.RequireAdmin()) return 1;
+
             Console.WriteLine();
-            await ConsoleRenderer.ShowSpinnerAsync("Uninstalling " + norm + "...", async () =>
+            await ConsoleRenderer.ShowSpinnerAsync(
+                "Uninstalling " + norm + "...", async token =>
             {
-                bool ok = await _updates.UninstallUpdateAsync(norm);
+                bool ok = await _updates.UninstallUpdateAsync(norm, token);
                 if (ok)
                     ConsoleRenderer.SuccessResult(
                         norm + " uninstall requested.",
@@ -65,9 +70,12 @@ namespace WUM.CLI.Commands
                     ConsoleRenderer.Failure(
                         "Failed to uninstall " + norm + ".",
                         "The update may not be installed, may not support uninstall, or WUSA returned an error.",
-                        "Run wum list --installed or wum history --kb " + norm + " to verify.");
+                        "Run " + CommandPresentation.FormatCommand("list --installed") +
+                        " or " + CommandPresentation.FormatCommand("history --kb " + norm) +
+                        " to verify.");
             });
             Console.WriteLine();
+            return 0;
         }
     }
 }

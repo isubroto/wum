@@ -58,16 +58,17 @@ namespace WUM.CLI.Commands
         {
             Console.WriteLine();
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Hiding " + id + "...", async () =>
+                "Hiding " + id + "...", async token =>
                 {
-                    bool ok = await _updates.HideUpdateAsync(id);
+                    bool ok = await _updates.HideUpdateAsync(id, token);
                     if (ok)
                         ConsoleRenderer.SuccessResult(id + " is now hidden.");
                     else
                         ConsoleRenderer.Failure(
                             "Could not hide " + id + ".",
                             "Update ID may be wrong, already installed, or not available in the current scan.",
-                            "Run wum list -v to copy the exact update ID.");
+                            "Run " + CommandPresentation.FormatCommand("list -v") +
+                            " to copy the exact update ID.");
                 });
             Console.WriteLine();
         }
@@ -76,16 +77,17 @@ namespace WUM.CLI.Commands
         {
             Console.WriteLine();
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Unhiding " + id + "...", async () =>
+                "Unhiding " + id + "...", async token =>
                 {
-                    bool ok = await _updates.UnhideUpdateAsync(id);
+                    bool ok = await _updates.UnhideUpdateAsync(id, token);
                     if (ok)
                         ConsoleRenderer.SuccessResult(id + " is now visible.");
                     else
                         ConsoleRenderer.Failure(
                             "Could not unhide " + id + ".",
                             "Update ID may be wrong or the update is no longer hidden.",
-                            "Run wum hide list to see hidden updates.");
+                            "Run " + CommandPresentation.FormatCommand("hide list") +
+                            " to see hidden updates.");
                 });
             Console.WriteLine();
         }
@@ -95,12 +97,13 @@ namespace WUM.CLI.Commands
             List<WindowsUpdate> hidden = new();
 
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Loading hidden updates...", async () =>
+                "Loading hidden updates...", async token =>
                 {
                     var all = await _updates.GetAvailableUpdatesAsync(
-                        includeHidden: true);
+                        includeHidden: true,
+                        ct: token);
                     hidden = all.Where(u => u.IsHidden).ToList();
-                });
+                }, timeoutSeconds: 330);
 
             Console.WriteLine();
             ConsoleRenderer.Header(
@@ -112,7 +115,8 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.Notice(
                     "No hidden updates found.",
                     "The hidden-update scan completed successfully.",
-                    "Run wum list --hidden to include hidden items in the full list.");
+                    "Run " + CommandPresentation.FormatCommand("list --hidden") +
+                    " to include hidden items in the full list.");
                 Console.WriteLine();
                 return;
             }

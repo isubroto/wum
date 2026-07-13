@@ -20,15 +20,6 @@ wum settings set <key> <value>
 wum settings reset
 ```
 
-## Interactive form
-
-```text
-/settings
-/settings show
-/settings set <key> <value>
-/settings reset
-```
-
 ## Subcommands
 
 | Subcommand | Admin | Detail |

@@ -6,6 +6,7 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using WUM.CLI.Helpers;
 
@@ -42,7 +43,7 @@ namespace WUM.CLI.Commands
                 "Only check for a newer version; do not install");
             var forceOpt = new Option<bool>(
                 new[] { "--force", "-f", "--yes", "-y" },
-                "Skip the confirmation prompt and install");
+                "Skip the installation confirmation prompt");
 
             cmd.AddOption(checkOpt);
             cmd.AddOption(forceOpt);
@@ -70,9 +71,9 @@ namespace WUM.CLI.Commands
 
             ReleaseInfo? release = null;
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Checking GitHub for the latest release...", async () =>
+                "Checking GitHub for the latest release...", async token =>
                 {
-                    release = await FetchLatestReleaseAsync();
+                    release = await FetchLatestReleaseAsync(token);
                 }, timeoutSeconds: 30);
 
             if (release is null)
@@ -105,7 +106,9 @@ namespace WUM.CLI.Commands
             // ── Check-only mode ──────────────────────────────────────────
             if (checkOnly)
             {
-                ConsoleRenderer.Hint("Run 'wum update' to install it.");
+                ConsoleRenderer.Hint(
+                    "Run '" + CommandPresentation.FormatCommand("update") +
+                    "' to install it.");
                 Console.WriteLine();
                 return 2;
             }
@@ -120,9 +123,6 @@ namespace WUM.CLI.Commands
                 return 1;
             }
 
-            // Installing the MSI writes to Program Files and requires elevation.
-            AdminHelper.RequireAdmin();
-
             if (!force && !ConsoleRenderer.Confirm(
                     "  Download and install v" + release.Version + " now?"))
             {
@@ -130,6 +130,11 @@ namespace WUM.CLI.Commands
                 Console.WriteLine();
                 return 0;
             }
+
+            // Installing the MSI writes to Program Files. Check elevation only
+            // after the user has accepted the update, immediately before the
+            // download/install workflow begins.
+            if (!AdminHelper.RequireAdmin()) return 1;
 
             // ── Download MSI ─────────────────────────────────────────────
             string msiPath = Path.Combine(
@@ -164,15 +169,17 @@ namespace WUM.CLI.Commands
             // ── Run installer ────────────────────────────────────────────
             ConsoleRenderer.Info("  Launching installer (msiexec)...");
             ConsoleRenderer.Muted(
-                "  wum will close while the upgrade completes.");
+                "  WUM will close while the upgrade completes.");
             Console.WriteLine();
 
             if (LaunchMsi(msiPath))
             {
                 ConsoleRenderer.SuccessResult(
                     "Installer launched.",
-                    "This wum process will exit now so the MSI can replace it.",
-                    "Follow the installer progress window; run wum --info after it finishes.");
+                    "This WUM process will exit now so the MSI can replace it.",
+                    "Follow the installer progress window; run " +
+                    CommandPresentation.FormatCommand("--info", "info") +
+                    " after it finishes.");
                 Console.WriteLine();
                 Environment.Exit(0);
                 return 0;
@@ -183,14 +190,15 @@ namespace WUM.CLI.Commands
         }
 
         // ── GitHub release fetch ─────────────────────────────────────────
-        private static async Task<ReleaseInfo?> FetchLatestReleaseAsync()
+        private static async Task<ReleaseInfo?> FetchLatestReleaseAsync(
+            CancellationToken ct = default)
         {
             try
             {
-                using var resp = await Http.GetAsync(LatestReleaseApi);
+                using var resp = await Http.GetAsync(LatestReleaseApi, ct);
                 if (!resp.IsSuccessStatusCode) return null;
 
-                string body = await resp.Content.ReadAsStringAsync();
+                string body = await resp.Content.ReadAsStringAsync(ct);
                 using var doc = JsonDocument.Parse(body);
                 var root = doc.RootElement;
 
@@ -223,6 +231,7 @@ namespace WUM.CLI.Commands
 
                 return new ReleaseInfo(ver, msiUrl, msiName ?? "installer", htmlUrl);
             }
+            catch (OperationCanceledException) { throw; }
             catch
             {
                 return null;

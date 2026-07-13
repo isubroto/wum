@@ -18,12 +18,6 @@ Downloads and installs selected updates from interactive mode.
          [--dry-run] [--force|-f] [--no-reboot] [--microsoft-update|--mu]
 ```
 
-CLI equivalent:
-
-```powershell
-wum install [<kb-articles>...] [options]
-```
-
 ## Arguments
 
 | Argument | Required | Detail |
@@ -50,7 +44,8 @@ wum install [<kb-articles>...] [options]
 
 ## Behavior
 
-`/install` requires Administrator.
+Downloading or installing updates requires Administrator. `/install --dry-run`
+is read-only and does not require elevation.
 
 It scans, resolves targets, shows plan, confirms unless forced, downloads/installs with progress, then returns to interactive `ready`.
 
@@ -65,6 +60,6 @@ It scans, resolves targets, shows plan, confirms unless forced, downloads/instal
 /install KB5034441 --no-reboot
 ```
 
-More backend detail: [`wum install`](command-install.md)
+Implementation detail: [install behavior](command-install.md)
 
 Next: [`/uninstall`](interactive-command-uninstall.md)

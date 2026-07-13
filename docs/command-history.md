@@ -17,12 +17,6 @@ Shows Windows Update install history from the WUA history store.
 wum history [--count|-n <N>] [--failed] [--kb <KB>] [--json]
 ```
 
-## Interactive form
-
-```text
-/history [--count|-n <N>] [--failed] [--kb <KB>] [--json]
-```
-
 ## Options
 
 | Option | Default | Detail |

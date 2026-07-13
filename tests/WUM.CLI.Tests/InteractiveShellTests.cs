@@ -1,10 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using WUM.CLI.Commands;
 using WUM.CLI.Interactive;
+using WUM.Core.Models;
+using WUM.Core.Services;
 using Xunit;
 
 namespace WUM.CLI.Tests
@@ -105,6 +113,117 @@ namespace WUM.CLI.Tests
             result.InfoCalled.Should().BeTrue();
             result.Invocations.Should().ContainSingle()
                 .Which.Should().Equal("--version");
+        }
+
+        [Fact]
+        public async Task RunAsync_HelpContainsOnlyInteractiveCommandSyntax()
+        {
+            var result = await RunShellAsync("/help", "/exit");
+
+            result.Output.Should().Contain("/status");
+            result.Output.Should().Contain("/list --installed");
+            result.Output.Should().NotContain("wum status");
+            result.Output.Should().NotContain("wum list");
+            result.Output.Should().NotContain("wum install");
+        }
+
+        [Fact]
+        public async Task RunAsync_CommandHelpDescribesOptionBehaviorAccurately()
+        {
+            var result = await RunShellAsync(
+                "/help list",
+                "/help search",
+                "/help install",
+                "/help uninstall",
+                "/help reboot",
+                "/help diagnose",
+                "/exit");
+
+            result.Output.Should().Contain("Include hidden updates");
+            result.Output.Should().Contain(
+                "Also query Microsoft Update for other Microsoft products");
+            result.Output.Should().Contain(
+                "Skip the installation confirmation prompt");
+            result.Output.Should().Contain(
+                "Do not prompt for restart after installation");
+            result.Output.Should().Contain(
+                "Skip the uninstall confirmation prompt");
+            result.Output.Should().Contain(
+                "Restart even if not required; skip confirmation");
+            result.Output.Should().Contain(
+                "Skip the reset confirmation prompt");
+            result.Output.Should().NotContain("Only hidden updates");
+            result.Output.Should().NotContain(
+                "Use Microsoft Update instead of Windows Update");
+            result.Output.Should().NotContain("Force installation");
+            result.Output.Should().NotContain("Force uninstallation");
+        }
+
+        [Theory]
+        [InlineData("--help")]
+        [InlineData("-h")]
+        [InlineData("-?")]
+        public async Task RunAsync_CommandHelpFlagUsesInteractiveHelp(
+            string helpOption)
+        {
+            var result = await RunShellAsync(
+                "/list " + helpOption,
+                "/exit");
+
+            result.Output.Should().Contain("/list");
+            result.Output.Should().Contain("Only installed updates");
+            result.Output.Should().NotContain("Usage:" + Environment.NewLine + "  wum list");
+            result.Invocations.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task RunAsync_InvalidOptionDoesNotEmitCliUsage()
+        {
+            using var services = BuildStatusServices();
+            Parser parser = BuildStatusParser(services);
+
+            var result = await RunParserShellAsync(
+                parser,
+                "/status --not-a-real-option");
+
+            result.ExitCode.Should().Be(1);
+            result.Output.Should().Contain("could not be parsed");
+            result.Output.Should().Contain("/help status");
+            result.Output.Should().NotContain("Usage:" + Environment.NewLine + "  wum status");
+        }
+
+        [Fact]
+        public async Task RunAsync_StatusHandlerUsesInteractiveCommandHints()
+        {
+            using var services = BuildStatusServices();
+            Parser parser = BuildStatusParser(services);
+
+            var result = await RunParserShellAsync(
+                parser,
+                "/status",
+                "/exit");
+
+            result.ExitCode.Should().Be(0);
+            result.Output.Should().Contain("/list -> see all updates");
+            result.Output.Should().Contain("/install --security -> install security updates");
+            result.Output.Should().Contain("/reboot -> restart to finish install");
+            result.Output.Should().NotContain("wum list");
+            result.Output.Should().NotContain("wum install");
+            result.Output.Should().NotContain("wum reboot");
+        }
+
+        [Fact]
+        public async Task StatusHandler_OneShotInvocationUsesCliCommandHints()
+        {
+            using var services = BuildStatusServices();
+            Parser parser = BuildStatusParser(services);
+
+            string output = await RunParserCommandAsync(parser, "status");
+
+            output.Should().Contain("wum list -> see all updates");
+            output.Should().Contain(
+                "wum install --security -> install security updates");
+            output.Should().Contain("wum reboot -> restart to finish install");
         }
 
         [Fact]
@@ -275,6 +394,106 @@ namespace WUM.CLI.Tests
                 invocations,
                 clearCalled,
                 infoCalled);
+        }
+
+        private static async Task<ShellRunResult> RunParserShellAsync(
+            Parser parser,
+            params string[] lines)
+        {
+            string inputText = string.Join(Environment.NewLine, lines) +
+                               Environment.NewLine;
+            TextReader originalIn = Console.In;
+            TextWriter originalOut = Console.Out;
+
+            using var input = new StringReader(inputText);
+            using var output = new StringWriter();
+
+            try
+            {
+                Console.SetIn(input);
+                Console.SetOut(output);
+
+                var shell = new InteractiveShell(parser, () => { });
+                int exitCode = await shell.RunAsync();
+
+                return new ShellRunResult(
+                    exitCode,
+                    output.ToString(),
+                    new List<string[]>(),
+                    false,
+                    false);
+            }
+            finally
+            {
+                Console.SetIn(originalIn);
+                Console.SetOut(originalOut);
+            }
+        }
+
+        private static async Task<string> RunParserCommandAsync(
+            Parser parser,
+            params string[] args)
+        {
+            TextReader originalIn = Console.In;
+            TextWriter originalOut = Console.Out;
+
+            using var input = new StringReader(string.Empty);
+            using var output = new StringWriter();
+
+            try
+            {
+                Console.SetIn(input);
+                Console.SetOut(output);
+                await parser.InvokeAsync(args);
+                return output.ToString();
+            }
+            finally
+            {
+                Console.SetIn(originalIn);
+                Console.SetOut(originalOut);
+            }
+        }
+
+        private static ServiceProvider BuildStatusServices()
+        {
+            var updates = new Mock<IUpdateService>();
+            updates.Setup(service => service.GetServiceStatusAsync(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync("Running");
+            updates.Setup(service => service.IsRebootRequired())
+                .Returns(true);
+            updates.Setup(service => service.GetAvailableUpdatesAsync(
+                    It.IsAny<bool>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<bool>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<WindowsUpdate>
+                {
+                    new()
+                    {
+                        Id = "test-update",
+                        Title = "Test Security Update",
+                        KBArticle = "KB1234567",
+                        Category = UpdateCategory.Security
+                    }
+                });
+
+            var pause = new Mock<IPauseService>();
+            pause.Setup(service => service.GetPauseInfoAsync(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PauseInfo { IsPaused = false });
+
+            return new ServiceCollection()
+                .AddSingleton<IUpdateService>(updates.Object)
+                .AddSingleton<IPauseService>(pause.Object)
+                .BuildServiceProvider();
+        }
+
+        private static Parser BuildStatusParser(IServiceProvider services)
+        {
+            var root = new RootCommand();
+            root.AddCommand(new StatusCommand(services).Build());
+            return Program.BuildParser(root);
         }
 
         private sealed class ShellRunResult

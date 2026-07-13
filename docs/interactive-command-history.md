@@ -17,12 +17,6 @@ Shows Windows Update install history.
 /history [--count|-n <N>] [--failed] [--kb <KB>] [--json]
 ```
 
-CLI equivalent:
-
-```powershell
-wum history [--count|-n <N>] [--failed] [--kb <KB>] [--json]
-```
-
 ## Options
 
 | Option | Detail |
@@ -48,6 +42,6 @@ This is different from interactive command-line history. It reads Windows Update
 /history --json -n 100
 ```
 
-More backend detail: [`wum history`](command-history.md)
+Implementation detail: [history behavior](command-history.md)
 
 Next: [`/pause`](interactive-command-pause.md)

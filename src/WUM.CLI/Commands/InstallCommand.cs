@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using WUM.CLI.Helpers;
-using WUM.Core.Helpers;
 using WUM.Core.Models;
 using WUM.Core.Services;
 
@@ -43,7 +42,8 @@ namespace WUM.CLI.Commands
             var dryRunOpt    = new Option<bool>(
                 "--dry-run",   "Preview what would be installed without doing it");
             var forceOpt     = new Option<bool>(
-                new[] { "--force", "-f" }, "Skip confirmation prompts");
+                new[] { "--force", "-f" },
+                "Skip the installation confirmation prompt");
             var noRebootOpt  = new Option<bool>(
                 "--no-reboot", "Do not prompt for reboot after install");
             var muOpt        = new Option<bool>(
@@ -72,31 +72,31 @@ namespace WUM.CLI.Commands
                 var noReboot   = ctx.ParseResult.GetValueForOption(noRebootOpt);
                 var mu         = ctx.ParseResult.GetValueForOption(muOpt);
 
-                await RunAsync(kbs, security, critical, all,
-                               definition, dryRun, force, noReboot, mu);
+                ctx.ExitCode = await RunAsync(
+                    kbs, security, critical, all,
+                    definition, dryRun, force, noReboot, mu);
             });
 
             return cmd;
         }
 
-        private async Task RunAsync(
+        private async Task<int> RunAsync(
             string[] kbs,
             bool security,   bool critical,
             bool all,        bool definition,
             bool dryRun,     bool force,
             bool noReboot,   bool mu)
         {
-            WUM.CLI.Helpers.AdminHelper.RequireAdmin();
-
             // ── Fetch available updates ───────────────────────────────────
             List<WindowsUpdate> available = new();
 
             await ConsoleRenderer.ShowSpinnerAsync(
-                "Scanning for available updates...", async () =>
+                "Scanning for available updates...", async token =>
                 {
                     available = await _updates.GetAvailableUpdatesAsync(
-                        useMicrosoftUpdate: mu);
-                });
+                        useMicrosoftUpdate: mu,
+                        ct: token);
+                }, timeoutSeconds: 330);
 
             if (available.Count == 0)
             {
@@ -104,9 +104,10 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.SuccessResult(
                     "System is already up to date.",
                     "No available updates were returned by Windows Update.",
-                    "Run wum diagnose if you expected updates.");
+                    "Run " + CommandPresentation.FormatCommand("diagnose") +
+                    " if you expected updates.");
                 Console.WriteLine();
-                return;
+                return 0;
             }
 
             // ── Resolve which updates to target ───────────────────────────
@@ -119,9 +120,45 @@ namespace WUM.CLI.Commands
                 ConsoleRenderer.Notice(
                     "No updates matched the selected install filter.",
                     "Available updates exist, but none matched the KB/category flags.",
-                    "Run wum list to inspect candidates, or wum install --all.");
+                    "Run " + CommandPresentation.FormatCommand("list") +
+                    " to inspect candidates, or " +
+                    CommandPresentation.FormatCommand("install --all") + ".");
                 Console.WriteLine();
-                return;
+                return 0;
+            }
+
+            // Do not start a second WUA transaction while the Windows Update
+            // orchestrator (Settings) is already acting on the same update.
+            // Likewise, a restart-gated item cannot be retried in this boot.
+            var active = targets.Where(u =>
+                u.Status == UpdateStatus.Downloading ||
+                u.Status == UpdateStatus.Installing).ToList();
+            var restartGated = targets.Where(u =>
+                u.Status == UpdateStatus.RestartRequired ||
+                u.Status == UpdateStatus.PendingReboot).ToList();
+
+            foreach (var update in active)
+                ConsoleRenderer.Notice(
+                    "Skipping " + DisplayId(update) + ".",
+                    "Windows Update is already " +
+                    update.Status.ToString().ToLowerInvariant() +
+                    " this update.",
+                    "Wait for the current OS action, then refresh status.");
+            foreach (var update in restartGated)
+                ConsoleRenderer.WarningResult(
+                    "Skipping " + DisplayId(update) + ".",
+                    "A restart is required before this update can continue.",
+                    "Run " + CommandPresentation.FormatCommand("reboot") +
+                    ", then scan again.");
+
+            if (active.Count > 0 || restartGated.Count > 0)
+            {
+                targets = targets.Except(active).Except(restartGated).ToList();
+                if (targets.Count == 0)
+                {
+                    Console.WriteLine();
+                    return 0;
+                }
             }
 
             // ── Show install plan ─────────────────────────────────────────
@@ -136,7 +173,7 @@ namespace WUM.CLI.Commands
                     "Install plan above is a preview only.",
                     "Remove --dry-run to download and install.");
                 Console.WriteLine();
-                return;
+                return 0;
             }
 
             // ── Confirm ───────────────────────────────────────────────────
@@ -144,36 +181,126 @@ namespace WUM.CLI.Commands
             {
                 ConsoleRenderer.Cancelled("No updates were downloaded or installed.");
                 Console.WriteLine();
-                return;
+                return 0;
             }
+
+            // Once a feature-update transaction has been committed, WUA must
+            // reboot before another install can safely be staged. This also
+            // catches ordinary servicing-stack reboot gates.
+            if (_updates.IsRebootRequired())
+            {
+                ConsoleRenderer.WarningResult(
+                    "Installation cannot start until Windows restarts.",
+                    "Windows Update reports a pending reboot.",
+                    "Run " + CommandPresentation.FormatCommand("reboot") +
+                    ", then scan again.");
+                Console.WriteLine();
+                return 1;
+            }
+
+            // Everything above is read-only. Elevation is required only once
+            // the user has accepted the plan and WUM is about to mutate state.
+            if (!WUM.CLI.Helpers.AdminHelper.RequireAdmin()) return 1;
 
             // ── Install loop ──────────────────────────────────────────────
             Console.WriteLine();
             var results = await InstallAllAsync(targets);
 
+            // A successful install can supersede other offers or make a
+            // prerequisite-dependent update newly applicable. Re-query the
+            // effective source before presenting the final state.
+            List<WindowsUpdate>? remaining = null;
+            bool refreshFailed = false;
+            try
+            {
+                await ConsoleRenderer.ShowSpinnerAsync(
+                    "Refreshing Windows Update state...", async token =>
+                    {
+                        remaining = await _updates.GetAvailableUpdatesAsync(
+                            useMicrosoftUpdate: mu,
+                            ct: token);
+                    }, timeoutSeconds: 330);
+            }
+            catch (Exception ex)
+            {
+                refreshFailed = true;
+                ConsoleRenderer.WarningResult(
+                    "Installation finished, but the final status refresh failed.",
+                    ex.Message,
+                    "Run " + CommandPresentation.FormatCommand("status --refresh") +
+                    " to retry the live scan.");
+            }
+
             // ── Summary ───────────────────────────────────────────────────
             PrintSummary(results);
 
+            if (remaining != null)
+            {
+                ConsoleRenderer.Info(
+                    "  Current Windows Update offers: " + remaining.Count);
+            }
+
             // ── Reboot prompt ─────────────────────────────────────────────
-            if (!noReboot && _updates.IsRebootRequired())
+            bool rebootRequired =
+                _updates.IsRebootRequired() ||
+                results.Any(r => r.RestartRequired) ||
+                (remaining?.Any(u =>
+                    u.Status == UpdateStatus.RestartRequired ||
+                    u.Status == UpdateStatus.PendingReboot) ?? false);
+            bool rebootScheduleFailed = false;
+            if (rebootRequired)
             {
                 Console.WriteLine();
                 ConsoleRenderer.Warning(
                     "  A restart is required to complete installation.");
-                if (ConsoleRenderer.Confirm("  Restart now? (30 second delay)"))
+
+                if (noReboot)
                 {
-                    ConsoleRenderer.Info("  Scheduling restart in 30 seconds...");
-                    ConsoleRenderer.Hint("  wum reboot --cancel  to abort");
-                    bool scheduled = await PowerShellHelper.ScheduleRebootAsync(
+                    ConsoleRenderer.Hint(
+                        "Run " + CommandPresentation.FormatCommand("reboot") +
+                        " when ready; WUM finalizes staged feature updates immediately before restart.");
+                }
+                else if (ConsoleRenderer.Confirm(
+                    "  Finalize updates and restart now? (30 second delay)"))
+                {
+                    ConsoleRenderer.Info(
+                        "  Finalizing staged updates and scheduling restart...");
+                    bool scheduled =
+                        await _updates.CommitAndScheduleRebootAsync(
                         30, "WUM: Completing Windows Update installation");
-                    if (!scheduled)
+                    if (scheduled)
+                    {
+                        ConsoleRenderer.SuccessResult(
+                            "Restart scheduled.",
+                            "Windows Update was finalized for this boot session.",
+                            CommandPresentation.FormatCommand("reboot --cancel") +
+                            " aborts the countdown; a later WUM restart will not commit twice.");
+                    }
+                    else
+                    {
+                        rebootScheduleFailed = true;
                         ConsoleRenderer.Failure(
-                            "Could not schedule restart.",
-                            "Windows shutdown command returned an error.",
-                            "Run wum reboot from an Administrator terminal.");
+                            "Could not finalize updates or schedule restart.",
+                            _updates.LastError ?? "Windows rejected the operation.",
+                            "Run " + CommandPresentation.FormatCommand("reboot") +
+                            " from an Administrator terminal.");
+                    }
+                }
+                else
+                {
+                    ConsoleRenderer.Hint(
+                        "Use " + CommandPresentation.FormatCommand("reboot") +
+                        " for the required WUA commit before restarting.");
                 }
             }
             Console.WriteLine();
+            bool operationFailed = results.Any(r =>
+                !r.Installed &&
+                !r.NotApplicable &&
+                !r.RestartRequired);
+            return operationFailed || refreshFailed || rebootScheduleFailed
+                ? 1
+                : 0;
         }
 
         // ── Resolve target updates ────────────────────────────────────────
@@ -202,7 +329,9 @@ namespace WUM.CLI.Commands
                         ConsoleRenderer.WarningResult(
                             "Update " + norm + " not found.",
                             "It may already be installed, hidden, superseded, or not offered by this source.",
-                            "Run wum list --hidden or wum list --installed to verify.");
+                            "Run " + CommandPresentation.FormatCommand("list --hidden") +
+                            " or " + CommandPresentation.FormatCommand("list --installed") +
+                            " to verify.");
                 }
                 return found;
             }
@@ -350,7 +479,7 @@ namespace WUM.CLI.Commands
                     var cts      = new CancellationTokenSource();
                     var fakeProg = SimulateProgressAsync(dlProg, 0, 85, cts.Token);
 
-                    downloaded = await _updates.DownloadUpdateAsync(u.Id);
+                    downloaded = await _updates.DownloadUpdateAsync(u);
 
                     await cts.CancelAsync();
                     try { await fakeProg; } catch { /* cancelled */ }
@@ -361,13 +490,38 @@ namespace WUM.CLI.Commands
                 if (!downloaded)
                 {
                     string reason = _updates.LastError ?? "unknown cause";
-                    ConsoleRenderer.Failure(
-                        "Download failed for " + u.KBArticle + ".",
-                        reason,
-                        "Run wum diagnose; check BITS, WU service, network, and disk space.");
                     result.Downloaded = false;
                     result.Installed  = false;
-                    result.Error      = "Download failed: " + reason;
+                    result.NotApplicable =
+                        u.Status == UpdateStatus.SupersededOrNotApplicable;
+                    result.RestartRequired =
+                        u.Status == UpdateStatus.RestartRequired ||
+                        u.Status == UpdateStatus.PendingReboot;
+
+                    if (result.NotApplicable)
+                    {
+                        ConsoleRenderer.Notice(
+                            "Skipped " + DisplayId(u) + ": no longer applicable.",
+                            reason,
+                            "The final live scan will remove installed or superseded offers.");
+                    }
+                    else if (result.RestartRequired)
+                    {
+                        ConsoleRenderer.WarningResult(
+                            "Restart required before " + DisplayId(u) + ".",
+                            reason,
+                            "Restart with " + CommandPresentation.FormatCommand("reboot") +
+                            ", then scan again.");
+                    }
+                    else
+                    {
+                        ConsoleRenderer.Failure(
+                            "Download failed for " + DisplayId(u) + ".",
+                            reason,
+                            "Run " + CommandPresentation.FormatCommand("diagnose") +
+                            "; check BITS, WU service, network, and disk space.");
+                        result.Error = "Download failed: " + reason;
+                    }
                     results.Add(result);
                     continue;
                 }
@@ -381,7 +535,7 @@ namespace WUM.CLI.Commands
                     var cts      = new CancellationTokenSource();
                     var fakeProg = SimulateProgressAsync(instProg, 0, 90, cts.Token);
 
-                    installed = await _updates.InstallUpdateAsync(u.Id);
+                    installed = await _updates.InstallUpdateAsync(u);
 
                     await cts.CancelAsync();
                     try { await fakeProg; } catch { /* cancelled */ }
@@ -393,6 +547,7 @@ namespace WUM.CLI.Commands
 
                 if (installed)
                 {
+                    result.RestartRequired = u.RequiresReboot;
                     ConsoleRenderer.Success("    ✓ Installed successfully");
                     if (u.RequiresReboot)
                         ConsoleRenderer.Warning(
@@ -401,11 +556,36 @@ namespace WUM.CLI.Commands
                 else
                 {
                     string reason = _updates.LastError ?? "unknown cause";
-                    ConsoleRenderer.Failure(
-                        "Installation failed for " + u.KBArticle + ".",
-                        reason,
-                        "Run wum diagnose; reboot if pending, then retry this KB.");
-                    result.Error = "Install failed: " + reason;
+                    result.NotApplicable =
+                        u.Status == UpdateStatus.SupersededOrNotApplicable;
+                    result.RestartRequired =
+                        u.Status == UpdateStatus.RestartRequired ||
+                        u.Status == UpdateStatus.PendingReboot;
+
+                    if (result.NotApplicable)
+                    {
+                        ConsoleRenderer.Notice(
+                            "Skipped " + DisplayId(u) + ": no longer applicable.",
+                            reason,
+                            "It may have been installed or superseded during this run.");
+                    }
+                    else if (result.RestartRequired)
+                    {
+                        ConsoleRenderer.WarningResult(
+                            "Restart required before " + DisplayId(u) + ".",
+                            reason,
+                            "Restart with " + CommandPresentation.FormatCommand("reboot") +
+                            ", then scan again.");
+                    }
+                    else
+                    {
+                        ConsoleRenderer.Failure(
+                            "Installation failed for " + DisplayId(u) + ".",
+                            reason,
+                            "Run " + CommandPresentation.FormatCommand("diagnose") +
+                            "; reboot if pending, then retry this update.");
+                        result.Error = "Install failed: " + reason;
+                    }
                 }
 
                 results.Add(result);
@@ -435,9 +615,11 @@ namespace WUM.CLI.Commands
         // ── Print summary table ───────────────────────────────────────────
         private static void PrintSummary(List<InstallResult> results)
         {
-            int ok      = results.Count(r => r.Installed);
-            int failed  = results.Count(r => !r.Installed);
-            int skipped = results.Count(r => !r.Downloaded);
+            int ok = results.Count(r => r.Installed);
+            int notApplicable = results.Count(r => r.NotApplicable);
+            int restartRequired = results.Count(r => r.RestartRequired);
+            int failed = results.Count(r =>
+                !r.Installed && !r.NotApplicable && !r.RestartRequired);
 
             Console.WriteLine();
             ConsoleRenderer.Divider('═');
@@ -450,14 +632,19 @@ namespace WUM.CLI.Commands
             if (failed > 0)
                 ConsoleRenderer.CountLine("Failed",
                     failed, ConsoleColor.Red);
-            if (skipped > 0)
-                ConsoleRenderer.CountLine("Skipped (DL fail)",
-                    skipped, ConsoleColor.Yellow);
+            if (notApplicable > 0)
+                ConsoleRenderer.CountLine("No longer applicable",
+                    notApplicable, ConsoleColor.DarkGray);
+            if (restartRequired > 0)
+                ConsoleRenderer.CountLine("Restart required",
+                    restartRequired, ConsoleColor.Yellow);
 
             Console.WriteLine();
 
             // Detail any failures
-            var failures = results.Where(r => !r.Installed).ToList();
+            var failures = results.Where(r =>
+                !r.Installed && !r.NotApplicable && !r.RestartRequired)
+                .ToList();
             if (failures.Count > 0)
             {
                 ConsoleRenderer.SectionHeader("Failed Updates");
@@ -472,7 +659,8 @@ namespace WUM.CLI.Commands
                     Console.ResetColor();
                     ConsoleRenderer.Hint(
                         "Next for " + f.Update.KBArticle +
-                        ": run wum diagnose, then retry this update.");
+                        ": run " + CommandPresentation.FormatCommand("diagnose") +
+                        ", then retry this update.");
                 }
                 Console.WriteLine();
                 if (!WUM.CLI.Helpers.AdminHelper.IsRunningAsAdmin())
@@ -517,12 +705,19 @@ namespace WUM.CLI.Commands
             return v.ToString("0.##") + " " + s[i];
         }
 
+        private static string DisplayId(WindowsUpdate update) =>
+            string.IsNullOrWhiteSpace(update.KBArticle)
+                ? update.Id
+                : update.KBArticle;
+
         // ── Result record ─────────────────────────────────────────────────
         private class InstallResult
         {
             public WindowsUpdate Update     { get; set; } = null!;
             public bool          Downloaded { get; set; }
             public bool          Installed  { get; set; }
+            public bool          NotApplicable { get; set; }
+            public bool          RestartRequired { get; set; }
             public string?       Error      { get; set; }
         }
     }

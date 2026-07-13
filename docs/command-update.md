@@ -18,13 +18,6 @@ wum update [--check|-c] [--force|-f|--yes|-y]
 wum upgrade [--check|-c] [--force|-f|--yes|-y]
 ```
 
-## Interactive form
-
-```text
-/update [--check|-c] [--force|-f|--yes|-y]
-/upgrade [--check|-c] [--force|-f|--yes|-y]
-```
-
 ## Options
 
 | Option | Detail |

@@ -19,8 +19,6 @@ description: "Every WUM command, sub-command, argument, option, and example."
 
 Complete reference for every WUM command, sub-command, argument, and option. Synopsis applies whether you run the published `wum.exe` or `dotnet run --project src/WUM.CLI -- <args>`.
 
-Running `wum` with no arguments opens the smart interactive shell. In that shell, prefix commands with `/`: `/status`, `/list --security`, `/install KB5034441 --dry-run`. See [Interactive Mode](interactive.md) for the full prompt, shortcuts, history, and completion behavior.
-
 ## Global options & flags
 
 | Flag | Effect | Admin |
@@ -40,7 +38,7 @@ Most read commands share these:
 | `--json` | Emit machine-readable JSON instead of the colorized view. Ideal for scripting/piping |
 | `--no-color` | Disable ANSI colors (where supported — `list`) |
 | `--verbose`, `-v` | Step-by-step / full-detail debug output (`status`, `list`) |
-| `--refresh` | Force a fresh online scan, bypassing the 5-minute scan cache (`status`, `list`, `diagnose`) |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before the current live query (`status`, `list`, `diagnose`) |
 
 ---
 
@@ -68,7 +66,6 @@ Most read commands share these:
 
 | Command | Arguments / subcommands | Supported options |
 |---|---|---|
-| `wum` | none; opens interactive mode when run with no args | `--version`, `--info`, `--help` |
 | `wum status` | none | `--json`, `--verbose`/`-v`, `--refresh` |
 | `wum list` | none | `--security`, `--critical`, `--optional`, `--drivers`, `--definition`, `--hidden`, `--installed`, `--microsoft-update`/`--mu`, `--json`, `--no-color`, `--verbose`/`-v`, `--refresh` |
 | `wum search` | `<term>` | `--category <name>`, `--json`, `--microsoft-update`/`--mu` |
@@ -91,8 +88,6 @@ Most read commands share these:
 | `wum reboot` | none | `--delay <seconds>`, `--force`/`-f`, `--cancel` |
 | `wum diagnose` | none | `--refresh`, `--json`, `--fix`, `--force`/`-f` |
 | `wum update` / `wum upgrade` | none | `--check`/`-c`, `--force`/`-f`, `--yes`/`-y` |
-
-Interactive mode supports the same command arguments and options with a slash prefix, for example `/list --security` or `/install KB5034441 --dry-run`. The full slash-command matrix and session-only helpers are documented in [Interactive Command Reference](interactive-commands.md).
 
 ---
 
@@ -132,7 +127,7 @@ wum status [--json] [--verbose|-v] [--refresh]
 |---|---|---|
 | `--json` | off | Output as JSON |
 | `--verbose`, `-v` | off | Step-by-step debug trace (service check, reboot check, pause read, COM fetch, per-update list) |
-| `--refresh` | off | Force a fresh online scan instead of the shared cache |
+| `--refresh` | off | Request an explicit user-initiated Windows Update refresh before querying current status |
 
 **Examples**
 
@@ -140,14 +135,12 @@ wum status [--json] [--verbose|-v] [--refresh]
 wum status                 # Colorized dashboard
 wum status --json          # Machine-readable
 wum status -v              # Debug trace of every step
-wum status --refresh       # Re-scan WU online, ignore cache
+wum status --refresh       # Request an OS refresh, then query current status
 ```
 
 **System verdict logic**
 
-- `0` updates → `✓ System is up to date` (green)
-- any security/critical update → `! Security updates available` (red)
-- otherwise → `● Updates available` (yellow)
+Current action takes priority: restart-required, failed, installing, downloading, and pending-installation states are shown distinctly. Otherwise, zero updates means up to date; security updates take precedence over the generic available verdict.
 
 **JSON shape**
 
@@ -155,7 +148,14 @@ wum status --refresh       # Re-scan WU online, ignore cache
 {
   "reboot_required": false,
   "updates_available": 3,
+  "available_updates": 1,
   "security_updates": 1,
+  "feature_updates": 1,
+  "downloading_updates": 0,
+  "pending_installation": 1,
+  "installing_updates": 0,
+  "restart_required_updates": 0,
+  "failed_updates": 0,
   "updates_paused": false,
   "paused_until": null,
   "wu_service": "Running",
@@ -192,7 +192,7 @@ wum list [--security] [--critical] [--optional] [--drivers] [--definition]
 | `--json` | Output as JSON (the filtered list of `WindowsUpdate` objects) |
 | `--no-color` | Disable ANSI colors |
 | `--verbose`, `-v` | Full detail per update (KB, category, severity, size, status, reboot, description, support URL) |
-| `--refresh` | Force a fresh online scan instead of the shared cache |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before querying current updates |
 
 > Category flags are **OR**-combined: `wum list --security --drivers` shows both. With no filter, all updates are listed. Filtering is applied **after** the scan, in C#.
 
@@ -207,7 +207,7 @@ wum list --hidden              # Include hidden updates
 wum list -v                    # Full detail per update
 wum list --json                # JSON for scripting
 wum list --no-color            # Plain text for piping
-wum list --refresh             # Bypass the 5-min cache
+wum list --refresh             # Request an OS refresh, then query current updates
 ```
 
 The footer reports total download size and how many updates need a reboot.
@@ -251,7 +251,7 @@ wum search driver --mu --json
 
 ## `wum install`
 
-Download and install updates with an install-plan preview, per-update progress bars, and a post-install summary. **Requires Administrator.**
+Download and install updates with an install-plan preview, per-update progress bars, and a post-install summary. Download/install operations **require Administrator**; `--dry-run` is read-only and does not.
 
 **Synopsis**
 
@@ -300,9 +300,9 @@ wum install --all --no-reboot          # Don't prompt for restart
 wum install --definition --mu          # Defender defs incl. Microsoft Update
 ```
 
-**Flow:** scan → resolve targets → show plan (grouped by category, totals, reboot count) → confirm (unless `--force`) → per-update download + install with progress → summary (installed / failed / skipped, with failure reasons) → reboot prompt (unless `--no-reboot`, schedules a 30s restart via `shutdown /r`).
+**Flow:** scan → resolve targets → show plan → confirm (unless `--force`) → per-update download + install → full live refresh → state-aware summary → reboot prompt unless `--no-reboot`.
 
-> On any successful install the scan cache is invalidated so the next `status`/`list`/`diagnose` reflects the new state. Failure reasons come from `IUpdateService.LastError` (decoded HRESULT where possible).
+> After installation, WUM re-queries Windows Update so installed, failed, pending-restart, superseded, and no-longer-applicable updates are not reported from an old result. No-longer-applicable and restart-required items are not counted as failures. Pending feature updates are committed once immediately before a WUM-scheduled reboot.
 
 ---
 
@@ -550,7 +550,7 @@ wum reboot --force             # No confirmation
 wum reboot --cancel            # Abort a scheduled reboot
 ```
 
-> Without `--force`, if no reboot is currently required the command reports that and exits. The restart is scheduled with `shutdown /r /t <delay> /c "<message>"`.
+> Without `--force`, if no reboot is currently required the command reports that and exits. For a pending update restart, WUM calls WUA `Commit(0)` once for the current boot, then schedules `shutdown /r`. Commit failure aborts scheduling; `--cancel` never commits.
 
 ---
 
@@ -569,7 +569,7 @@ wum diagnose --fix [--force|-f]
 
 | Option | Description |
 |---|---|
-| `--refresh` | Force a fresh update scan (re-counts available updates and rewrites the cache so `status`/`list` agree) |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before counting current updates |
 | `--json` | Output structured diagnostics + an exit code, then stop |
 | `--fix` | **Reset Windows Update components** — destructive, admin only (see below) |
 | `--force`, `-f` | Skip the `--fix` confirmation prompt |
@@ -578,7 +578,7 @@ wum diagnose --fix [--force|-f]
 
 ```bash
 wum diagnose                   # Full colorized report
-wum diagnose --refresh         # Re-scan instead of using the cache
+wum diagnose --refresh         # Request an OS refresh before the live query
 wum diagnose --json            # Structured output + exit code
 echo $?                        # (PowerShell: $LASTEXITCODE) read the bitmask
 wum diagnose --fix             # Reset WU components (confirms first)

@@ -20,12 +20,6 @@ Shows, sets, or clears WUM weekly update schedule.
 /schedule clear
 ```
 
-CLI equivalent:
-
-```powershell
-wum schedule [show|set|clear] [options]
-```
-
 ## Subcommands
 
 | Subcommand | Detail |
@@ -59,6 +53,6 @@ wum schedule [show|set|clear] [options]
 /schedule clear
 ```
 
-More backend detail: [`wum schedule`](command-schedule.md)
+Implementation detail: [schedule behavior](command-schedule.md)
 
 Next: [`/settings`](interactive-command-settings.md)

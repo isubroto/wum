@@ -18,18 +18,11 @@ wum diagnose [--refresh] [--json]
 wum diagnose --fix [--force|-f]
 ```
 
-## Interactive form
-
-```text
-/diagnose [--refresh] [--json]
-/diagnose --fix [--force|-f]
-```
-
 ## Options
 
 | Option | Detail |
 |---|---|
-| `--refresh` | Force a fresh available-update scan so diagnose, status, and list agree. |
+| `--refresh` | Request an explicit user-initiated Windows Update refresh before the live available-update query. |
 | `--json` | Output structured diagnostics and return scriptable exit bitmask. |
 | `--fix` | Reset Windows Update components. Requires Administrator. |
 | `--force`, `-f` | Skip `--fix` confirmation prompt. |
@@ -40,7 +33,7 @@ Normal diagnose mode is read-only. `--fix` is destructive: pending downloads are
 
 ## `--fix` reset steps
 
-`--fix` stops Windows Update services, renames `SoftwareDistribution` and `catroot2` to `.bak`, reregisters WU DLLs, resets WinSock/WinHTTP proxy, restarts services, invalidates scan cache, and triggers re-detection.
+`--fix` stops Windows Update services, renames `SoftwareDistribution` and `catroot2` to `.bak`, reregisters WU DLLs, resets WinSock/WinHTTP proxy, restarts services, and triggers re-detection before a new live query.
 
 ## Exit bitmask
 
