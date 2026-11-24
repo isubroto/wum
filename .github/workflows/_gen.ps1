@@ -102,7 +102,8 @@ Installers:
     InstallerUrl: $msiUrl
     InstallerSha256: $hash
     ProductCode: '$cleanProductCode'
-    ElevationRequirement: elevationRequired
+    # Windows Installer handles UAC for this MSI. Do not force the
+    # shell's runas verb: MSI files may not register that action.
     InstallerSwitches:
       Silent: /qn /norestart
       SilentWithProgress: /qb! /norestart
